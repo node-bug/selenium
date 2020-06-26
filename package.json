@@ -1,29 +1,45 @@
 {
-  "name": "@nodebug/boilerplatejs",
+  "name": "@nodebug/selenium",
   "version": "0.0.1",
   "author": {
     "name": "Node Bug",
     "email": "nodebug@outlook.com"
   },
   "bugs": {
-    "url": "https://github.com/node-bug/boilerplatejs/issues"
+    "url": "https://github.com/node-bug/selenium/issues"
   },
   "dependencies": {
+    "@nodebug/config": "1.0.0",
     "@nodebug/logger": "1.0.0",
-    "@nodebug/config": "1.0.0"
+    "chai": "latest",
+    "chromedriver": "latest",
+    "geckodriver": "latest",
+    "imagemin": "latest",
+    "imagemin-pngquant": "latest",
+    "jsonfile": "latest",
+    "jsonwebtoken": "latest",
+    "selenium-webdriver": "latest"
   },
-  "description": "boiler plate for nodejs projects",
-  "homepage": "https://github.com/node-bug/boilerplatejs#readme",
+  "description": "implementation of seleniumjs to use with test automation",
+  "homepage": "https://github.com/node-bug/selenium#readme",
   "keywords": [
-    "node",
+    "selenium",
     "npm",
-    "boiler",
-    "plate"
+    "chrome",
+    "firefox",
+    "ie",
+    "edge",
+    "test",
+    "automation",
+    "page",
+    "object",
+    "webdriver",
+    "chai"
   ],
   "license": "MPL-2.0",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/thomasashwindsilva/boilerplatejs.git"
+    "url": "git+https://github.com/thomasashwindsilva/selenium.git"
   },
   "scripts": {
     "test": "npm run test"
