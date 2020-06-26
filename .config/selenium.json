@@ -1,0 +1,17 @@
+{
+  "browser": "firefox",
+  "headless": false,
+  "incognito": false,
+  "hub": null,
+  "height": null,
+  "width": null,
+  "timeout": 30,
+  "downloadsPath": "./reports/downloads",
+  "hubs": {
+    "k8s": "https://eks-dev-qa-hub.mldev.cloud",
+    "dev-swarm": "https://dev-qa-zalenium.mldev.cloud",
+    "docker": "http://chrome.local-mml.cloud:4444",
+    "browserstack": "http://hub-cloud.browserstack.com",
+    "local": "http://localhost:4444"
+  }
+}

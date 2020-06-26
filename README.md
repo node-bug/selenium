@@ -1,1 +1,1 @@
-boiler plate for my node js projects
+implementation of seleniumjs to use with test automation
