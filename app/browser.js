@@ -3,7 +3,6 @@ const { Builder, Capabilities } = require('selenium-webdriver')
 const chrome = require('selenium-webdriver/chrome')
 const chromedriver = require('chromedriver')
 require('geckodriver')
-
 const config = require('@nodebug/config')('selenium')
 const { resolve } = require('path')
 const { existsSync, mkdirSync } = require('fs')
@@ -23,16 +22,16 @@ const prefs = {
 }
 
 const hub = (() => {
-  if (config.hub !== null && config.hub !== undefined) {
-    if (config.hubs !== null && config.hubs !== undefined) {
-      if (config.hubs[config.hub] !== undefined) {
-        return `${config.hubs[config.hub]}/wd/hub`
+  if (config.grid !== null && config.grid !== undefined) {
+    if (config.grids !== null && config.grids !== undefined) {
+      if (config.grids[config.grid] !== undefined) {
+        return `${config.grids[config.grid]}/wd/hub`
       }
     }
     log.error(
       `Running on locally...\nSpecified remote ${
-        config.hub
-      } is not set in ${JSON.stringify(config.hubs)}.`,
+        config.grid
+      } is not set in ${JSON.stringify(config.grids)}.`,
     )
   }
   return undefined

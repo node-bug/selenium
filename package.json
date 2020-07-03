@@ -1,6 +1,6 @@
 {
   "name": "@nodebug/selenium",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "author": {
     "name": "Node Bug",
     "email": "nodebug@outlook.com"
@@ -9,8 +9,8 @@
     "url": "https://github.com/node-bug/selenium/issues"
   },
   "dependencies": {
-    "@nodebug/logger": "1.0.0",
     "@nodebug/config": "1.0.0",
+    "@nodebug/logger": "1.0.0",
     "chai": "latest",
     "chromedriver": "latest",
     "geckodriver": "latest",

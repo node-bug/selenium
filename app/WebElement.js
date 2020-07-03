@@ -70,7 +70,7 @@ function WebElement(driver, element) {
 
   that.scrollIntoView = async () =>
     my.driver.executeScript(
-      'arguments[0].scrollIntoView(); window.scrollBy(0, -window.innerHeight / 4);',
+      'arguments[0].scrollIntoView();',
       await that.getWebElement(),
     )
 

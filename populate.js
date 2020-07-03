@@ -350,23 +350,26 @@ async function populateRichTextField(selector, value, WebElementObject) {
     log.debug(
       `Special Instruction is : ${localSpecialInstr}. Focussing on element.`,
     )
+    await WebElementObject.webElement.scrollIntoView()
     await WebElementObject.webElement.focus()
   }
   if (!localSpecialInstr.toLowerCase().includes('noclick')) {
     log.debug(
       `Special Instruction is : ${localSpecialInstr}. Clicking on element.`,
     )
-    await actions.click(selector)
+    await actions.click(selector).perform()
   }
 
   if (localSpecialInstr.toLowerCase().includes('overwrite')) {
     log.debug(
-      `Special Instruction is : ${localSpecialInstr}. Current text is ${eleValue}. Overwriting text.`,
+      `Special Instruction is : ${localSpecialInstr}. Current text is ${eleValue}. Deleting text.`,
     )
-    await actions.doubleClick(selector).sendKeys(value).perform()
-  } else {
-    await actions.sendKeys(value).perform()
+    for (let i = 0; i < eleValue.length; i++) {
+      // eslint-disable-next-line no-await-in-loop
+      await actions.sendKeys(Key.BACK_SPACE).perform()
+    }
   }
+  await actions.sendKeys(value).perform()
   log.debug(`Post populate text field value: ${value}`)
   return true
 }

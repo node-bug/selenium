@@ -8,8 +8,9 @@ const Browser = require('./app/browser')
 
 const browser = new Browser()
 
-// eslint-disable-next-line no-underscore-dangle
-const capabilities = (async () => (await browser.getCapabilities()).map_)()
+const capabilities = (async () =>
+  // eslint-disable-next-line no-underscore-dangle
+  Object.fromEntries((await browser.getCapabilities()).map_))()
 
 function getDriver() {
   return browser
@@ -34,21 +35,27 @@ async function maximize() {
 }
 
 async function setSize(size) {
+  await maximize()
   try {
-    if (size !== undefined) {
+    if (size.height !== undefined && size.width !== undefined) {
       log.info(`Resizing the browser to ${JSON.stringify(size)}.`)
       return browser.manage().window().setRect(size)
     }
-    return maximize()
   } catch (err) {
     log.error(err)
     throw err
   }
+  return false
 }
 
 async function visitURL(url) {
+  const size = {}
+  if (config.height !== null && config.width !== null) {
+    size.height = config.height
+    size.width = config.width
+  }
   log.info(`Loading the url ${url} in the browser.`)
-  await setSize(config.size)
+  await setSize(size)
   await browser.manage().setTimeouts({
     implicit: config.timeout,
     pageLoad: config.timeout,
@@ -56,7 +63,7 @@ async function visitURL(url) {
   })
   await browser.setFileDetector(new remote.FileDetector())
   await browser.get(url)
-  await sleep(2000)
+  // await sleep(2000)
 }
 
 async function closeBrowser() {

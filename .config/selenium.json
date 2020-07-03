@@ -1,13 +1,13 @@
 {
   "browser": "firefox",
   "headless": false,
+  "timeout": 30000,
+  "downloadsPath": "./reports/downloads",
   "incognito": false,
-  "hub": null,
   "height": null,
   "width": null,
-  "timeout": 30,
-  "downloadsPath": "./reports/downloads",
-  "hubs": {
+  "grid": null,
+  "grids": {
     "k8s": "https://eks-dev-qa-hub.mldev.cloud",
     "dev-swarm": "https://dev-qa-zalenium.mldev.cloud",
     "docker": "http://chrome.local-mml.cloud:4444",

@@ -18,6 +18,8 @@ const {
   populateRichTextField,
 } = require('./populate')
 
+const driver = getDriver()
+
 function PageObject(pageNameInput, pageNameDirectoryInput) {
   const that = {}
   that.pageName = pageNameInput
@@ -71,7 +73,7 @@ function PageObject(pageNameInput, pageNameDirectoryInput) {
       WebElementData = await getElement(elementName)
       // eslint-disable-next-line no-use-before-define
       await switchFrame(WebElementData.frame)
-      WebElementObject = await WebElement(WebElementData)
+      WebElementObject = new WebElement(driver, WebElementData)
 
       const { implicit } = await getDriver().manage().getTimeouts()
       switch (value.toLowerCase()) {
@@ -126,7 +128,7 @@ function PageObject(pageNameInput, pageNameDirectoryInput) {
       log.debug(`Switching to frame ${elementName}`)
       if (await genericAssertElement(elementName, 'displayed')) {
         const WebElementData = await getElement(elementName)
-        const WebElementObject = await WebElement(WebElementData)
+        const WebElementObject = new WebElement(driver, WebElementData)
         const webElement = await WebElementObject.getWebElement()
         await that.driver.wait(
           until.ableToSwitchToFrame(webElement, config.timeout),
@@ -160,7 +162,7 @@ function PageObject(pageNameInput, pageNameDirectoryInput) {
 
       // If need to hit a iframe, do it
       await switchFrame(WebElementData.frame)
-      WebElementObject = await WebElement(WebElementData)
+      WebElementObject = new WebElement(driver, WebElementData)
       actionElement.webElement = WebElementObject
 
       const webElement = await WebElementObject.getWebElement()
@@ -246,7 +248,7 @@ function PageObject(pageNameInput, pageNameDirectoryInput) {
       let WebElementData = {}
       WebElementData = await getElement(element)
       await switchFrame(WebElementData.frame)
-      const WebElementObject = await WebElement(WebElementData)
+      const WebElementObject = new WebElement(driver, WebElementData)
       elementList = await WebElementObject.getWebElements()
       return elementList
     }
@@ -288,7 +290,7 @@ function PageObject(pageNameInput, pageNameDirectoryInput) {
       WebElementData = await getElement(element)
       const actionElement = {}
       await switchFrame(WebElementData.frame)
-      WebElementObject = await WebElement(WebElementData)
+      WebElementObject = new WebElement(driver, WebElementData)
       actionElement.webElement = WebElementObject
       log.info(
         `Info: Page Element ${element} retrieved from Page Elements collection for exists check.`,
@@ -348,7 +350,7 @@ function PageObject(pageNameInput, pageNameDirectoryInput) {
       let WebElementData = {}
       WebElementData = await getElement(elementName)
       await switchFrame(WebElementData.frame)
-      const WebElementObject = await WebElement(WebElementData)
+      const WebElementObject = new WebElement(driver, WebElementData)
       const webElement = await WebElementObject.getWebElement()
 
       if (attributeName === undefined) {
@@ -487,7 +489,7 @@ function PageObject(pageNameInput, pageNameDirectoryInput) {
     if (await hasElement(elementName)) {
       WebElementData = await getElement(elementName)
       await switchFrame(WebElementData.frame)
-      WebElementObject = await WebElement(WebElementData)
+      WebElementObject = new WebElement(driver, WebElementData)
 
       switch (condition.toLowerCase()) {
         case 'visibility':
@@ -742,7 +744,7 @@ function PageObject(pageNameInput, pageNameDirectoryInput) {
     if (await hasElement(fromElementName)) {
       WebElementData = await getElement(fromElementName)
       await switchFrame(WebElementData.frame)
-      WebElementObject = await WebElement(WebElementData)
+      WebElementObject = new WebElement(driver, WebElementData)
       await WebElementObject.scrollIntoView()
       From = await WebElementObject.getWebElement()
     }
@@ -763,7 +765,7 @@ function PageObject(pageNameInput, pageNameDirectoryInput) {
     if (await hasElement(toElementName)) {
       WebElementData = await getElement(toElementName)
       await switchFrame(WebElementData.frame)
-      WebElementObject = await WebElement(WebElementData)
+      WebElementObject = new WebElement(driver, WebElementData)
       await WebElementObject.scrollIntoView()
       To = await WebElementObject.getWebElement()
     }
@@ -831,6 +833,4 @@ function PageObject(pageNameInput, pageNameDirectoryInput) {
   return that
 }
 
-module.exports = {
-  PageObject,
-}
+module.exports = PageObject
