@@ -1,5 +1,5 @@
 const { log } = require('@nodebug/logger')
-const { By, until } = require('selenium-webdriver')
+const { By, until, Condition } = require('selenium-webdriver')
 
 const that = {}
 
@@ -62,8 +62,10 @@ function WebElement(driver, element) {
 
   that.getWebElements = async () => my.driver.findElements(my.definition)
 
-  that.elementDisplayed = async () =>
+  that.isDisplayed = async () =>
     my.driver.findElement(my.definition).isDisplayed()
+
+  that.isEnabled = async () => my.driver.findElement(my.definition).isEnabled()
 
   that.focus = async () =>
     my.driver.executeScript('arguments[0].focus();', await that.getWebElement())
@@ -73,9 +75,6 @@ function WebElement(driver, element) {
       'arguments[0].scrollIntoView();',
       await that.getWebElement(),
     )
-
-  that.elementDisabled = async () =>
-    my.driver.wait(until.elementIsDisabled(await that.getWebElement()), 3000)
 
   that.hide = async () =>
     that
@@ -95,39 +94,25 @@ function WebElement(driver, element) {
         ),
       )
 
-  that.waitForVisibility = async (timeoutInSeconds) => {
-    const { implicit } = await my.driver.manage().getTimeouts()
-    await my.driver.manage().setTimeouts({ implicit: 5000 })
-    let visibility = false
-    const timer = Date.now()
-    while ((Date.now() - timer) / 1000 < timeoutInSeconds) {
-      // eslint-disable-next-line no-await-in-loop
-      const elements = await that.getWebElements()
-      if (elements.length > 0) {
-        visibility = true
-        break
-      }
-    }
-    await my.driver.manage().setTimeouts({ implicit })
-    return visibility
-  }
+  that.isPresent = async (timeout) =>
+    my.driver.wait(until.elementsLocated(my.definition), timeout)
 
-  that.waitForInvisibility = async (timeoutInSeconds) => {
-    const { implicit } = await my.driver.manage().getTimeouts()
-    await my.driver.manage().setTimeouts({ implicit: 5000 })
-    let invisibility = false
-    const timer = Date.now()
-    while ((Date.now() - timer) / 1000 < timeoutInSeconds) {
-      // eslint-disable-next-line no-await-in-loop
-      const elements = await that.getWebElements()
-      if (elements.length < 1) {
-        invisibility = true
-        break
-      }
-    }
-    await my.driver.manage().setTimeouts({ implicit })
-    return invisibility
-  }
+  that.isNotPresent = async (timeout) =>
+    my.driver.wait(
+      new Condition(
+        `for 0 elements to be located By(${my.byType}, ${my.definition})`,
+        // eslint-disable-next-line func-names
+        async function () {
+          try {
+            await that.waitForVisibility(1000)
+          } catch (ex) {
+            return true
+          }
+          return false
+        },
+      ),
+      timeout,
+    )
 
   return that
 }
