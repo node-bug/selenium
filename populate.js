@@ -158,7 +158,7 @@ async function populateTextField(selector, value, WebElementObject) {
   return true
 }
 
-async function populateClick(selector, value, WebElementObject) {
+async function populateClick(selector, WebElementObject) {
   const WebElementData = WebElementObject.element
   let localSpecialInstr = ''
   if (WebElementData && WebElementData.specialInstr != null) {
@@ -172,65 +172,61 @@ async function populateClick(selector, value, WebElementObject) {
     await WebElementObject.webElement.focus()
   }
 
-  if (value.toLowerCase() === 'click') {
-    if (WebElementData && WebElementData.waitForElementToBeEnabled) {
-      log.debug('Waiting until element to be enabled')
-      const webElementTarget = await WebElement(WebElementData)
-      const webElement = await webElementTarget.getWebElement()
-      await selector.onWaitForWebElementToBeEnabled(webElement)
-      await sleep(500)
-    }
+  // if (value.toLowerCase() === 'click') {
+  // if (WebElementData && WebElementData.waitForElementToBeEnabled) {
+  //   log.debug('Waiting until element to be enabled')
+  //   const webElementTarget = await WebElement(WebElementData)
+  //   const webElement = await webElementTarget.getWebElement()
+  //   await selector.onWaitForWebElementToBeEnabled(webElement)
+  //   await sleep(500)
+  // }
 
-    try {
-      await selector.click()
-    } catch (ex) {
-      if (ex.name === 'ElementNotInteractableError') {
-        log.info(`Error name ${ex.name}.`)
-        log.info('Trying again using mouse actions to perform click.')
-        const actions = selector.getDriver().actions({ bridge: true })
-        try {
-          await actions.click(selector).perform()
-        } catch (e) {
-          log.info(`Error name ${e.name} while clicking using actions.`)
-        }
-      } else if (ex.name === 'ElementClickInterceptedError') {
-        log.info(`Error name ${ex.name}.`)
-        log.info('Trying again using page script actions to perform click.')
-        try {
-          await selector
-            .getDriver()
-            .executeScript('arguments[0].click();', selector)
-        } catch (e) {
-          log.info(`Error name ${e.name} while clicking using executeScript.`)
-        }
-      } else {
-        assert.fail(`Exception occurred and caught. ${ex}`)
+  try {
+    await selector.click()
+  } catch (ex) {
+    if (ex.name === 'ElementNotInteractableError') {
+      log.info(`Error name ${ex.name}.`)
+      log.info('Trying again using mouse actions to perform click.')
+      const actions = selector.getDriver().actions({ bridge: true })
+      try {
+        await actions.click(selector).perform()
+      } catch (e) {
+        log.info(`Error name ${e.name} while clicking using actions.`)
       }
+    } else if (ex.name === 'ElementClickInterceptedError') {
+      log.info(`Error name ${ex.name}.`)
+      log.info('Trying again using page script actions to perform click.')
+      try {
+        await selector
+          .getDriver()
+          .executeScript('arguments[0].click();', selector)
+      } catch (e) {
+        log.info(`Error name ${e.name} while clicking using executeScript.`)
+      }
+    } else {
+      assert.fail(`Exception occurred and caught. ${ex}`)
     }
-    await sleep(500)
-
-    if (WebElementData && WebElementData.waitIdToBeVisibleonNextPage) {
-      log.debug('Waiting until page loads after click')
-      await selector.onPageLoadedWaitById(
-        WebElementData.waitIdToBeVisibleonNextPage,
-      )
-      // await sleep(500);
-    }
-
-    if (WebElementData && WebElementData.waitToBeVisible) {
-      log.debug(
-        `Waiting until WebElementData (${WebElementData}) to be visible`,
-      )
-      const webElementTarget = await WebElement(
-        WebElementObject.waitToBeVisible,
-      )
-      const webElement = await webElementTarget.getBy()
-      await selector.onWaitForElementToBeVisible(webElement)
-      // await sleep(500);
-    }
-
-    log.debug('Clicked web element')
   }
+  await sleep(500)
+
+  if (WebElementData && WebElementData.waitIdToBeVisibleonNextPage) {
+    log.debug('Waiting until page loads after click')
+    await selector.onPageLoadedWaitById(
+      WebElementData.waitIdToBeVisibleonNextPage,
+    )
+    // await sleep(500);
+  }
+
+  if (WebElementData && WebElementData.waitToBeVisible) {
+    log.debug(`Waiting until WebElementData (${WebElementData}) to be visible`)
+    const webElementTarget = await WebElement(WebElementObject.waitToBeVisible)
+    const webElement = await webElementTarget.getBy()
+    await selector.onWaitForElementToBeVisible(webElement)
+    // await sleep(500);
+  }
+
+  log.debug('Clicked web element')
+  // }
 
   if (WebElementObject && WebElementObject.elementToWaitToBeInvisible) {
     log.debug(
@@ -379,7 +375,7 @@ async function populateInput(selector, value, WebElementObject) {
   switch (type) {
     case 'radio':
       if (value.toLowerCase() === 'click') {
-        await populateClick(selector, value, WebElementObject)
+        await populateClick(selector, WebElementObject)
       } else {
         log.debug('By passing radio button click')
       }
@@ -399,7 +395,7 @@ async function populateInput(selector, value, WebElementObject) {
 
     case 'checkbox':
       if (value.toLowerCase() === 'click') {
-        await populateClick(selector, value, WebElementObject)
+        await populateClick(selector, WebElementObject)
       } else {
         await populateCheckbox(selector, value, WebElementObject)
       }
@@ -408,7 +404,7 @@ async function populateInput(selector, value, WebElementObject) {
     case 'button':
     case 'submit':
       if (value.toLowerCase() === 'click') {
-        await populateClick(selector, value, WebElementObject)
+        await populateClick(selector, WebElementObject)
       } else {
         log.debug('Bypassing the button click')
       }

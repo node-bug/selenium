@@ -104,7 +104,7 @@ function WebElement(driver, element) {
         // eslint-disable-next-line func-names
         async function () {
           try {
-            await that.waitForVisibility(1000)
+            await that.isPresent(1000)
           } catch (ex) {
             return true
           }
