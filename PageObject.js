@@ -17,6 +17,7 @@ const {
   populateSelect,
   populateRichTextField,
 } = require('./populate')
+const { sleep } = require('./utils')
 
 function PageObject(pageNameInput, pageNameDirectoryInput) {
   const that = {}
@@ -69,6 +70,7 @@ function PageObject(pageNameInput, pageNameDirectoryInput) {
 
   async function switchFrame(frame) {
     await that.driver.switchTo().defaultContent()
+    await sleep(100)
     if (frame !== 'default') {
       if (typeof frame === 'number') {
         log.debug(`Switching to frame number ${frame}`)
@@ -234,6 +236,7 @@ function PageObject(pageNameInput, pageNameDirectoryInput) {
         // If need to hit a iframe, do it
         const WebElementObject = new WebElement(that.driver, WebElementData)
         const webElement = await WebElementObject.getWebElement()
+        // console.log(await that.driver.getPageSource())
         const tagName = await webElement.getTagName()
         const actionElement = {}
         actionElement.element = WebElementData
@@ -385,62 +388,65 @@ function PageObject(pageNameInput, pageNameDirectoryInput) {
   }
 
   // to be revisited
-  async function genericGetAttribute(elementName, attributeName) {
+  async function genericGetAttribute(payload) {
     let returnValue
-    if (await hasElement(elementName)) {
-      const WebElementData = await getElement(elementName)
+    const element = await addDynamicElement(
+      payload.elementName,
+      payload.replaceText,
+    )
+    log.debug(`Getting attribute value for WebElement ${element}`)
+    if (await hasElement(element)) {
+      const WebElementData = await getElement(element)
       await switchFrame(WebElementData.frame)
       const WebElementObject = new WebElement(that.driver, WebElementData)
       const webElement = await WebElementObject.getWebElement()
+      try {
+        switch (payload.attribute.toLowerCase()) {
+          case 'text':
+            returnValue = await webElement.getText()
+            break
 
-      if (attributeName === undefined) {
-        // eslint-disable-next-line no-param-reassign
-        attributeName = 'textContent'
-      }
+          case 'selected':
+            returnValue = await webElement.isSelected()
+            break
 
-      if (attributeName.toLowerCase() === 'text') {
-        returnValue = await webElement.getText()
-      } else if (attributeName === 'selected') {
-        returnValue = await webElement.isSelected()
-      } else {
-        returnValue = await webElement.getAttribute(attributeName)
+          default:
+            returnValue = await webElement.getAttribute(payload.attribute)
+            break
+        }
+      } catch (err) {
+        log.error(err.stack)
+        throw err
       }
-      log.info(
-        `Attribute "${attributeName}" value for element "${elementName}" is "${returnValue}".`,
+    } else {
+      assert.fail(
+        `ERROR: WebElement ${element} not found in PageElements during GetAttributeValue() attempt.`,
       )
     }
-    assert.fail(
-      `ERROR: WebElement ${elementName} not found in PageElements during GetAttributeValue() attempt.`,
+    log.info(
+      `Attribute "${payload.attribute}" value for element "${element}" is "${returnValue}".`,
     )
     return returnValue
   }
 
-  const getAttributeValue = async (elementName, replaceText, attributeName) => {
-    if (attributeName === undefined && replaceText !== undefined) {
+  async function getAttributeValue(elementName, replaceText, attribute) {
+    if (attribute === undefined && replaceText !== undefined) {
       /* eslint-disable no-param-reassign */
-      attributeName = replaceText
+      attribute = replaceText
       replaceText = undefined
       /* eslint-enable no-param-reassign */
     }
-    const element = await addDynamicElement(elementName, replaceText)
-
-    try {
-      return await genericGetAttribute(element, attributeName)
-    } catch (err) {
-      log.error(err.stack)
-      throw err
-    }
+    // eslint-disable-next-line no-param-reassign
+    attribute = attribute || 'textContent'
+    return genericGetAttribute({ elementName, replaceText, attribute })
   }
 
-  const getText = async (elementName, replaceText) => {
-    const element = await addDynamicElement(elementName, replaceText)
-
-    try {
-      return await genericGetAttribute(element)
-    } catch (err) {
-      log.error(err.stack)
-      throw err
-    }
+  async function getText(elementName, replaceText) {
+    return genericGetAttribute({
+      elementName,
+      replaceText,
+      attribute: 'textContent',
+    })
   }
 
   async function assertText(elementName, replaceText, expectedValue) {
@@ -450,19 +456,16 @@ function PageObject(pageNameInput, pageNameDirectoryInput) {
       replaceText = undefined
       /* eslint-enable no-param-reassign */
     }
-    const element = await addDynamicElement(elementName, replaceText)
-
-    try {
-      const actualValue = await genericGetAttribute(element)
-      log.info(`Asserting text for "${element}".`)
-      if (await expect(actualValue).to.equal(expectedValue)) {
-        log.info(
-          `Actual value "${actualValue}" equals Expected value "${expectedValue}". PASS`,
-        )
-      }
-    } catch (err) {
-      log.error(err.stack)
-      throw err
+    log.info(`Asserting text for "${elementName} ${replaceText}".`)
+    const text = await genericGetAttribute({
+      elementName,
+      replaceText,
+      attribute: 'textContent',
+    })
+    if (await expect(text).to.equal(expectedValue)) {
+      log.info(
+        `WebElement text "${text}" equals Expected value "${expectedValue}". PASS`,
+      )
     }
   }
 
@@ -473,19 +476,16 @@ function PageObject(pageNameInput, pageNameDirectoryInput) {
       replaceText = undefined
       /* eslint-enable no-param-reassign */
     }
-    const element = await addDynamicElement(elementName, replaceText)
-
-    try {
-      const actualValue = await genericGetAttribute(element)
-      log.info(`Asserting text for "${element}".`)
-      if (await expect(actualValue).to.include(expectedValue)) {
-        log.info(
-          `Actual value "${actualValue}" includes Expected value "${expectedValue}". PASS`,
-        )
-      }
-    } catch (err) {
-      log.error(err.stack)
-      throw err
+    log.info(`Asserting text for "${elementName} ${replaceText}".`)
+    const text = await genericGetAttribute({
+      elementName,
+      replaceText,
+      attribute: 'textContent',
+    })
+    if (await expect(text).to.include(expectedValue)) {
+      log.info(
+        `WebElement text "${text}" includes Expected value "${expectedValue}". PASS`,
+      )
     }
   }
 
@@ -500,20 +500,16 @@ function PageObject(pageNameInput, pageNameDirectoryInput) {
       replaceText = undefined
       /* eslint-enable no-param-reassign */
     }
-    const element = await addDynamicElement(elementName, replaceText)
-
-    try {
-      const actualValue = await genericGetAttribute(element)
-      log.info(`Asserting text for "${element}" does not exist`)
-
-      if (await expect(actualValue).to.not.include(expectedValue)) {
-        log.info(
-          `Actual value "${actualValue}" includes Expected value "${expectedValue}". PASS`,
-        )
-      }
-    } catch (err) {
-      log.error(err.stack)
-      throw err
+    log.info(`Asserting text for "${elementName} ${replaceText}".`)
+    const text = await genericGetAttribute({
+      elementName,
+      replaceText,
+      attribute: 'textContent',
+    })
+    if (await expect(text).to.not.include(expectedValue)) {
+      log.info(
+        `WebElement text "${text}" does not include Expected value "${expectedValue}". PASS`,
+      )
     }
   }
 
@@ -626,35 +622,35 @@ function PageObject(pageNameInput, pageNameDirectoryInput) {
 
   async function getAlertText() {
     log.debug('Getting text in alert popup.')
-    const actualValue = await genericAlertOperations('text')
-    log.info(`${actualValue} is displayed in the alert popup.`)
-    return actualValue
+    const text = await genericAlertOperations('text')
+    log.info(`${text} is displayed in the alert popup.`)
+    return text
   }
 
   async function assertAlertText(expectedValue) {
     log.debug('Asserting text in alert popup.')
-    const actualValue = await genericAlertOperations('text')
-    if (actualValue === expectedValue) {
+    const text = await genericAlertOperations('text')
+    if (text === expectedValue) {
       log.info(
-        `Actual value "${actualValue}" matches Expected value "${expectedValue}". PASS`,
+        `Actual value "${text}" matches Expected value "${expectedValue}". PASS`,
       )
     } else {
       assert.fail(
-        `Actual value "${actualValue}" does not match Expected value "${expectedValue}". FAIL`,
+        `Actual value "${text}" does not match Expected value "${expectedValue}". FAIL`,
       )
     }
   }
 
   async function assertAlertTextIncludes(expectedValue) {
     log.debug('Asserting text in alert popup.')
-    const actualValue = await genericAlertOperations('text')
-    if (actualValue.includes(expectedValue)) {
+    const text = await genericAlertOperations('text')
+    if (text.includes(expectedValue)) {
       log.info(
-        `Actual value "${actualValue}" includes Expected value "${expectedValue}". PASS`,
+        `Actual value "${text}" includes Expected value "${expectedValue}". PASS`,
       )
     } else {
       assert.fail(
-        `Actual value "${actualValue}" does not include Expected value "${expectedValue}". FAIL`,
+        `Actual value "${text}" does not include Expected value "${expectedValue}". FAIL`,
       )
     }
   }
