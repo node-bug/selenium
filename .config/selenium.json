@@ -1,7 +1,7 @@
 {
   "browser": "firefox",
   "headless": false,
-  "timeout": 30000,
+  "timeout": 30,
   "downloadsPath": "./reports/downloads",
   "incognito": false,
   "height": null,

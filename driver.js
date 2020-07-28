@@ -57,9 +57,9 @@ async function visitURL(url) {
   log.info(`Loading the url ${url} in the browser.`)
   await setSize(size)
   await browser.manage().setTimeouts({
-    implicit: config.timeout,
-    pageLoad: config.timeout,
-    script: config.timeout,
+    implicit: config.timeout * 1000,
+    pageLoad: config.timeout * 1000,
+    script: config.timeout * 1000,
   })
   await browser.setFileDetector(new remote.FileDetector())
   await browser.get(url)
@@ -96,7 +96,7 @@ async function resetBrowser() {
 
 async function activateTab(tabName) {
   const startTimer = Date.now()
-  while (Date.now() - startTimer < config.timeout) {
+  while (Date.now() - startTimer < config.timeout * 1000) {
     /* eslint-disable no-await-in-loop */
     const tabs = await browser.getAllWindowHandles()
     for (let index = 0; index < tabs.length; index += 1) {
@@ -115,7 +115,7 @@ async function activateTab(tabName) {
 
 async function closeTabAndSwitch(tabName) {
   const startTimer = Date.now()
-  while (Date.now() - startTimer < config.timeout) {
+  while (Date.now() - startTimer < config.timeout * 1000) {
     /* eslint-disable no-await-in-loop */
     const tabs = await browser.getAllWindowHandles()
     if (tabs.length < 2) {
