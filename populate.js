@@ -361,10 +361,12 @@ async function populateRichTextField(selector, value, WebElementObject) {
     log.debug(
       `Special Instruction is : ${localSpecialInstr}. Current text is ${eleValue}. Deleting text.`,
     )
+    await actions.keyDown(Key.SHIFT)
     for (let i = 0; i < eleValue.length; i++) {
       // eslint-disable-next-line no-await-in-loop
-      await actions.sendKeys(Key.BACK_SPACE).perform()
+      await actions.sendKeys(Key.LEFT)
     }
+    await actions.keyUp(Key.SHIFT)
   }
   await actions.sendKeys(value).perform()
   log.debug(`Post populate text field value: ${value}`)
