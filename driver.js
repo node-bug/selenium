@@ -63,14 +63,18 @@ async function visitURL(url) {
   })
   await browser.setFileDetector(new remote.FileDetector())
   await browser.get(url)
-  // await sleep(2000)
 }
 
 async function closeBrowser() {
-  log.info(
-    `Closing the browser. Current URL is ${await browser.getCurrentUrl()}.`,
-  )
-  return browser.quit()
+  try {
+    log.info(
+      `Closing the browser. Current URL is ${await browser.getCurrentUrl()}.`,
+    )
+    return browser.quit()
+  } catch (err) {
+    log.error(`Error while quitting the browser. ${err.stack}`)
+  }
+  return false
 }
 
 async function resetBrowser() {
@@ -159,24 +163,6 @@ async function takeScreenshot() {
     return false
   }
 }
-
-//   const that = {}
-//   that.capabilities = capabilities
-//   that.getDriver = getDriver
-//   that.closeCurrentTab = closeCurrentTab
-//   that.getTitle = getTitle
-//   that.getURL = getURL
-//   that.switchToTab = switchToTab
-//   that.refresh = refresh
-//   that.maximize = maximize
-//   that.setSize = setSize
-//   that.visitURL = visitURL
-//   that.closeBrowser = closeBrowser
-//   that.resetBrowser = resetBrowser
-//   that.activateTab = activateTab
-//   that.closeTabAndSwitch = closeTabAndSwitch
-//   that.takeScreenshot = takeScreenshot
-//   return that
 
 module.exports = {
   capabilities,
