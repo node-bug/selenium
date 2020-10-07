@@ -58,8 +58,8 @@ async function visitURL(url) {
   await setSize(size)
   await browser.manage().setTimeouts({
     implicit: config.timeout * 1000,
-    pageLoad: config.timeout * 1000,
-    script: config.timeout * 1000,
+    pageLoad: 6 * config.timeout * 1000,
+    script: 6 * config.timeout * 1000,
   })
   await browser.setFileDetector(new remote.FileDetector())
   await browser.get(url)
@@ -181,78 +181,3 @@ module.exports = {
   closeTabAndSwitch,
   takeScreenshot,
 }
-
-// const {By, until} = require('selenium-webdriver');
-
-// const onWaitForElementToBeVisible = async (element) => {
-//   log.debug(`Waiting for element (${element}) to appear...`);
-//   try {
-//     await browser.wait(until.elementLocated(element, 10000));
-//     await browser.wait(
-//       until.elementIsVisible(browser.findElement(element)),
-//       10000,
-//     );
-//   } catch (err) {
-//     log.error(err.stack);
-//   }
-// };
-
-// const onPageLoadedWaitById = async (elementIdOnNextPage) => {
-//   const by = By.id(elementIdOnNextPage);
-//   log.debug(`Page Loaded - waited on id: ${elementIdOnNextPage}`);
-//   onWaitForElementToBeVisible(by);
-// };
-
-// const onWaitForElementToBeInvisible = async (element) => {
-//   log.debug('Waiting for element to disappear...');
-//   try {
-//     await browser.wait(until.elementLocated(element, 10000));
-//     await browser.wait(
-//       until.elementIsNotVisible(browser.findElement(element)),
-//       15000,
-//     );
-//   } catch (err) {
-//     log.error(err.stack);
-//   }
-// };
-
-// const onWaitForWebElementToBeEnabled = async (webElement) => {
-//   log.debug('Waiting for webElement to become enabled...');
-//   try {
-//     await browser.wait(until.elementIsEnabled(webElement, 10000));
-//   } catch (err) {
-//     log.error(err.stack);
-//   }
-// };
-
-// const onWaitForWebElementToBeDisabled = async (webElement) => {
-//   log.debug('Waiting for webElement to become disabled...');
-//   try {
-//     await browser.wait(until.elementIsDisabled(webElement), 3000);
-//   } catch (err) {
-//     log.error(err.stack);
-//   }
-// };
-
-// const onWaitForElementToBeLocated = async (element) => {
-//   log.debug('Waiting for element to become located...');
-//   try {
-//     await browser.wait(until.elementLocated(element, 10000));
-//   } catch (err) {
-//     log.error(err.stack);
-//   }
-// };
-
-// Show Process config files
-// process.argv.forEach((val, index) => {
-//   log.debug(`${index}: ${val}`);
-// });
-
-// module.exports = {
-//   onPageLoadedWaitById,
-//   onWaitForElementToBeLocated,
-//   onWaitForWebElementToBeEnabled,
-//   onWaitForWebElementToBeDisabled,
-//   onWaitForElementToBeVisible,
-//   onWaitForElementToBeInvisible,
-// };
