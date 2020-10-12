@@ -20,6 +20,8 @@ module.exports = class Driver extends Browser {
     let message = ''
     if (a.action === 'click') {
       message = 'Clicking on '
+    } else if (a.action === 'hover') {
+      message = `Hovering on `
     } else if (a.action === 'write') {
       message = `Writing '${a.data}' into `
     } else if (a.action === 'clear') {
@@ -54,6 +56,19 @@ module.exports = class Driver extends Browser {
       message += `to be visible`
     }
     log.info(message)
+    return true
+  }
+
+  async hover() {
+    this.message({ action: 'hover' })
+    try {
+      const locator = await this.WebElement.find(this.stack)
+      await (await this.actions()).move({ origin: locator.element }).perform()
+    } catch (err) {
+      log.error(`Error during hover.\nError ${err.stack}`)
+      throw err
+    }
+    this.stack = []
     return true
   }
 

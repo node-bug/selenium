@@ -195,4 +195,8 @@ exports.Browser = class {
   async getDriver() {
     return this.driver
   }
+
+  async actions() {
+    return this.driver.actions({ bridge: true })
+  }
 }
