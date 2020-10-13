@@ -16,89 +16,87 @@ const attributes = [
   'src',
 ]
 
-function getXPath(obj, action) {
-  let xpath = '//*['
-  if (obj.match !== 'exact') {
-    attributes.forEach((attribute) => {
-      xpath += `contains(@${attribute},'${obj.element}') or `
-    })
-    xpath += ` contains(normalize-space(text()),'${obj.element}')]`
-  } else {
-    attributes.forEach((attribute) => {
-      xpath += `@${attribute}='${obj.element}' or `
-    })
-    xpath += ` normalize-space(.)='${obj.element}']`
+function WebElement(dr) {
+  const driver = dr
+
+  function getXPath(obj, action) {
+    let xpath = '//*['
+    if (obj.match !== 'exact') {
+      attributes.forEach((attribute) => {
+        xpath += `contains(@${attribute},'${obj.element}') or `
+      })
+      xpath += ` contains(normalize-space(text()),'${obj.element}')]`
+    } else {
+      attributes.forEach((attribute) => {
+        xpath += `@${attribute}='${obj.element}' or `
+      })
+      xpath += ` normalize-space(.)='${obj.element}']`
+    }
+
+    if (action === 'write') {
+      xpath += `/following::*[self::input or self::textarea]`
+    } else if (action === 'select') {
+      xpath += '/following::select'
+    } else if (action === 'check') {
+      xpath += '/preceding-sibling::input'
+    }
+    return xpath
   }
 
-  if (action === 'write') {
-    xpath += `/following::*[self::input or self::textarea]`
-  } else if (action === 'select') {
-    xpath += '/following::select'
-  } else if (action === 'check') {
-    xpath += '/preceding-sibling::input'
-  }
-  return xpath
-}
-
-async function search(item, location, relativeElement) {
-  let elements
-  if (![undefined, null, ''].includes(location)) {
-    if (![undefined, null, ''].includes(relativeElement)) {
-      switch (location) {
-        case 'above':
-          elements = item.matches.filter((element) => {
-            return relativeElement.rect.top >= element.rect.bottom
-          })
-          break
-        case 'below':
-          elements = item.matches.filter((element) => {
-            return relativeElement.rect.bottom <= element.rect.top
-          })
-          break
-        case 'toLeftOf':
-          elements = item.matches.filter((element) => {
-            return relativeElement.rect.left >= element.rect.right
-          })
-          break
-        case 'toRightOf':
-          elements = item.matches.filter((element) => {
-            return relativeElement.rect.right <= element.rect.left
-          })
-          break
-        default:
-          throw new ReferenceError(`Location '${location}' is not supported`)
+  async function search(item, location, relativeElement) {
+    let elements
+    if (![undefined, null, ''].includes(location)) {
+      if (![undefined, null, ''].includes(relativeElement)) {
+        switch (location) {
+          case 'above':
+            elements = item.matches.filter((element) => {
+              return relativeElement.rect.top >= element.rect.bottom
+            })
+            break
+          case 'below':
+            elements = item.matches.filter((element) => {
+              return relativeElement.rect.bottom <= element.rect.top
+            })
+            break
+          case 'toLeftOf':
+            elements = item.matches.filter((element) => {
+              return relativeElement.rect.left >= element.rect.right
+            })
+            break
+          case 'toRightOf':
+            elements = item.matches.filter((element) => {
+              return relativeElement.rect.right <= element.rect.left
+            })
+            break
+          default:
+            throw new ReferenceError(`Location '${location}' is not supported`)
+        }
+      } else {
+        throw new ReferenceError(
+          `Location '${location}' cannot be found as relative element is '${relativeElement}'`,
+        )
       }
     } else {
-      throw new ReferenceError(
-        `Location '${location}' cannot be found as relative element is '${relativeElement}'`,
-      )
+      elements = item.matches
     }
-  } else {
-    elements = item.matches
-  }
-  return elements[0]
-}
-
-exports.WebElement = class {
-  constructor(driver) {
-    this.driver = driver
+    return elements[0]
   }
 
-  async getRect(element) {
-    return this.driver.executeScript(
+  async function getRect(element) {
+    return driver.executeScript(
       'return arguments[0].getBoundingClientRect();',
       element,
     )
   }
 
-  async findElementsByXpath(obj, action) {
+  async function findElementsByXpath(obj, action) {
     const xpath = getXPath(obj, action)
-    const elements = await this.driver.findElements(By.xpath(xpath))
+    const elements = await driver.findElements(By.xpath(xpath))
     const promises = elements.map(async (e) => {
       return {
         element: e,
         tagName: await e.getTagName(),
-        rect: await this.getRect(e),
+        rect: await getRect(e),
         frame: null,
       }
     })
@@ -106,31 +104,30 @@ exports.WebElement = class {
     return all.filter((e) => e.rect.height > 0)
   }
 
-  async resolveElements(stack) {
+  async function resolveElements(stack) {
     const promises = stack.map(async (item) => {
       const obj = { ...item }
       if (Object.prototype.hasOwnProperty.call(obj, 'element')) {
-        obj.matches = await this.findElementsByXpath(obj)
+        obj.matches = await findElementsByXpath(obj)
       }
       return obj
     })
     return Promise.all(promises)
   }
 
-  async find(stack, action) {
-    await this.driver.switchTo().defaultContent()
-    const data = await this.resolveElements(stack)
+  async function find(stack, action) {
+    await driver.switchTo().defaultContent()
+    const data = await resolveElements(stack)
     for (let i = 0; i < data.length; i++) {
       /* eslint-disable no-await-in-loop */
       if (
         Object.prototype.hasOwnProperty.call(data[i], 'matches') &&
         data[i].matches.length < 1
       ) {
-        const frames = (await this.driver.findElements(By.xpath('//iframe')))
-          .length
+        const frames = (await driver.findElements(By.xpath('//iframe'))).length
         for (let frame = 0; frame < frames; frame++) {
-          await this.driver.wait(until.ableToSwitchToFrame(frame))
-          data[i].matches = await this.findElementsByXpath(data[i], action)
+          await driver.wait(until.ableToSwitchToFrame(frame))
+          data[i].matches = await findElementsByXpath(data[i], action)
           if (data[i].matches.length > 0) {
             data[i].matches = data[i].matches.map((obj) => ({
               ...obj,
@@ -162,7 +159,7 @@ exports.WebElement = class {
         return false
       })
       if (matches.length < 1) {
-        matches = await this.findElementsByXpath(data[0], action)
+        matches = await findElementsByXpath(data[0], action)
       }
       if (matches.length !== 0) {
         data[0].matches = matches
@@ -192,8 +189,14 @@ exports.WebElement = class {
           )
         }
       }
-      // await this.driver.executeScript("arguments[0].setAttribute('style', 'background: yellow; border: 2px solid red;');", element.element);
+      // await driver.executeScript("arguments[0].setAttribute('style', 'background: yellow; border: 2px solid red;');", element.element);
     }
     return element
   }
+
+  return {
+    find,
+  }
 }
+
+module.exports = WebElement

@@ -1,94 +1,90 @@
 const { log } = require('@nodebug/logger')
 const { By } = require('selenium-webdriver')
-const { Browser } = require('./app/_browser.js')
-const { WebElement } = require('./app/elements.js')
+const Browser = require('./app/_browser.js')
+const WebElement = require('./app/elements.js')
 
-module.exports = class Driver extends Browser {
-  // constructor(options) {
-  //   super(options)
-  //   this.stack = []
-  //   this.WebElement = new WebElement(this.driver)
-  // }
+function Driver(driver, options) {
+  // const driver = dr
+  // const options = opt
+  const browser = new Browser(driver, options)
+  const webElement = new WebElement(driver)
+  let stack = []
 
-  constructor(driver, options) {
-    super(driver, options)
-    this.stack = []
-    this.WebElement = new WebElement(this.driver)
-  }
-
-  message(a) {
-    let message = ''
+  function message(a) {
+    let msg = ''
     if (a.action === 'click') {
-      message = 'Clicking on '
+      msg = 'Clicking on '
     } else if (a.action === 'hover') {
-      message = `Hovering on `
+      msg = `Hovering on `
     } else if (a.action === 'write') {
-      message = `Writing '${a.data}' into `
+      msg = `Writing '${a.data}' into `
     } else if (a.action === 'clear') {
-      message = `Clearing text in `
+      msg = `Clearing text in `
     } else if (a.action === 'overwrite') {
-      message = `Overwriting with '${a.data}' in `
+      msg = `Overwriting with '${a.data}' in `
     } else if (a.action === 'select') {
-      message = `Selecting '${a.data}' from dropdown `
+      msg = `Selecting '${a.data}' from dropdown `
     } else if (a.action === 'isVisible') {
-      message = `Checking `
+      msg = `Checking `
     } else if (a.action === 'waitVisibility') {
-      message = `Waiting for `
+      msg = `Waiting for `
     } else if (a.action === 'check') {
-      message = `Checking checkbox for `
+      msg = `Checking checkbox for `
     } else if (a.action === 'uncheck') {
-      message = `Unchecking checkbox for `
+      msg = `Unchecking checkbox for `
     }
-    for (let i = 0; i < this.stack.length; i++) {
-      const obj = this.stack[i]
+    for (let i = 0; i < stack.length; i++) {
+      const obj = stack[i]
       if (Object.prototype.hasOwnProperty.call(obj, 'element')) {
         if (Object.prototype.hasOwnProperty.call(obj, 'exact')) {
-          message += 'exact '
+          msg += 'exact '
         }
-        message += `element '${obj.element}' `
+        msg += `element '${obj.element}' `
       } else if (Object.prototype.hasOwnProperty.call(obj, 'location')) {
-        message += `located '${obj.location}' `
+        msg += `located '${obj.location}' `
       }
     }
     if (a.action === 'isVisible') {
-      message += `is visible`
+      msg += `is visible`
     } else if (a.action === 'waitVisibility') {
-      message += `to be visible`
+      msg += `to be visible`
     }
-    log.info(message)
+    log.info(msg)
     return true
   }
 
-  async hover() {
-    this.message({ action: 'hover' })
+  async function hover() {
+    message({ action: 'hover' })
     try {
-      const locator = await this.WebElement.find(this.stack)
-      await (await this.actions()).move({ origin: locator.element }).perform()
+      const locator = await webElement.find(stack)
+      await (await browser.actions())
+        .move({ origin: locator.element })
+        .perform()
     } catch (err) {
       log.error(`Error during hover.\nError ${err.stack}`)
       throw err
     }
-    this.stack = []
+    stack = []
     return true
   }
 
-  async click() {
-    this.message({ action: 'click' })
+  async function click() {
+    message({ action: 'click' })
     try {
-      const locator = await this.WebElement.find(this.stack)
+      const locator = await webElement.find(stack)
       await locator.element.click()
     } catch (err) {
       log.error(`Error during click.\nError ${err.stack}`)
       throw err
     }
-    this.stack = []
+    stack = []
     return true
   }
 
-  async write(text) {
-    this.message({ action: 'write', data: text })
+  async function write(text) {
+    message({ action: 'write', data: text })
     try {
-      const locator = await this.WebElement.find(this.stack, 'write')
+      const locator = await webElement.find(stack, 'write')
       if (locator.tagName === 'input') {
         await locator.element.sendKeys(text)
       } else {
@@ -99,14 +95,14 @@ module.exports = class Driver extends Browser {
       log.error(`Error while entering data.\nError ${err.stack}`)
       throw err
     }
-    this.stack = []
+    stack = []
     return true
   }
 
-  async clear() {
-    this.message({ action: 'clear' })
+  async function clear() {
+    message({ action: 'clear' })
     try {
-      const locator = await this.WebElement.find(this.stack, 'write')
+      const locator = await webElement.find(stack, 'write')
       if (locator.tagName === 'input') {
         await locator.element.clear()
       } else {
@@ -116,14 +112,14 @@ module.exports = class Driver extends Browser {
       log.error(`Error while clearing field.\nError ${err.stack}`)
       throw err
     }
-    this.stack = []
+    stack = []
     return true
   }
 
-  async overwrite(text) {
-    this.message({ action: 'overwrite', data: text })
+  async function overwrite(text) {
+    message({ action: 'overwrite', data: text })
     try {
-      const locator = await this.WebElement.find(this.stack, 'write')
+      const locator = await webElement.find(stack, 'write')
       if (['input', 'textarea'].includes(locator.tagName)) {
         await locator.element.clear()
       } else {
@@ -134,14 +130,14 @@ module.exports = class Driver extends Browser {
       log.error(`Error while overwriting text in field.\nError ${err.stack}`)
       throw err
     }
-    this.stack = []
+    stack = []
     return true
   }
 
-  async select(text) {
-    this.message({ action: 'select', data: text })
+  async function select(text) {
+    message({ action: 'select', data: text })
     try {
-      const locator = await this.WebElement.find(this.stack, 'select')
+      const locator = await webElement.find(stack, 'select')
       if (locator.tagName === 'select') {
         await locator.element
           .findElement(By.xpath(`option[.="${text}"]`))
@@ -153,23 +149,13 @@ module.exports = class Driver extends Browser {
       log.error(`Error while selecting value in dropdown.\nError ${err.stack}`)
       throw err
     }
-    this.stack = []
+    stack = []
     return true
   }
 
-  async check() {
-    this.message({ action: 'check' })
-    return this.checkbox('check')
-  }
-
-  async uncheck() {
-    this.message({ action: 'uncheck' })
-    return this.checkbox('uncheck')
-  }
-
-  async checkbox(action) {
+  async function checkbox(action) {
     try {
-      const locator = await this.WebElement.find(this.stack, 'check')
+      const locator = await webElement.find(stack, 'check')
       const isChecked = await locator.element.isSelected()
       if (
         (action === 'check' && !isChecked) ||
@@ -181,69 +167,79 @@ module.exports = class Driver extends Browser {
       log.error(`Error during click.\nError ${err.stack}`)
       throw err
     }
-    this.stack = []
+    stack = []
     return true
   }
 
-  exact() {
-    this.stack.push({ match: 'exact' })
+  async function check() {
+    message({ action: 'check' })
+    return checkbox('check')
+  }
+
+  async function uncheck() {
+    message({ action: 'uncheck' })
+    return checkbox('uncheck')
+  }
+
+  function exact() {
+    stack.push({ match: 'exact' })
     return this
   }
 
-  element(data) {
-    const pop = this.stack.pop()
+  function element(data) {
+    const pop = stack.pop()
     if (JSON.stringify(pop) === JSON.stringify({ match: 'exact' })) {
-      this.stack.push({ element: data, match: 'exact' })
+      stack.push({ element: data, match: 'exact' })
     } else {
       if (typeof pop !== 'undefined') {
-        this.stack.push(pop)
+        stack.push(pop)
       }
-      this.stack.push({ element: data })
+      stack.push({ element: data })
     }
     return this
   }
 
-  above() {
-    this.stack.push({ location: 'above' })
+  function above() {
+    stack.push({ location: 'above' })
     return this
   }
 
-  below() {
-    this.stack.push({ location: 'below' })
+  function below() {
+    stack.push({ location: 'below' })
     return this
   }
 
-  near() {
-    this.stack.push({ location: 'near' })
+  function near() {
+    stack.push({ location: 'near' })
     return this
   }
 
-  toLeftOf() {
-    this.stack.push({ location: 'toLeftOf' })
+  function toLeftOf() {
+    stack.push({ location: 'toLeftOf' })
     return this
   }
 
-  toRightOf() {
-    this.stack.push({ location: 'toRightOf' })
+  function toRightOf() {
+    stack.push({ location: 'toRightOf' })
     return this
   }
 
-  within() {
-    this.stack.push({ location: 'within' })
+  function within() {
+    stack.push({ location: 'within' })
     return this
   }
 
-  async visibility(method, timeout) {
+  async function visibility(method, timeout) {
     let locator
-    const { implicit } = await this.driver.manage().getTimeouts()
+    const { implicit } = await driver.manage().getTimeouts()
 
     if (typeof timeout === 'number') {
-      await this.driver.manage().setTimeouts({ implicit: timeout * 1000 })
+      await driver.manage().setTimeouts({ implicit: timeout * 1000 })
     }
 
     try {
-      await this.driver.wait(async () => {
-        locator = await this.WebElement.find(this.stack)
+      await driver.wait(async () => {
+        locator = await webElement.find(stack)
         return ![undefined, null, ''].includes(locator)
       })
     } catch (err) {
@@ -252,18 +248,61 @@ module.exports = class Driver extends Browser {
       }
     }
 
-    await this.driver.manage().setTimeouts({ implicit })
-    this.stack = []
+    await driver.manage().setTimeouts({ implicit })
+    stack = []
     return ![undefined, null, ''].includes(locator)
   }
 
-  async isVisible(timeout) {
-    this.message({ action: 'isVisible' })
-    return this.visibility('nofail', timeout)
+  async function isVisible(timeout) {
+    message({ action: 'isVisible' })
+    return visibility('nofail', timeout)
   }
 
-  async waitForVisibility(timeout) {
-    this.message({ action: 'waitVisibility' })
-    return this.visibility('fail', timeout)
+  async function waitForVisibility(timeout) {
+    message({ action: 'waitVisibility' })
+    return visibility('fail', timeout)
+  }
+
+  return {
+    hover,
+    click,
+    write,
+    clear,
+    overwrite,
+    select,
+    check,
+    uncheck,
+    exact,
+    element,
+    above,
+    below,
+    near,
+    toLeftOf,
+    toRightOf,
+    within,
+    isVisible,
+    waitForVisibility,
+    newWindow: browser.newWindow,
+    close: browser.close,
+    newTab: browser.newTab,
+    closeTab: browser.closeTab,
+    switchTab: browser.switchTab,
+    title: browser.title,
+    currentURL: browser.currentURL,
+    maximize: browser.maximize,
+    minimize: browser.minimize,
+    fullscreen: browser.fullscreen,
+    setSize: browser.setSize,
+    getSize: browser.getSize,
+    goto: browser.goto,
+    refresh: browser.refresh,
+    goBack: browser.goBack,
+    goForward: browser.goForward,
+    reset: browser.reset,
+    screenshot: browser.screenshot,
+    getDriver: browser.getDriver,
+    actions: browser.actions,
   }
 }
+
+module.exports = Driver
