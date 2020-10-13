@@ -1,5 +1,5 @@
 const { log } = require('@nodebug/logger')
-const { By } = require('selenium-webdriver')
+const { By, Key } = require('selenium-webdriver')
 const Browser = require('./app/_browser.js')
 const WebElement = require('./app/elements.js')
 
@@ -88,8 +88,13 @@ function Driver(driver, options) {
       if (locator.tagName === 'input') {
         await locator.element.sendKeys(text)
       } else {
-        await locator.element.click()
-        await locator.element.sendKeys(text)
+        const eleValue = await locator.element.getAttribute('textContent')
+        await (await browser.actions()).click(locator.element).perform()
+        for (let i = 0; i < eleValue.length; i++) {
+          // eslint-disable-next-line no-await-in-loop
+          await (await browser.actions()).sendKeys(Key.RIGHT).perform()
+        }
+        await (await browser.actions()).sendKeys(text).perform()
       }
     } catch (err) {
       log.error(`Error while entering data.\nError ${err.stack}`)
@@ -106,7 +111,20 @@ function Driver(driver, options) {
       if (locator.tagName === 'input') {
         await locator.element.clear()
       } else {
-        throw new ReferenceError(`Element is not of type input`)
+        const eleValue = await locator.element.getAttribute('textContent')
+        await (await browser.actions()).click(locator.element).perform()
+        for (let i = 0; i < eleValue.length; i++) {
+          // eslint-disable-next-line no-await-in-loop
+          await (await browser.actions()).sendKeys(Key.RIGHT).perform()
+        }
+        await (await browser.actions()).keyDown(Key.SHIFT).perform()
+        for (let i = 0; i < eleValue.length; i++) {
+          // eslint-disable-next-line no-await-in-loop
+          await (await browser.actions()).sendKeys(Key.LEFT).perform()
+        }
+        await (await browser.actions()).keyUp(Key.SHIFT).perform()
+        await (await browser.actions()).sendKeys('').perform()
+        // throw new ReferenceError(`Element is not of type input`)
       }
     } catch (err) {
       log.error(`Error while clearing field.\nError ${err.stack}`)
@@ -123,9 +141,21 @@ function Driver(driver, options) {
       if (['input', 'textarea'].includes(locator.tagName)) {
         await locator.element.clear()
       } else {
-        throw new ReferenceError(`Element is not of type input`)
+        const eleValue = await locator.element.getAttribute('textContent')
+        await (await browser.actions()).click(locator.element).perform()
+        for (let i = 0; i < eleValue.length; i++) {
+          // eslint-disable-next-line no-await-in-loop
+          await (await browser.actions()).sendKeys(Key.RIGHT).perform()
+        }
+        await (await browser.actions()).keyDown(Key.SHIFT).perform()
+        for (let i = 0; i < eleValue.length; i++) {
+          // eslint-disable-next-line no-await-in-loop
+          await (await browser.actions()).sendKeys(Key.LEFT).perform()
+        }
+        await (await browser.actions()).keyUp(Key.SHIFT).perform()
+        await (await browser.actions()).sendKeys(text).perform()
+        // throw new ReferenceError(`Element is not of type input`)
       }
-      await locator.element.sendKeys(text)
     } catch (err) {
       log.error(`Error while overwriting text in field.\nError ${err.stack}`)
       throw err

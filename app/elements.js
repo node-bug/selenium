@@ -34,7 +34,7 @@ function WebElement(dr) {
     }
 
     if (action === 'write') {
-      xpath += `/following::*[self::input or self::textarea]`
+      xpath += `/following::*[self::input or self::textarea or self::span]`
     } else if (action === 'select') {
       xpath += '/following::select'
     } else if (action === 'check') {
@@ -150,7 +150,10 @@ function WebElement(dr) {
         if (action === 'select' && ['select'].includes(e.tagName)) {
           return true
         }
-        if (action === 'write' && ['input', 'textarea'].includes(e.tagName)) {
+        if (
+          action === 'write' &&
+          ['input', 'textarea', 'span'].includes(e.tagName)
+        ) {
           return true
         }
         if (action === 'check' && ['input'].includes(e.tagName)) {
