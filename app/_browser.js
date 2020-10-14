@@ -1,7 +1,5 @@
 const { log } = require('@nodebug/logger')
 const remote = require('selenium-webdriver/remote')
-const imagemin = require('imagemin')
-const pngquant = require('imagemin-pngquant')
 // const {openBrowser} = require('./driver')
 
 function Browser(dr, opt) {
@@ -165,26 +163,6 @@ function Browser(dr, opt) {
     return driver.manage().deleteAllCookies()
   }
 
-  async function screenshot() {
-    try {
-      return (
-        await imagemin.buffer(
-          Buffer.from(await driver.takeScreenshot(), 'base64'),
-          {
-            plugins: [
-              pngquant({
-                quality: [0.1, 0.4],
-              }),
-            ],
-          },
-        )
-      ).toString('base64')
-    } catch (err) {
-      log.error(err.stack)
-      return false
-    }
-  }
-
   async function getDriver() {
     return driver
   }
@@ -211,7 +189,6 @@ function Browser(dr, opt) {
     goBack,
     goForward,
     reset,
-    screenshot,
     getDriver,
     actions,
   }

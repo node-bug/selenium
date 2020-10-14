@@ -1,11 +1,11 @@
 const { log } = require('@nodebug/logger')
+const imagemin = require('imagemin')
+const pngquant = require('imagemin-pngquant')
 const { By, Key } = require('selenium-webdriver')
 const Browser = require('./app/_browser.js')
 const WebElement = require('./app/elements.js')
 
 function Driver(driver, options) {
-  // const driver = dr
-  // const options = opt
   const browser = new Browser(driver, options)
   const webElement = new WebElement(driver)
   let stack = []
@@ -32,6 +32,8 @@ function Driver(driver, options) {
       msg = `Checking checkbox for `
     } else if (a.action === 'uncheck') {
       msg = `Unchecking checkbox for `
+    } else if (a.action === 'screenshot') {
+      msg = `Capturing screenshot of `
     }
     for (let i = 0; i < stack.length; i++) {
       const obj = stack[i]
@@ -293,6 +295,33 @@ function Driver(driver, options) {
     return visibility('fail', timeout)
   }
 
+  async function screenshot() {
+    let dataUrl
+    const locator = await webElement.find(stack)
+    if ([undefined, null, ''].includes(locator)) {
+      log.info('Capturing screenshot of page')
+      dataUrl = await driver.takeScreenshot()
+    } else {
+      message({ action: 'screenshot' })
+      dataUrl = await locator.element.takeScreenshot(true)
+    }
+    stack = []
+    try {
+      return (
+        await imagemin.buffer(Buffer.from(dataUrl, 'base64'), {
+          plugins: [
+            pngquant({
+              quality: [0.1, 0.4],
+            }),
+          ],
+        })
+      ).toString('base64')
+    } catch (err) {
+      log.error(err.stack)
+      return false
+    }
+  }
+
   return {
     hover,
     click,
@@ -312,6 +341,7 @@ function Driver(driver, options) {
     within,
     isVisible,
     waitForVisibility,
+    screenshot,
     newWindow: browser.newWindow,
     close: browser.close,
     newTab: browser.newTab,
@@ -329,7 +359,6 @@ function Driver(driver, options) {
     goBack: browser.goBack,
     goForward: browser.goForward,
     reset: browser.reset,
-    screenshot: browser.screenshot,
     getDriver: browser.getDriver,
     actions: browser.actions,
   }
