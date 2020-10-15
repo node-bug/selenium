@@ -20,21 +20,23 @@ function WebElement(dr) {
   const driver = dr
 
   function getXPath(obj, action) {
-    let xpath = '//*['
+    let attributecollection = ''
     if (obj.match !== 'exact') {
       attributes.forEach((attribute) => {
-        xpath += `contains(@${attribute},'${obj.element}') or `
+        attributecollection += `contains(@${attribute},'${obj.element}') or `
       })
-      xpath += ` contains(normalize-space(text()),'${obj.element}')]`
+      attributecollection += `contains(normalize-space(text()),'${obj.element}')`
     } else {
       attributes.forEach((attribute) => {
-        xpath += `@${attribute}='${obj.element}' or `
+        attributecollection += `@${attribute}='${obj.element}' or `
       })
-      xpath += ` normalize-space(.)='${obj.element}']`
+      attributecollection += `normalize-space(.)='${obj.element}'`
     }
 
+    let xpath = `//*[${attributecollection}]`
     if (action === 'write') {
-      xpath += `/following::*[self::input or self::textarea or self::span]`
+      // eslint-disable-next-line max-len
+      xpath += `/following-sibling::*[self::input[not(@type='checkbox')] or self::textarea or self::span[${attributecollection}] or self::*[@contenteditable="true" and (${attributecollection})]]`
     } else if (action === 'select') {
       xpath += '/following::select'
     } else if (action === 'check') {
@@ -98,6 +100,7 @@ function WebElement(dr) {
         tagName: await e.getTagName(),
         rect: await getRect(e),
         frame: null,
+        contenteditable: (await e.getAttribute('contenteditable')) || null,
       }
     })
     const all = await Promise.all(promises)
@@ -152,7 +155,8 @@ function WebElement(dr) {
         }
         if (
           action === 'write' &&
-          ['input', 'textarea', 'span'].includes(e.tagName)
+          (['input', 'textarea'].includes(e.tagName) ||
+            e.contenteditable === 'true')
         ) {
           return true
         }
@@ -192,7 +196,7 @@ function WebElement(dr) {
           )
         }
       }
-      // await driver.executeScript("arguments[0].setAttribute('style', 'background: yellow; border: 2px solid red;');", element.element);
+      // await driver.executeScript("arguments[0].setAttribute('style', 'background: blue; border: 2px solid red;');", element.element);
     }
     return element
   }

@@ -4,10 +4,12 @@ const pngquant = require('imagemin-pngquant')
 const { By, Key } = require('selenium-webdriver')
 const Browser = require('./app/_browser.js')
 const WebElement = require('./app/elements.js')
+const Visual = require('./app/visual.js')
 
 function Driver(driver, options) {
   const browser = new Browser(driver, options)
   const webElement = new WebElement(driver)
+  const comparison = new Visual()
   let stack = []
 
   function message(a) {
@@ -91,7 +93,7 @@ function Driver(driver, options) {
         await locator.element.sendKeys(text)
       } else {
         const eleValue = await locator.element.getAttribute('textContent')
-        await (await browser.actions()).click(locator.element).perform()
+        await locator.element.click()
         for (let i = 0; i < eleValue.length; i++) {
           // eslint-disable-next-line no-await-in-loop
           await (await browser.actions()).sendKeys(Key.RIGHT).perform()
@@ -114,7 +116,7 @@ function Driver(driver, options) {
         await locator.element.clear()
       } else {
         const eleValue = await locator.element.getAttribute('textContent')
-        await (await browser.actions()).click(locator.element).perform()
+        await locator.element.click()
         for (let i = 0; i < eleValue.length; i++) {
           // eslint-disable-next-line no-await-in-loop
           await (await browser.actions()).sendKeys(Key.RIGHT).perform()
@@ -142,9 +144,10 @@ function Driver(driver, options) {
       const locator = await webElement.find(stack, 'write')
       if (['input', 'textarea'].includes(locator.tagName)) {
         await locator.element.clear()
+        await locator.element.sendKeys(text)
       } else {
         const eleValue = await locator.element.getAttribute('textContent')
-        await (await browser.actions()).click(locator.element).perform()
+        await locator.element.click()
         for (let i = 0; i < eleValue.length; i++) {
           // eslint-disable-next-line no-await-in-loop
           await (await browser.actions()).sendKeys(Key.RIGHT).perform()
@@ -322,6 +325,11 @@ function Driver(driver, options) {
     }
   }
 
+  async function visual(path) {
+    const image = await screenshot()
+    return comparison.perform(path, image)
+  }
+
   return {
     hover,
     click,
@@ -342,6 +350,7 @@ function Driver(driver, options) {
     isVisible,
     waitForVisibility,
     screenshot,
+    visual,
     newWindow: browser.newWindow,
     close: browser.close,
     newTab: browser.newTab,
