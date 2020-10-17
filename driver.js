@@ -4,9 +4,9 @@ const imageminPngquant = require('imagemin-pngquant')
 const { log } = require('@nodebug/logger')
 const config = require('@nodebug/config')('selenium')
 const { sleep } = require('./utils')
-const Browser = require('./app/browser')
+const { openBrowser } = require('./app/driver')
 
-const browser = new Browser()
+const browser = openBrowser(config)
 
 const capabilities = (async () =>
   // eslint-disable-next-line no-underscore-dangle

@@ -2,7 +2,7 @@ const { log } = require('@nodebug/logger')
 const imagemin = require('imagemin')
 const pngquant = require('imagemin-pngquant')
 const { By, Key } = require('selenium-webdriver')
-const Browser = require('./app/_browser.js')
+const Browser = require('./app/browser.js')
 const WebElement = require('./app/elements.js')
 const Visual = require('./app/visual.js')
 
@@ -128,7 +128,6 @@ function Driver(driver, options) {
         }
         await (await browser.actions()).keyUp(Key.SHIFT).perform()
         await (await browser.actions()).sendKeys('').perform()
-        // throw new ReferenceError(`Element is not of type input`)
       }
     } catch (err) {
       log.error(`Error while clearing field.\nError ${err.stack}`)
@@ -159,7 +158,6 @@ function Driver(driver, options) {
         }
         await (await browser.actions()).keyUp(Key.SHIFT).perform()
         await (await browser.actions()).sendKeys(text).perform()
-        // throw new ReferenceError(`Element is not of type input`)
       }
     } catch (err) {
       log.error(`Error while overwriting text in field.\nError ${err.stack}`)
@@ -199,7 +197,7 @@ function Driver(driver, options) {
         await locator.element.click()
       }
     } catch (err) {
-      log.error(`Error during click.\nError ${err.stack}`)
+      log.error(`Error during checkbox set.\nError ${err.stack}`)
       throw err
     }
     stack = []
