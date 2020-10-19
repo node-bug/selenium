@@ -25,32 +25,23 @@ function WebElement(dr) {
       attributes.forEach((attribute) => {
         attributecollection += `contains(@${attribute},'${obj.element}') or `
       })
-      attributecollection += `contains(normalize-space(.),'${obj.element}') `
-      attributecollection += `and not(.//*[contains(normalize-space(.),'${obj.element}')])`
+      attributecollection += `contains(normalize-space(text()),'${obj.element}')`
     } else {
       attributes.forEach((attribute) => {
         attributecollection += `@${attribute}='${obj.element}' or `
       })
-      attributecollection += `normalize-space(.)='${obj.element}' `
-      attributecollection += `and not(.//*[normalize-space(.)='${obj.element}'])`
+      attributecollection += `normalize-space(.)='${obj.element}'`
     }
 
     let xpath = `//*[${attributecollection}]`
-    if(obj.hasOwnProperty('index') && obj.index > 0){
-      xpath = `(${xpath})[${obj.index}]`
-    }
     if (action === 'write') {
       // eslint-disable-next-line max-len
-      xpath += `/following::*[`
-      xpath += `self::input[@type='text' or @type='password'] or `
-      xpath += `self::textarea or `
-      xpath += `self::*[@contenteditable='true']`
-      xpath += `]`
-    } else if (action === 'check') {
-      xpath += `/preceding-sibling::input[@type='checkbox']`
+      xpath += `/following-sibling::*[self::input[not(@type='checkbox')] or self::textarea or self::span[${attributecollection}] or self::*[@contenteditable="true" and (${attributecollection})]]`
     } else if (action === 'select') {
       xpath += '/following::select'
-    } 
+    } else if (action === 'check') {
+      xpath += `/preceding-sibling::input[@type='checkbox']`
+    }
     return xpath
   }
 
@@ -116,52 +107,37 @@ function WebElement(dr) {
     return all.filter((e) => e.rect.height > 0)
   }
 
-  async function findBaseElement(obj, action) {
-    const all = await findElementsByXpath(obj)
-    let matches = all
-    if (['write', 'check'].includes(action)) {
-      matches = matches.filter((e) => e.tagName === 'input')
-      if(matches.length < 1){
-        matches = await findElementsByXpath(obj, action)
-      }
-    } else if (['select'].includes(action)) {
-      matches = matches.filter((e) => e.tagName === 'select')
-      if(matches.length < 1){
-        matches = await findElementsByXpath(obj, action)
-      }
-    }
-
-    if(matches.length < 1){
-      matches = all
-    }
-    return matches
-  }
-
-  async function resolveElements(stack, action) {
-    const promises = stack.map(async (item, index) => {
+  async function resolveElements(stack) {
+    const promises = stack.map(async (item) => {
       const obj = { ...item }
-      if (obj.hasOwnProperty('element') && (!obj.hasOwnProperty('matches') || obj['matches'].length < 1)) { // 
-        if (index === 0) {
-          obj.matches = await findBaseElement(obj, action)
-        } else {
-          obj.matches = await findElementsByXpath(obj)
-        }
+      if (Object.prototype.hasOwnProperty.call(obj, 'element')) {
+        obj.matches = await findElementsByXpath(obj)
       }
       return obj
     })
     return Promise.all(promises)
   }
 
-  async function findElements(stack, action) {
+  async function find(stack, action) {
     await driver.switchTo().defaultContent()
-    let data = await resolveElements(stack, action)
+    const data = await resolveElements(stack)
     for (let i = 0; i < data.length; i++) {
       /* eslint-disable no-await-in-loop */
-      if (data[i].hasOwnProperty('matches') && data[i].matches.length < 1) {
+      if (
+        Object.prototype.hasOwnProperty.call(data[i], 'matches') &&
+        data[i].matches.length < 1
+      ) {
         const frames = (await driver.findElements(By.xpath('//iframe'))).length
         for (let frame = 0; frame < frames; frame++) {
           await driver.wait(until.ableToSwitchToFrame(frame))
-          data = await resolveElements(data, action)
+          data[i].matches = await findElementsByXpath(data[i], action)
+          if (data[i].matches.length > 0) {
+            data[i].matches = data[i].matches.map((obj) => ({
+              ...obj,
+              frame,
+            }))
+            break
+          }
         }
         if (data[i].matches.length < 1) {
           throw new ReferenceError(
@@ -171,11 +147,31 @@ function WebElement(dr) {
       }
       /* eslint-enable no-await-in-loop */
     }
-    return data
-  }
 
-  async function find(stack, action) {
-    const data = await findElements(stack, action)
+    if (['select', 'write', 'check'].includes(action)) {
+      let matches = data[0].matches.filter((e) => {
+        if (action === 'select' && ['select'].includes(e.tagName)) {
+          return true
+        }
+        if (
+          action === 'write' &&
+          (['input', 'textarea'].includes(e.tagName) ||
+            e.contenteditable === 'true')
+        ) {
+          return true
+        }
+        if (action === 'check' && ['input'].includes(e.tagName)) {
+          return true
+        }
+        return false
+      })
+      if (matches.length < 1) {
+        matches = await findElementsByXpath(data[0], action)
+      }
+      if (matches.length !== 0) {
+        data[0].matches = matches
+      }
+    }
 
     let element = null
     for (let i = data.length - 1; i > -1; i--) {
@@ -194,7 +190,8 @@ function WebElement(dr) {
         element = await search(data[i], item.location, element)
         if (element === null) {
           throw new ReferenceError(
-            `'${data[i].element}' ${item.location} '${data[i + 2].element
+            `'${data[i].element}' ${item.location} '${
+              data[i + 2].element
             }' has no matching elements on page.`,
           )
         }

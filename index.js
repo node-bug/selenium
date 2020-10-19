@@ -6,6 +6,10 @@ const Browser = require('./app/browser.js')
 const WebElement = require('./app/elements.js')
 const Visual = require('./app/visual.js')
 
+// function sleep(ms) {
+//   return new Promise((resolve) => setTimeout(resolve, ms))
+// }
+
 function Driver(driver, options) {
   const browser = new Browser(driver, options)
   const webElement = new WebElement(driver)
@@ -76,6 +80,7 @@ function Driver(driver, options) {
     message({ action: 'click' })
     try {
       const locator = await webElement.find(stack)
+      await driver.executeScript("return arguments[0].scrollIntoView()", locator.element);
       await locator.element.click()
     } catch (err) {
       log.error(`Error during click.\nError ${err.stack}`)
@@ -99,6 +104,7 @@ function Driver(driver, options) {
           await (await browser.actions()).sendKeys(Key.RIGHT).perform()
         }
         await (await browser.actions()).sendKeys(text).perform()
+        // await sleep(2000)
       }
     } catch (err) {
       log.error(`Error while entering data.\nError ${err.stack}`)
@@ -173,7 +179,7 @@ function Driver(driver, options) {
       const locator = await webElement.find(stack, 'select')
       if (locator.tagName === 'select') {
         await locator.element
-          .findElement(By.xpath(`option[.="${text}"]`))
+          .findElement(By.xpath(`.//option[.="${text}"]`))
           .click()
       } else {
         throw new ReferenceError(`Element is not of type select`)
@@ -262,6 +268,18 @@ function Driver(driver, options) {
     return this
   }
 
+  function atIndex(index) {
+    if(typeof index !== 'number'){
+      throw new TypeError('Expected parameter for atIndex is number. Received '+typeof index+' instead')
+    }
+    const pop = stack.pop()
+    if (typeof pop !== 'undefined') {
+      pop.index = index
+      stack.push(pop)
+    }
+    return this
+  }
+
   async function visibility(method, timeout) {
     let locator
     const { implicit } = await driver.manage().getTimeouts()
@@ -345,6 +363,7 @@ function Driver(driver, options) {
     toLeftOf,
     toRightOf,
     within,
+    atIndex,
     isVisible,
     waitForVisibility,
     screenshot,
