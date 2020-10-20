@@ -21,22 +21,22 @@ function WebElement(dr) {
 
   function getXPath(obj, action) {
     let attributecollection = ''
-    if (obj.match !== 'exact') {
+    if (obj.exact) {
       attributes.forEach((attribute) => {
-        attributecollection += `contains(@${attribute},'${obj.element}') or `
+        attributecollection += `@${attribute}='${obj.id}' or `
       })
-      attributecollection += `contains(normalize-space(.),'${obj.element}') `
-      attributecollection += `and not(.//*[contains(normalize-space(.),'${obj.element}')])`
+      attributecollection += `normalize-space(.)='${obj.id}' `
+      attributecollection += `and not(.//*[normalize-space(.)='${obj.id}'])`
     } else {
       attributes.forEach((attribute) => {
-        attributecollection += `@${attribute}='${obj.element}' or `
+        attributecollection += `contains(@${attribute},'${obj.id}') or `
       })
-      attributecollection += `normalize-space(.)='${obj.element}' `
-      attributecollection += `and not(.//*[normalize-space(.)='${obj.element}'])`
+      attributecollection += `contains(normalize-space(.),'${obj.id}') `
+      attributecollection += `and not(.//*[contains(normalize-space(.),'${obj.id}')])`
     }
 
     let xpath = `//*[${attributecollection}]`
-    if(obj.hasOwnProperty('index') && obj.index > 0){
+    if (obj.index) {
       xpath = `(${xpath})[${obj.index}]`
     }
     if (action === 'write') {
@@ -50,11 +50,11 @@ function WebElement(dr) {
       xpath += `/preceding-sibling::input[@type='checkbox']`
     } else if (action === 'select') {
       xpath += '/following::select'
-    } 
+    }
     return xpath
   }
 
-  async function search(item, location, relativeElement) {
+  async function relativeSearch(item, location, relativeElement) {
     let elements
     if (![undefined, null, ''].includes(location)) {
       if (![undefined, null, ''].includes(relativeElement)) {
@@ -116,22 +116,22 @@ function WebElement(dr) {
     return all.filter((e) => e.rect.height > 0)
   }
 
-  async function findBaseElement(obj, action) {
+  async function findActionElement(obj, action) {
     const all = await findElementsByXpath(obj)
     let matches = all
     if (['write', 'check'].includes(action)) {
       matches = matches.filter((e) => e.tagName === 'input')
-      if(matches.length < 1){
+      if (matches.length < 1) {
         matches = await findElementsByXpath(obj, action)
       }
     } else if (['select'].includes(action)) {
       matches = matches.filter((e) => e.tagName === 'select')
-      if(matches.length < 1){
+      if (matches.length < 1) {
         matches = await findElementsByXpath(obj, action)
       }
     }
 
-    if(matches.length < 1){
+    if (matches.length < 1) {
       matches = all
     }
     return matches
@@ -140,9 +140,10 @@ function WebElement(dr) {
   async function resolveElements(stack, action) {
     const promises = stack.map(async (item, index) => {
       const obj = { ...item }
-      if (obj.hasOwnProperty('element') && (!obj.hasOwnProperty('matches') || obj['matches'].length < 1)) { // 
+      if (obj.type === 'element' && obj.matches.length < 1) {
+        //
         if (index === 0) {
-          obj.matches = await findBaseElement(obj, action)
+          obj.matches = await findActionElement(obj, action)
         } else {
           obj.matches = await findElementsByXpath(obj)
         }
@@ -157,7 +158,7 @@ function WebElement(dr) {
     let data = await resolveElements(stack, action)
     for (let i = 0; i < data.length; i++) {
       /* eslint-disable no-await-in-loop */
-      if (data[i].hasOwnProperty('matches') && data[i].matches.length < 1) {
+      if (data[i].matches.length < 1) {
         const frames = (await driver.findElements(By.xpath('//iframe'))).length
         for (let frame = 0; frame < frames; frame++) {
           await driver.wait(until.ableToSwitchToFrame(frame))
@@ -165,7 +166,7 @@ function WebElement(dr) {
         }
         if (data[i].matches.length < 1) {
           throw new ReferenceError(
-            `'${data[i].element}' has no matching elements on page.`,
+            `'${data[i].id}' has no matching elements on page.`,
           )
         }
       }
@@ -180,21 +181,23 @@ function WebElement(dr) {
     let element = null
     for (let i = data.length - 1; i > -1; i--) {
       const item = data[i]
-      if (Object.prototype.hasOwnProperty.call(item, 'element')) {
+      if (item.type === 'element') {
         // eslint-disable-next-line no-await-in-loop
-        element = await search(item)
+        element = await relativeSearch(item)
         if (element === null) {
           throw new ReferenceError(
-            `'${item.element}' has no matching elements on page.`,
+            `'${item.id}' has no matching elements on page.`,
           )
         }
-      } else if (Object.prototype.hasOwnProperty.call(item, 'location')) {
+      }
+      if (item.type === 'location') {
         i -= 1
         // eslint-disable-next-line no-await-in-loop
-        element = await search(data[i], item.location, element)
+        element = await relativeSearch(data[i], item.located, element)
         if (element === null) {
           throw new ReferenceError(
-            `'${data[i].element}' ${item.location} '${data[i + 2].element
+            `'${data[i].id}' ${item.located} '${
+              data[i + 2].id
             }' has no matching elements on page.`,
           )
         }

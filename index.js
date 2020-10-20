@@ -43,13 +43,21 @@ function Driver(driver, options) {
     }
     for (let i = 0; i < stack.length; i++) {
       const obj = stack[i]
-      if (Object.prototype.hasOwnProperty.call(obj, 'element')) {
-        if (Object.prototype.hasOwnProperty.call(obj, 'exact')) {
+      if (obj.type === 'element') {
+        if (obj.exact) {
           msg += 'exact '
         }
-        msg += `element '${obj.element}' `
-      } else if (Object.prototype.hasOwnProperty.call(obj, 'location')) {
-        msg += `located '${obj.location}' `
+        msg += `element '${obj.id}' `
+        if (obj.index) {
+          msg += `of index '${obj.index}' `
+        }
+      } else if (obj.type === 'location') {
+        msg += `located '${obj.located}' `
+      } else if (obj.type === 'row') {
+        if (obj.exact) {
+          msg += 'exact '
+        }
+        msg += `row '${obj.row}' `
       }
     }
     if (a.action === 'isVisible') {
@@ -80,7 +88,7 @@ function Driver(driver, options) {
     message({ action: 'click' })
     try {
       const locator = await webElement.find(stack)
-      await driver.executeScript("return arguments[0].scrollIntoView()", locator.element);
+      await driver.executeScript('return arguments[0].focus()', locator.element)
       await locator.element.click()
     } catch (err) {
       log.error(`Error during click.\nError ${err.stack}`)
@@ -221,56 +229,105 @@ function Driver(driver, options) {
   }
 
   function exact() {
-    stack.push({ match: 'exact' })
+    stack.push({ exact: true })
     return this
   }
 
   function element(data) {
     const pop = stack.pop()
-    if (JSON.stringify(pop) === JSON.stringify({ match: 'exact' })) {
-      stack.push({ element: data, match: 'exact' })
+    if (JSON.stringify(pop) === JSON.stringify({ exact: true })) {
+      stack.push({
+        type: 'element',
+        id: data,
+        exact: true,
+        matches: [],
+        index: false,
+      })
     } else {
       if (typeof pop !== 'undefined') {
         stack.push(pop)
       }
-      stack.push({ element: data })
+      stack.push({
+        type: 'element',
+        id: data,
+        exact: false,
+        matches: [],
+        index: false,
+      })
     }
     return this
   }
 
+  function row(data) {
+    if (typeof data !== 'string') {
+      throw new TypeError(
+        `Expected parameter for row is string. Received ${typeof data} instead`,
+      )
+    }
+    const pop = stack.pop()
+    if (JSON.stringify(pop) === JSON.stringify({ exact: true })) {
+      stack.push({
+        type: 'row',
+        id: data,
+        exact: true,
+        matches: [],
+        index: false,
+      })
+    } else {
+      if (typeof pop !== 'undefined') {
+        stack.push(pop)
+      }
+      stack.push({
+        type: 'row',
+        id: data,
+        exact: false,
+        matches: [],
+        index: false,
+      })
+    }
+    return this
+  }
+
+  function of() {
+    stack.push({ type: 'location', located: 'of' })
+    return this
+  }
+
   function above() {
-    stack.push({ location: 'above' })
+    stack.push({ type: 'location', located: 'above' })
     return this
   }
 
   function below() {
-    stack.push({ location: 'below' })
+    stack.push({ type: 'location', located: 'below' })
     return this
   }
 
   function near() {
-    stack.push({ location: 'near' })
+    stack.push({ type: 'location', located: 'near' })
     return this
   }
 
   function toLeftOf() {
-    stack.push({ location: 'toLeftOf' })
+    stack.push({ type: 'location', located: 'toLeftOf' })
     return this
   }
 
   function toRightOf() {
-    stack.push({ location: 'toRightOf' })
+    stack.push({ type: 'location', located: 'toRightOf' })
     return this
   }
 
   function within() {
-    stack.push({ location: 'within' })
+    stack.push({ type: 'location', located: 'within' })
     return this
   }
 
   function atIndex(index) {
-    if(typeof index !== 'number'){
-      throw new TypeError('Expected parameter for atIndex is number. Received '+typeof index+' instead')
+    if (typeof index !== 'number') {
+      throw new TypeError(
+        `Expected parameter for atIndex is number. Received ${typeof index} instead`,
+      )
     }
     const pop = stack.pop()
     if (typeof pop !== 'undefined') {
@@ -314,10 +371,10 @@ function Driver(driver, options) {
     return visibility('fail', timeout)
   }
 
-  async function screenshot() {
+  async function screenshot(page) {
     let dataUrl
     const locator = await webElement.find(stack)
-    if ([undefined, null, ''].includes(locator)) {
+    if ([undefined, null, ''].includes(locator) || page) {
       log.info('Capturing screenshot of page')
       dataUrl = await driver.takeScreenshot()
     } else {
@@ -357,6 +414,8 @@ function Driver(driver, options) {
     uncheck,
     exact,
     element,
+    of,
+    row,
     above,
     below,
     near,
