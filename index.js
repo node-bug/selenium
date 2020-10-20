@@ -372,16 +372,27 @@ function Driver(driver, options) {
   }
 
   async function screenshot(page) {
-    let dataUrl
-    const locator = await webElement.find(stack)
-    if ([undefined, null, ''].includes(locator) || page) {
+    let dataUrl = false
+    if (!page) {
+      let locator
+      try {
+        locator = await webElement.find(stack)
+      } catch (err) {
+        log.error(err.stack)
+      }
+      if (![undefined, null, ''].includes(locator)) {
+        message({ action: 'screenshot' })
+        dataUrl = await locator.element.takeScreenshot(true)
+      }
+    }
+
+    if (!dataUrl) {
       log.info('Capturing screenshot of page')
       dataUrl = await driver.takeScreenshot()
-    } else {
-      message({ action: 'screenshot' })
-      dataUrl = await locator.element.takeScreenshot(true)
     }
+
     stack = []
+
     try {
       return (
         await imagemin.buffer(Buffer.from(dataUrl, 'base64'), {
