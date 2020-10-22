@@ -51,6 +51,14 @@ function WebElement(dr) {
     } else if (action === 'select') {
       xpath += '/following::select'
     }
+
+    if (obj.type === 'row') {
+      xpath = `//tbody/tr[(.${xpath})]`
+    }
+    if (obj.type === 'column') {
+      xpath = xpath.replace('//*', '')
+      xpath = `//tbody/tr/*[count(//thead//th${xpath}/preceding-sibling::th)+1]`
+    }
     return xpath
   }
 
@@ -77,6 +85,16 @@ function WebElement(dr) {
           case 'toRightOf':
             elements = item.matches.filter((element) => {
               return relativeElement.rect.right <= element.rect.left
+            })
+            break
+          case 'within':
+            elements = item.matches.filter((element) => {
+              return (
+                relativeElement.rect.left <= element.rect.left &&
+                relativeElement.rect.right >= element.rect.right &&
+                relativeElement.rect.top <= element.rect.top &&
+                relativeElement.rect.bottom >= element.rect.bottom
+              )
             })
             break
           default:
@@ -140,8 +158,10 @@ function WebElement(dr) {
   async function resolveElements(stack, action) {
     const promises = stack.map(async (item, index) => {
       const obj = { ...item }
-      if (obj.type === 'element' && obj.matches.length < 1) {
-        //
+      if (
+        ['element', 'row', 'column'].includes(obj.type) &&
+        obj.matches.length < 1
+      ) {
         if (index === 0) {
           obj.matches = await findActionElement(obj, action)
         } else {
@@ -158,7 +178,10 @@ function WebElement(dr) {
     let data = await resolveElements(stack, action)
     for (let i = 0; i < data.length; i++) {
       /* eslint-disable no-await-in-loop */
-      if (data[i].matches.length < 1) {
+      if (
+        ['element', 'row', 'column'].includes(data[i].type) &&
+        data[i].matches.length < 1
+      ) {
         const frames = (await driver.findElements(By.xpath('//iframe'))).length
         for (let frame = 0; frame < frames; frame++) {
           await driver.wait(until.ableToSwitchToFrame(frame))
@@ -181,7 +204,7 @@ function WebElement(dr) {
     let element = null
     for (let i = data.length - 1; i > -1; i--) {
       const item = data[i]
-      if (item.type === 'element') {
+      if (['element', 'row', 'column'].includes(item.type)) {
         // eslint-disable-next-line no-await-in-loop
         element = await relativeSearch(item)
         if (element === null) {

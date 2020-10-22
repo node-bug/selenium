@@ -6,9 +6,9 @@ const Browser = require('./app/browser.js')
 const WebElement = require('./app/elements.js')
 const Visual = require('./app/visual.js')
 
-// function sleep(ms) {
-//   return new Promise((resolve) => setTimeout(resolve, ms))
-// }
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
 
 function Driver(driver, options) {
   const browser = new Browser(driver, options)
@@ -20,6 +20,8 @@ function Driver(driver, options) {
     let msg = ''
     if (a.action === 'click') {
       msg = 'Clicking on '
+    } else if (a.action === 'focus') {
+      msg = `Focussing on `
     } else if (a.action === 'hover') {
       msg = `Hovering on `
     } else if (a.action === 'write') {
@@ -43,21 +45,16 @@ function Driver(driver, options) {
     }
     for (let i = 0; i < stack.length; i++) {
       const obj = stack[i]
-      if (obj.type === 'element') {
+      if (['element', 'row', 'column'].includes(obj.type)) {
         if (obj.exact) {
           msg += 'exact '
         }
-        msg += `element '${obj.id}' `
+        msg += `${obj.type} '${obj.id}' `
         if (obj.index) {
           msg += `of index '${obj.index}' `
         }
       } else if (obj.type === 'location') {
         msg += `located '${obj.located}' `
-      } else if (obj.type === 'row') {
-        if (obj.exact) {
-          msg += 'exact '
-        }
-        msg += `row '${obj.row}' `
       }
     }
     if (a.action === 'isVisible') {
@@ -84,12 +81,50 @@ function Driver(driver, options) {
     return true
   }
 
-  async function click() {
+  async function focus() {
+    message({ action: 'focus' })
+    try {
+      const locator = await webElement.find(stack)
+      await driver.executeScript(
+        'return arguments[0].focus();',
+        locator.element,
+      )
+    } catch (err) {
+      log.error(`Error during focus.\nError ${err.stack}`)
+      throw err
+    }
+    stack = []
+    return true
+  }
+
+  async function click(obj) {
     message({ action: 'click' })
     try {
       const locator = await webElement.find(stack)
-      await driver.executeScript('return arguments[0].focus()', locator.element)
-      await locator.element.click()
+      try {
+        await (await browser.actions())
+          .move({ origin: locator.element })
+          .perform()
+      } catch (err) {
+        if (err.name === 'MoveTargetOutOfBoundsError') {
+          await driver.executeScript(
+            'return arguments[0].scrollIntoView();',
+            locator.element,
+          )
+          await (await browser.actions())
+            .move({ origin: locator.element })
+            .perform()
+        }
+      }
+      // await driver.executeScript('return arguments[0].focus();', locator.element)
+      await driver.executeScript(
+        'return arguments[0].click();',
+        locator.element,
+      )
+      // await locator.element.click()
+      if (obj !== undefined) {
+        await sleep(obj.wait * 1000)
+      }
     } catch (err) {
       log.error(`Error during click.\nError ${err.stack}`)
       throw err
@@ -288,8 +323,33 @@ function Driver(driver, options) {
     return this
   }
 
-  function of() {
-    stack.push({ type: 'location', located: 'of' })
+  function column(data) {
+    if (typeof data !== 'string') {
+      throw new TypeError(
+        `Expected parameter for column is string. Received ${typeof data} instead`,
+      )
+    }
+    const pop = stack.pop()
+    if (JSON.stringify(pop) === JSON.stringify({ exact: true })) {
+      stack.push({
+        type: 'column',
+        id: data,
+        exact: true,
+        matches: [],
+        index: false,
+      })
+    } else {
+      if (typeof pop !== 'undefined') {
+        stack.push(pop)
+      }
+      stack.push({
+        type: 'column',
+        id: data,
+        exact: false,
+        matches: [],
+        index: false,
+      })
+    }
     return this
   }
 
@@ -346,10 +406,12 @@ function Driver(driver, options) {
     }
 
     try {
-      await driver.wait(async () => {
-        locator = await webElement.find(stack)
-        return ![undefined, null, ''].includes(locator)
-      })
+      await driver.wait(
+        (async function v() {
+          locator = await webElement.find(stack)
+          return ![undefined, null, ''].includes(locator)
+        })(),
+      )
     } catch (err) {
       if (method === 'fail') {
         throw err
@@ -417,6 +479,7 @@ function Driver(driver, options) {
   return {
     hover,
     click,
+    focus,
     write,
     clear,
     overwrite,
@@ -425,8 +488,8 @@ function Driver(driver, options) {
     uncheck,
     exact,
     element,
-    of,
     row,
+    column,
     above,
     below,
     near,
