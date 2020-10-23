@@ -19,7 +19,7 @@ const attributes = [
 function WebElement(dr) {
   const driver = dr
 
-  function getXPath(obj, action) {
+  function getXPathForElement(obj, action) {
     let attributecollection = ''
     if (obj.exact) {
       attributes.forEach((attribute) => {
@@ -52,14 +52,58 @@ function WebElement(dr) {
       xpath += '/following::select'
     }
 
-    if (obj.type === 'row') {
-      xpath = `//tbody/tr[(.${xpath})]`
+    return xpath
+  }
+
+  function getXPathForRow(obj) {
+    let attributecollection = ''
+    if (obj.exact) {
+      attributes.forEach((attribute) => {
+        attributecollection += `@${attribute}='${obj.id}' or `
+      })
+      attributecollection += `normalize-space(.)='${obj.id}' `
+    } else {
+      attributes.forEach((attribute) => {
+        attributecollection += `contains(@${attribute},'${obj.id}') or `
+      })
+      attributecollection += `contains(normalize-space(.),'${obj.id}') `
     }
-    if (obj.type === 'column') {
-      xpath = xpath.replace('//*', '')
-      xpath = `//tbody/tr/*[count(//thead//th${xpath}/preceding-sibling::th)+1]`
+
+    let xpath = `//*[${attributecollection}]`
+    xpath = `//tbody/tr[(.${xpath})]`
+    if (obj.index) {
+      xpath = `(${xpath})[${obj.index}]`
     }
     return xpath
+  }
+
+  function getXPathForColumn(obj) {
+    let attributecollection = ''
+    if (obj.exact) {
+      attributes.forEach((attribute) => {
+        attributecollection += `@${attribute}='${obj.id}' or `
+      })
+      attributecollection += `normalize-space(.)='${obj.id}' `
+    } else {
+      attributes.forEach((attribute) => {
+        attributecollection += `contains(@${attribute},'${obj.id}') or `
+      })
+      attributecollection += `contains(normalize-space(.),'${obj.id}') `
+    }
+
+    let xpath = `[${attributecollection}]`
+    xpath = `//tbody/tr/*[count(//thead//th${xpath}/preceding-sibling::th)+1]`
+    return xpath
+  }
+
+  function getXPath(obj, action) {
+    if (obj.type === 'row') {
+      return getXPathForRow(obj)
+    }
+    if (obj.type === 'column') {
+      return getXPathForColumn(obj)
+    }
+    return getXPathForElement(obj, action)
   }
 
   async function relativeSearch(item, location, relativeElement) {
@@ -122,17 +166,16 @@ function WebElement(dr) {
     const xpath = getXPath(obj, action)
     const elements = await driver.findElements(By.xpath(xpath))
     const promises = elements.map(async (e) => {
+      const ce1 = await e.getAttribute('contenteditable')
+      const ce2 = await e
+        .findElement(By.xpath('./..'))
+        .getAttribute('contenteditable')
       return {
         element: e,
         tagName: await e.getTagName(),
         rect: await getRect(e),
         frame: null,
-        contenteditable:
-          (await e.getAttribute('contenteditable')) ||
-          (await e
-            .findElement(By.xpath('./..'))
-            .getAttribute('contenteditable')) ||
-          null,
+        contenteditable: ce1 || ce2 || null,
       }
     })
     const all = await Promise.all(promises)

@@ -101,7 +101,16 @@ function Driver(driver, options) {
     message({ action: 'click' })
     try {
       const locator = await webElement.find(stack)
-      await locator.element.click()
+      try {
+        await locator.element.click()
+      } catch (err) {
+        if (err.name === 'ElementNotInteractableError') {
+          await driver.executeScript(
+            'return arguments[0].click();',
+            locator.element,
+          )
+        }
+      }
       if (obj !== undefined) {
         await sleep(obj.wait * 1000)
       }
@@ -127,6 +136,7 @@ function Driver(driver, options) {
           await (await browser.actions()).sendKeys(Key.RIGHT).perform()
         }
         await (await browser.actions()).sendKeys(text).perform()
+        await sleep(2000)
       }
     } catch (err) {
       log.error(`Error while entering data.\nError ${err.stack}`)
@@ -159,6 +169,7 @@ function Driver(driver, options) {
           .sendKeys(Key.BACK_SPACE)
           .perform()
         await (await browser.actions()).sendKeys(Key.BACK_SPACE).perform()
+        await sleep(2000)
       }
     } catch (err) {
       log.error(`Error while clearing field.\nError ${err.stack}`)
@@ -191,6 +202,7 @@ function Driver(driver, options) {
           .keyUp(Key.SHIFT)
           .sendKeys(text)
           .perform()
+        await sleep(2000)
       }
     } catch (err) {
       log.error(`Error while overwriting text in field.\nError ${err.stack}`)
