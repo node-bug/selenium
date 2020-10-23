@@ -127,7 +127,12 @@ function WebElement(dr) {
         tagName: await e.getTagName(),
         rect: await getRect(e),
         frame: null,
-        contenteditable: (await e.getAttribute('contenteditable')) || null,
+        contenteditable:
+          (await e.getAttribute('contenteditable')) ||
+          (await e
+            .findElement(By.xpath('./..'))
+            .getAttribute('contenteditable')) ||
+          null,
       }
     })
     const all = await Promise.all(promises)
@@ -138,7 +143,9 @@ function WebElement(dr) {
     const all = await findElementsByXpath(obj)
     let matches = all
     if (['write', 'check'].includes(action)) {
-      matches = matches.filter((e) => e.tagName === 'input')
+      matches = matches.filter(
+        (e) => e.tagName === 'input' || e.contenteditable === 'true',
+      )
       if (matches.length < 1) {
         matches = await findElementsByXpath(obj, action)
       }

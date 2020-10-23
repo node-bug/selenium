@@ -101,27 +101,7 @@ function Driver(driver, options) {
     message({ action: 'click' })
     try {
       const locator = await webElement.find(stack)
-      try {
-        await (await browser.actions())
-          .move({ origin: locator.element })
-          .perform()
-      } catch (err) {
-        if (err.name === 'MoveTargetOutOfBoundsError') {
-          await driver.executeScript(
-            'return arguments[0].scrollIntoView();',
-            locator.element,
-          )
-          await (await browser.actions())
-            .move({ origin: locator.element })
-            .perform()
-        }
-      }
-      // await driver.executeScript('return arguments[0].focus();', locator.element)
-      await driver.executeScript(
-        'return arguments[0].click();',
-        locator.element,
-      )
-      // await locator.element.click()
+      await locator.element.click()
       if (obj !== undefined) {
         await sleep(obj.wait * 1000)
       }
@@ -147,7 +127,6 @@ function Driver(driver, options) {
           await (await browser.actions()).sendKeys(Key.RIGHT).perform()
         }
         await (await browser.actions()).sendKeys(text).perform()
-        // await sleep(2000)
       }
     } catch (err) {
       log.error(`Error while entering data.\nError ${err.stack}`)
@@ -175,8 +154,11 @@ function Driver(driver, options) {
           // eslint-disable-next-line no-await-in-loop
           await (await browser.actions()).sendKeys(Key.LEFT).perform()
         }
-        await (await browser.actions()).keyUp(Key.SHIFT).perform()
-        await (await browser.actions()).sendKeys('').perform()
+        await (await browser.actions())
+          .keyUp(Key.SHIFT)
+          .sendKeys(Key.BACK_SPACE)
+          .perform()
+        await (await browser.actions()).sendKeys(Key.BACK_SPACE).perform()
       }
     } catch (err) {
       log.error(`Error while clearing field.\nError ${err.stack}`)
@@ -205,8 +187,10 @@ function Driver(driver, options) {
           // eslint-disable-next-line no-await-in-loop
           await (await browser.actions()).sendKeys(Key.LEFT).perform()
         }
-        await (await browser.actions()).keyUp(Key.SHIFT).perform()
-        await (await browser.actions()).sendKeys(text).perform()
+        await (await browser.actions())
+          .keyUp(Key.SHIFT)
+          .sendKeys(text)
+          .perform()
       }
     } catch (err) {
       log.error(`Error while overwriting text in field.\nError ${err.stack}`)
