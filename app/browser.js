@@ -160,7 +160,18 @@ function Browser(dr, opt) {
 
   async function reset() {
     log.info(`Resetting the browser, cache and cookies`)
-    return driver.manage().deleteAllCookies()
+    const hs = await driver.getAllWindowHandles()
+    for (let i = 1; i < hs.length; i++) {
+      /* eslint-disable no-await-in-loop */
+      await driver.switchTo().window(hs[i])
+      await driver.close()
+      await driver.switchTo().window(hs[0])
+      /* eslint-enable no-await-in-loop */
+    }
+    await driver.manage().deleteAllCookies()
+    return driver.executeScript(
+      'window.sessionStorage.clear();window.localStorage.clear();',
+    )
   }
 
   async function getDriver() {
