@@ -20,7 +20,7 @@ const {
 const { sleep } = require('./utils')
 
 class PageObject {
-  constructor(pageNameInput, pageNameDirectoryInput){
+  constructor(pageNameInput, pageNameDirectoryInput) {
     this.driver = getDriver()
     this.pageElements = new Map() // a hash of all of the web elements for this page.
     this.loadPageDefinitionFile(pageNameDirectoryInput + pageNameInput)
@@ -69,20 +69,20 @@ class PageObject {
   }
 
   async switchFrame(frame) {
-    await this.driver.switchTo().defaultContent()
+    await getDriver().switchTo().defaultContent()
     await sleep(100)
     if (frame !== 'default') {
       if (typeof frame === 'number') {
         log.debug(`Switching to frame number ${frame}`)
-        return this.driver.wait(
+        return getDriver().wait(
           until.ableToSwitchToFrame(frame, config.timeout * 1000),
         )
       }
       log.debug(`Switching to frame ${frame}`)
       const WebElementData = await this.getElement(frame)
-      const WebElementObject = new WebElement(this.driver, WebElementData)
+      const WebElementObject = new WebElement(getDriver(), WebElementData)
       const webElement = await WebElementObject.getWebElement()
-      return this.driver.wait(
+      return getDriver().wait(
         until.ableToSwitchToFrame(webElement, config.timeout * 1000),
       )
     }
@@ -91,8 +91,8 @@ class PageObject {
 
   async genericAssertElement(payload) {
     const timeout = (payload.timeout || config.timeout) * 1000
-    const { implicit } = await this.driver.manage().getTimeouts()
-    await this.driver.manage().setTimeouts({ implicit: 1000 })
+    const { implicit } = await getDriver().manage().getTimeouts()
+    await getDriver().manage().setTimeouts({ implicit: 1000 })
 
     let status
     const element = await this.addDynamicElement(
@@ -103,11 +103,11 @@ class PageObject {
     if (await this.hasElement(element)) {
       const WebElementData = await this.getElement(element)
       await this.switchFrame(WebElementData.frame)
-      const WebElementObject = new WebElement(this.driver, WebElementData)
+      const WebElementObject = new WebElement(getDriver(), WebElementData)
       try {
         switch (payload.condition.toLowerCase()) {
           case 'disabled':
-            await this.driver.manage().setTimeouts({ implicit })
+            await getDriver().manage().setTimeouts({ implicit })
             status = !(await WebElementObject.isEnabled())
             log.debug(`WebElement ${element} is disabled on page. PASS`)
             break
@@ -124,7 +124,7 @@ class PageObject {
           ${payload.condition} kind of wait is not defined.`)
         }
       } finally {
-        await this.driver.manage().setTimeouts({ implicit })
+        await getDriver().manage().setTimeouts({ implicit })
       }
     } else {
       assert.fail(
@@ -234,9 +234,9 @@ class PageObject {
         // }
 
         // If need to hit a iframe, do it
-        const WebElementObject = new WebElement(this.driver, WebElementData)
+        const WebElementObject = new WebElement(getDriver(), WebElementData)
         const webElement = await WebElementObject.getWebElement()
-        // console.log(await this.driver.getPageSource())
+        // console.log(await getDriver().getPageSource())
         const tagName = await webElement.getTagName()
         const actionElement = {}
         actionElement.element = WebElementData
@@ -304,7 +304,11 @@ class PageObject {
   }
 
   async click(elementName, replaceText) {
-    return this.genericPopulateElement({ elementName, replaceText, value: 'click' })
+    return this.genericPopulateElement({
+      elementName,
+      replaceText,
+      value: 'click',
+    })
   }
 
   async genericPopulateDatable(table) {
@@ -338,7 +342,7 @@ class PageObject {
     if (await this.hasElement(element)) {
       const WebElementData = await this.getElement(element)
       await this.switchFrame(WebElementData.frame)
-      const WebElementObject = new WebElement(this.driver, WebElementData)
+      const WebElementObject = new WebElement(getDriver(), WebElementData)
       elementList = await WebElementObject.getWebElements()
       return elementList
     }
@@ -375,7 +379,7 @@ class PageObject {
     if (await this.hasElement(element)) {
       const WebElementData = await this.getElement(element)
       await this.switchFrame(WebElementData.frame)
-      const WebElementObject = new WebElement(this.driver, WebElementData)
+      const WebElementObject = new WebElement(getDriver(), WebElementData)
       log.info(
         `Info: Page Element ${element} retrieved from Page Elements collection for exists check.`,
       )
@@ -398,7 +402,7 @@ class PageObject {
     if (await this.hasElement(element)) {
       const WebElementData = await this.getElement(element)
       await this.switchFrame(WebElementData.frame)
-      const WebElementObject = new WebElement(this.driver, WebElementData)
+      const WebElementObject = new WebElement(getDriver(), WebElementData)
       const webElement = await WebElementObject.getWebElement()
       try {
         switch (payload.attribute.toLowerCase()) {
@@ -489,11 +493,7 @@ class PageObject {
     }
   }
 
-  async assertTextDoesNotInclude(
-    elementName,
-    replaceText,
-    expectedValue,
-  ) {
+  async assertTextDoesNotInclude(elementName, replaceText, expectedValue) {
     if (expectedValue === undefined && replaceText !== undefined) {
       /* eslint-disable no-param-reassign */
       expectedValue = replaceText
@@ -513,6 +513,7 @@ class PageObject {
     }
   }
 
+  // eslint-disable-next-line class-methods-use-this
   async switchToTab(tabName) {
     try {
       log.debug(`Switching to tab : ${tabName}`)
@@ -525,6 +526,7 @@ class PageObject {
     }
   }
 
+  // eslint-disable-next-line class-methods-use-this
   async closeTab(tabName) {
     try {
       log.debug(`Closing tab : ${tabName}`)
@@ -535,6 +537,7 @@ class PageObject {
     }
   }
 
+  // eslint-disable-next-line class-methods-use-this
   async getCurrentURL() {
     try {
       log.debug('Getting URL of the current tab.')
@@ -545,6 +548,7 @@ class PageObject {
     }
   }
 
+  // eslint-disable-next-line class-methods-use-this
   async getPageTitle() {
     try {
       log.debug('Getting the title of the current tab.')
@@ -585,10 +589,11 @@ class PageObject {
     }
   }
 
+  // eslint-disable-next-line class-methods-use-this
   async genericAlertOperations(operation) {
     let retval
-    if (await this.driver.wait(until.alertIsPresent())) {
-      const alert = this.driver.switchTo().alert()
+    if (await getDriver().wait(until.alertIsPresent())) {
+      const alert = getDriver().switchTo().alert()
       switch (operation.toLowerCase()) {
         case 'accept':
           retval = await alert.accept()
@@ -677,19 +682,19 @@ class PageObject {
     if (await this.hasElement(fromElementName)) {
       const WebElementData = await this.getElement(fromElementName)
       await this.switchFrame(WebElementData.frame)
-      const WebElementObject = new WebElement(this.driver, WebElementData)
+      const WebElementObject = new WebElement(getDriver(), WebElementData)
       await WebElementObject.scrollIntoView()
       From = await WebElementObject.getWebElement()
     }
     if (await this.hasElement(toElementName)) {
       const WebElementData = await this.getElement(toElementName)
       await this.switchFrame(WebElementData.frame)
-      const WebElementObject = new WebElement(this.driver, WebElementData)
+      const WebElementObject = new WebElement(getDriver(), WebElementData)
       await WebElementObject.scrollIntoView()
       To = await WebElementObject.getWebElement()
     }
     try {
-      const actions = this.driver.actions({ bridge: true })
+      const actions = getDriver().actions({ bridge: true })
       await actions.dragAndDrop(From, To).perform()
       log.debug(
         `Dropped element "${fromElementName}" on element "${toElementName}". PASS`,

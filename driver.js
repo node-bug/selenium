@@ -6,7 +6,7 @@ const config = require('@nodebug/config')('selenium')
 const { sleep } = require('./utils')
 const { openBrowser } = require('./app/driver')
 
-const browser = openBrowser(config)
+let browser = openBrowser(config)
 
 const capabilities = (async () =>
   // eslint-disable-next-line no-underscore-dangle
@@ -75,6 +75,16 @@ async function closeBrowser() {
     log.error(`Error while quitting the browser. ${err.stack}`)
   }
   return false
+}
+
+async function open() {
+  try {
+    await closeBrowser()
+  } catch (err) {
+    log.warn(err)
+  }
+  browser = openBrowser(config)
+  return browser
 }
 
 async function resetBrowser() {
@@ -180,4 +190,5 @@ module.exports = {
   activateTab,
   closeTabAndSwitch,
   takeScreenshot,
+  open,
 }

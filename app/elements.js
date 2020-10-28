@@ -41,15 +41,16 @@ function WebElement(dr) {
     }
     if (action === 'write') {
       // eslint-disable-next-line max-len
-      xpath += `/following::*[`
-      xpath += `self::input[@type='text' or @type='password'] or `
-      xpath += `self::textarea or `
-      xpath += `self::*[@contenteditable='true']`
-      xpath += `]`
+      let write = `::*[`
+      write += `self::input[@type='text' or @type='password'] or `
+      write += `self::textarea or `
+      write += `self::*[@contenteditable='true']`
+      write += `]`
+      xpath = `${xpath}/following${write} | ${xpath}/descendant${write}`
     } else if (action === 'check') {
       xpath += `/preceding-sibling::input[@type='checkbox']`
     } else if (action === 'select') {
-      xpath += '/following::select'
+      xpath = `${xpath}/following::select | ${xpath}/descendant::select`
     }
 
     return xpath
