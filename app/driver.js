@@ -34,6 +34,8 @@ function setPreferences(opts) {
   const prefs = {
     'browser.sessionstore.resume_from_crash': false,
     'profile.content_settings.exceptions.automatic_downloads.*.setting': 1,
+    credentials_enable_service: false,
+    'profile.password_manager_enabled': false,
     'download.prompt_for_download': false,
     'download.default_directory': downloadDir,
   }

@@ -6,6 +6,11 @@ function Browser(dr, opt) {
   const options = opt
   const driver = dr
 
+  async function sleep(ms) {
+    log.info(`Sleeping for ${ms} ms`)
+    return new Promise((resolve) => setTimeout(resolve, ms))
+  }
+
   async function windowHandle() {
     return driver.getWindowHandle()
   }
@@ -183,6 +188,7 @@ function Browser(dr, opt) {
   }
 
   return {
+    sleep,
     newWindow,
     close,
     newTab,

@@ -1,14 +1,10 @@
 const { log } = require('@nodebug/logger')
 const imagemin = require('imagemin')
 const pngquant = require('imagemin-pngquant')
-const { By, Key } = require('selenium-webdriver')
+const { By, Key, Condition } = require('selenium-webdriver')
 const Browser = require('./app/browser.js')
 const WebElement = require('./app/elements.js')
 const Visual = require('./app/visual.js')
-
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
 
 function Driver(driver, options) {
   const browser = new Browser(driver, options)
@@ -22,6 +18,10 @@ function Driver(driver, options) {
       msg = 'Clicking on '
     } else if (a.action === 'focus') {
       msg = `Focussing on `
+    } else if (a.action === 'drag') {
+      msg = `Dragging `
+    } else if (a.action === 'drop') {
+      msg = `Dropping on `
     } else if (a.action === 'hover') {
       msg = `Hovering on `
     } else if (a.action === 'write') {
@@ -36,6 +36,8 @@ function Driver(driver, options) {
       msg = `Checking `
     } else if (a.action === 'waitVisibility') {
       msg = `Waiting for `
+    } else if (a.action === 'waitInvisibility') {
+      msg = `Waiting for invisibility of `
     } else if (a.action === 'check') {
       msg = `Checking checkbox for `
     } else if (a.action === 'uncheck') {
@@ -97,7 +99,7 @@ function Driver(driver, options) {
     return true
   }
 
-  async function click(obj) {
+  async function click() {
     message({ action: 'click' })
     try {
       const locator = await webElement.find(stack)
@@ -111,9 +113,32 @@ function Driver(driver, options) {
           )
         }
       }
-      if (obj !== undefined) {
-        await sleep(obj.wait * 1000)
-      }
+    } catch (err) {
+      log.error(`Error during click.\nError ${err.stack}`)
+      throw err
+    }
+    stack = []
+    return true
+  }
+
+  async function drag() {
+    message({ action: 'click' })
+    try {
+      const locator = await webElement.find(stack)
+      await (await browser.actions()).mouseDown(locator.element).perform()
+    } catch (err) {
+      log.error(`Error during click.\nError ${err.stack}`)
+      throw err
+    }
+    stack = []
+    return true
+  }
+
+  async function drop() {
+    message({ action: 'click' })
+    try {
+      const locator = await webElement.find(stack)
+      await (await browser.actions()).mouseUp(locator.element).perform()
     } catch (err) {
       log.error(`Error during click.\nError ${err.stack}`)
       throw err
@@ -136,7 +161,6 @@ function Driver(driver, options) {
           await (await browser.actions()).sendKeys(Key.RIGHT).perform()
         }
         await (await browser.actions()).sendKeys(text).perform()
-        await sleep(2000)
       }
     } catch (err) {
       log.error(`Error while entering data.\nError ${err.stack}`)
@@ -169,7 +193,6 @@ function Driver(driver, options) {
           .sendKeys(Key.BACK_SPACE)
           .perform()
         await (await browser.actions()).sendKeys(Key.BACK_SPACE).perform()
-        await sleep(2000)
       }
     } catch (err) {
       log.error(`Error while clearing field.\nError ${err.stack}`)
@@ -202,7 +225,6 @@ function Driver(driver, options) {
           .keyUp(Key.SHIFT)
           .sendKeys(text)
           .perform()
-        await sleep(2000)
       }
     } catch (err) {
       log.error(`Error while overwriting text in field.\nError ${err.stack}`)
@@ -403,20 +425,65 @@ function Driver(driver, options) {
 
     try {
       await driver.wait(
-        (async function v() {
+        (async function x() {
           locator = await webElement.find(stack)
           return ![undefined, null, ''].includes(locator)
         })(),
       )
     } catch (err) {
       if (method === 'fail') {
+        log.error(err.stack)
         throw err
       }
+    } finally {
+      await driver.manage().setTimeouts({ implicit })
     }
 
-    await driver.manage().setTimeouts({ implicit })
     stack = []
     return ![undefined, null, ''].includes(locator)
+  }
+
+  async function invisibility(method, timeout) {
+    let locator
+    let wait
+    const { implicit } = await driver.manage().getTimeouts()
+
+    if (typeof timeout === 'number') {
+      wait = timeout * 1000
+    } else {
+      wait = implicit
+    }
+
+    await driver.manage().setTimeouts({ implicit: 1000 })
+    try {
+      await driver.wait(
+        new Condition(
+          `for element to be invisible. Element is still visible on page.`,
+          async function x() {
+            try {
+              locator = await webElement.find(stack)
+            } catch (err) {
+              if (err.message.includes('has no matching elements on page')) {
+                return true
+              }
+              throw err
+            }
+            return false
+          },
+        ),
+        wait,
+      )
+    } catch (err) {
+      if (method === 'fail') {
+        log.error(err.stack)
+        throw err
+      }
+    } finally {
+      await driver.manage().setTimeouts({ implicit })
+    }
+
+    stack = []
+    return [undefined, null, ''].includes(locator)
   }
 
   async function isVisible(timeout) {
@@ -427,6 +494,11 @@ function Driver(driver, options) {
   async function waitForVisibility(timeout) {
     message({ action: 'waitVisibility' })
     return visibility('fail', timeout)
+  }
+
+  async function waitForInvisibility(timeout) {
+    message({ action: 'waitInvisibility' })
+    return invisibility('fail', timeout)
   }
 
   async function screenshot(page) {
@@ -476,6 +548,8 @@ function Driver(driver, options) {
     hover,
     click,
     focus,
+    drag,
+    drop,
     write,
     clear,
     overwrite,
@@ -495,8 +569,10 @@ function Driver(driver, options) {
     atIndex,
     isVisible,
     waitForVisibility,
+    waitForInvisibility,
     screenshot,
     visual,
+    sleep: browser.sleep,
     newWindow: browser.newWindow,
     close: browser.close,
     newTab: browser.newTab,
