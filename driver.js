@@ -72,9 +72,9 @@ async function closeBrowser() {
     )
     return browser.quit()
   } catch (err) {
-    log.error(`Error while quitting the browser. ${err.stack}`)
+    log.warn(`Error while closing the browser.`)
+    throw err
   }
-  return false
 }
 
 async function open() {

@@ -72,9 +72,7 @@ function Driver(driver, options) {
     message({ action: 'hover' })
     try {
       const locator = await webElement.find(stack)
-      await (await browser.actions())
-        .move({ origin: locator.element })
-        .perform()
+      await browser.actions().move({ origin: locator.element }).perform()
     } catch (err) {
       log.error(`Error during hover.\nError ${err.stack}`)
       throw err
@@ -99,20 +97,25 @@ function Driver(driver, options) {
     return true
   }
 
+  async function clicker(e) {
+    try {
+      await e.click()
+    } catch (err) {
+      if (err.name === 'ElementNotInteractableError') {
+        await driver.executeScript('return arguments[0].click();', e)
+      } else if (err.name === 'ElementClickInterceptedError') {
+        await browser.actions().move({ origin: e }).click().perform()
+      } else {
+        throw err
+      }
+    }
+  }
+
   async function click() {
     message({ action: 'click' })
     try {
       const locator = await webElement.find(stack)
-      try {
-        await locator.element.click()
-      } catch (err) {
-        if (err.name === 'ElementNotInteractableError') {
-          await driver.executeScript(
-            'return arguments[0].click();',
-            locator.element,
-          )
-        }
-      }
+      await clicker(locator.element)
     } catch (err) {
       log.error(`Error during click.\nError ${err.stack}`)
       throw err
@@ -125,7 +128,11 @@ function Driver(driver, options) {
     message({ action: 'click' })
     try {
       const locator = await webElement.find(stack)
-      await (await browser.actions()).mouseDown(locator.element).perform()
+      await browser
+        .actions()
+        .move({ origin: locator.element })
+        .press()
+        .perform()
     } catch (err) {
       log.error(`Error during click.\nError ${err.stack}`)
       throw err
@@ -138,7 +145,11 @@ function Driver(driver, options) {
     message({ action: 'click' })
     try {
       const locator = await webElement.find(stack)
-      await (await browser.actions()).mouseUp(locator.element).perform()
+      await browser
+        .actions()
+        .move({ origin: locator.element })
+        .release()
+        .perform()
     } catch (err) {
       log.error(`Error during click.\nError ${err.stack}`)
       throw err
@@ -155,12 +166,12 @@ function Driver(driver, options) {
         await locator.element.sendKeys(text)
       } else {
         const eleValue = await locator.element.getAttribute('textContent')
-        await locator.element.click()
+        await clicker(locator.element)
         for (let i = 0; i < eleValue.length; i++) {
           // eslint-disable-next-line no-await-in-loop
-          await (await browser.actions()).sendKeys(Key.RIGHT).perform()
+          await browser.actions().sendKeys(Key.RIGHT).perform()
         }
-        await (await browser.actions()).sendKeys(text).perform()
+        await browser.actions().sendKeys(text).perform()
       }
     } catch (err) {
       log.error(`Error while entering data.\nError ${err.stack}`)
@@ -178,21 +189,22 @@ function Driver(driver, options) {
         await locator.element.clear()
       } else {
         const eleValue = await locator.element.getAttribute('textContent')
-        await locator.element.click()
+        await clicker(locator.element)
         for (let i = 0; i < eleValue.length; i++) {
           // eslint-disable-next-line no-await-in-loop
-          await (await browser.actions()).sendKeys(Key.RIGHT).perform()
+          await browser.actions().sendKeys(Key.RIGHT).perform()
         }
-        await (await browser.actions()).keyDown(Key.SHIFT).perform()
+        await browser.actions().keyDown(Key.SHIFT).perform()
         for (let i = 0; i < eleValue.length; i++) {
           // eslint-disable-next-line no-await-in-loop
-          await (await browser.actions()).sendKeys(Key.LEFT).perform()
+          await browser.actions().sendKeys(Key.LEFT).perform()
         }
-        await (await browser.actions())
+        await browser
+          .actions()
           .keyUp(Key.SHIFT)
           .sendKeys(Key.BACK_SPACE)
           .perform()
-        await (await browser.actions()).sendKeys(Key.BACK_SPACE).perform()
+        await browser.actions().sendKeys(Key.BACK_SPACE).perform()
       }
     } catch (err) {
       log.error(`Error while clearing field.\nError ${err.stack}`)
@@ -211,20 +223,17 @@ function Driver(driver, options) {
         await locator.element.sendKeys(text)
       } else {
         const eleValue = await locator.element.getAttribute('textContent')
-        await locator.element.click()
+        await clicker(locator.element)
         for (let i = 0; i < eleValue.length; i++) {
           // eslint-disable-next-line no-await-in-loop
-          await (await browser.actions()).sendKeys(Key.RIGHT).perform()
+          await browser.actions().sendKeys(Key.RIGHT).perform()
         }
-        await (await browser.actions()).keyDown(Key.SHIFT).perform()
+        await browser.actions().keyDown(Key.SHIFT).perform()
         for (let i = 0; i < eleValue.length; i++) {
           // eslint-disable-next-line no-await-in-loop
-          await (await browser.actions()).sendKeys(Key.LEFT).perform()
+          await browser.actions().sendKeys(Key.LEFT).perform()
         }
-        await (await browser.actions())
-          .keyUp(Key.SHIFT)
-          .sendKeys(text)
-          .perform()
+        await browser.actions().keyUp(Key.SHIFT).sendKeys(text).perform()
       }
     } catch (err) {
       log.error(`Error while overwriting text in field.\nError ${err.stack}`)
@@ -261,7 +270,7 @@ function Driver(driver, options) {
         (action === 'check' && !isChecked) ||
         (action === 'uncheck' && isChecked)
       ) {
-        await locator.element.click()
+        await clicker(locator.element)
       }
     } catch (err) {
       log.error(`Error during checkbox set.\nError ${err.stack}`)

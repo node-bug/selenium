@@ -19,7 +19,7 @@ const attributes = [
 function WebElement(dr) {
   const driver = dr
 
-  function getXPathForElement(obj) {
+  function getXPathForElement(obj, action, relation) {
     let attributecollection = ''
     if (obj.exact) {
       attributes.forEach((attribute) => {
@@ -39,6 +39,26 @@ function WebElement(dr) {
     if (obj.index) {
       xpath = `(${xpath})[${obj.index}]`
     }
+    if (action === 'write') {
+      // eslint-disable-next-line max-len
+      let write = `::*[`
+      write += `self::input[@type='text' or @type='password'] or `
+      write += `self::textarea or `
+      write += `self::*[@contenteditable='true']`
+      write += `]`
+      if (relation === 'descendant') {
+        xpath = `${xpath}/descendant${write}`
+      } else if (relation === 'following') {
+        xpath = `${xpath}/following${write}`
+      } else {
+        throw new TypeError('Fix Selenium Driver for XPaths')
+      }
+    } else if (action === 'check') {
+      xpath += `/preceding-sibling::input[@type='checkbox']`
+    } else if (action === 'select') {
+      xpath = `${xpath}/descendant::select | ${xpath}/following::select`
+    }
+
     return xpath
   }
 
@@ -83,14 +103,14 @@ function WebElement(dr) {
     return xpath
   }
 
-  function getXPath(obj) {
+  function getXPath(obj, action, relation) {
     if (obj.type === 'row') {
       return getXPathForRow(obj)
     }
     if (obj.type === 'column') {
       return getXPathForColumn(obj)
     }
-    return getXPathForElement(obj)
+    return getXPathForElement(obj, action, relation)
   }
 
   function relativeSearch(item, location, relativeElement) {
@@ -149,48 +169,92 @@ function WebElement(dr) {
     )
   }
 
-  async function withProperties(e, action) {
-    const locator = {}
-    if (![undefined, null, ''].includes(action)) {
-      const ce = await e.getAttribute('contenteditable')
-      const cep = await e
+  async function findElementsByXpath(obj, action, relation) {
+    const xpath = getXPath(obj, action, relation)
+    const elements = await driver.findElements(By.xpath(xpath))
+    const promises = elements.map(async (e) => {
+      const ce1 = await e.getAttribute('contenteditable')
+      const ce2 = await e
         .findElement(By.xpath('./..'))
         .getAttribute('contenteditable')
-      const ace = (await e.getAttribute('class')).includes('ace_text')
-      const acep = (
-        await e.findElement(By.xpath('./..')).getAttribute('class')
-      ).includes('ace_text')
-      locator.editable = ce || cep || ace || acep || null
-    }
-    locator.element = e
-    locator.tagName = await e.getTagName()
-    locator.rect = await getRect(e)
-    return locator
+      // const classname = (await e.getAttribute('class')) || "null"
+      // const ce3 = classname.includes('ace_text')
+      return {
+        element: e,
+        tagName: await e.getTagName(),
+        rect: await getRect(e),
+        frame: null,
+        contenteditable: ce1 || ce2 || null,
+      }
+    })
+    const all = await Promise.all(promises)
+    return all.filter((e) => e.rect.height > 0)
   }
 
-  async function resolveElements(stack) {
-    const promises = stack.map(async (item) => {
+  async function findActionElement(obj, action) {
+    const all = await findElementsByXpath(obj)
+    let matches = all
+    if (action === 'write') {
+      matches = matches.filter(
+        (e) =>
+          ['input', 'textarea'].includes(e.tagName) ||
+          e.contenteditable === 'true',
+      )
+      if (matches.length < 1) {
+        matches = await findElementsByXpath(obj, action, 'descendant')
+        matches = matches.filter(
+          (e) =>
+            ['input', 'textarea'].includes(e.tagName) ||
+            e.contenteditable === 'true',
+        )
+        if (matches.length < 1) {
+          matches = await findElementsByXpath(obj, action, 'following')
+          matches = matches.filter(
+            (e) =>
+              ['input', 'textarea'].includes(e.tagName) ||
+              e.contenteditable === 'true',
+          )
+        }
+      }
+    } else if (action === 'select') {
+      matches = matches.filter((e) => e.tagName === 'select')
+      if (matches.length < 1) {
+        matches = await findElementsByXpath(obj, action)
+      }
+    } else if (action === 'check') {
+      matches = matches.filter((e) => e.tagName === 'input')
+      if (matches.length < 1) {
+        matches = await findElementsByXpath(obj, action)
+      }
+    }
+
+    if (matches.length < 1) {
+      matches = all
+    }
+    return matches
+  }
+
+  async function resolveElements(stack, action) {
+    const promises = stack.map(async (item, index) => {
       const obj = { ...item }
       if (
         ['element', 'row', 'column'].includes(obj.type) &&
         obj.matches.length < 1
       ) {
-        const xpath = getXPath(obj)
-        let elements = await driver.findElements(By.xpath(xpath))
-        const promisess = elements.map(async (e) => {
-          return withProperties(e)
-        })
-        elements = await Promise.all(promisess)
-        obj.matches = elements.filter((e) => e.rect.height > 0)
+        if (index === 0) {
+          obj.matches = await findActionElement(obj, action)
+        } else {
+          obj.matches = await findElementsByXpath(obj)
+        }
       }
       return obj
     })
     return Promise.all(promises)
   }
 
-  async function findElements(stack) {
+  async function findElements(stack, action) {
     await driver.switchTo().defaultContent()
-    let data = await resolveElements(stack)
+    let data = await resolveElements(stack, action)
     for (let i = 0; i < data.length; i++) {
       /* eslint-disable no-await-in-loop */
       if (
@@ -200,7 +264,7 @@ function WebElement(dr) {
         const frames = (await driver.findElements(By.xpath('//iframe'))).length
         for (let frame = 0; frame < frames; frame++) {
           await driver.wait(until.ableToSwitchToFrame(frame))
-          data = await resolveElements(data)
+          data = await resolveElements(data, action)
         }
         if (data[i].matches.length < 1) {
           throw new ReferenceError(
@@ -213,84 +277,8 @@ function WebElement(dr) {
     return data
   }
 
-  async function findActionElement(lctr, action) {
-    let matches = []
-    let locator = await withProperties(lctr.element, action)
-    if (
-      action === 'write' &&
-      !['input', 'textarea'].includes(locator.tagName) &&
-      !locator.editable
-    ) {
-      let write = `::*[`
-      write += `self::input[@type='text' or @type='password'] or `
-      write += `self::textarea or `
-      write += `self::*[@contenteditable='true'] or `
-      write += `self::*[contains(@class,'ace_text')]`
-      write += `]`
-      matches = await locator.element.findElements(
-        By.xpath(`./descendant${write}`),
-      )
-      const promises = matches.map(async (e) => {
-        return withProperties(e, action)
-      })
-      matches = await Promise.all(promises)
-      matches = matches.filter(
-        (e) =>
-          ['input', 'textarea'].includes(e.tagName) ||
-          [true, 'true'].includes(e.editable),
-      )
-      if (matches.length < 1) {
-        matches = await locator.element.findElements(
-          By.xpath(`./following${write}`),
-        )
-        const promisess = matches.map(async (e) => {
-          return withProperties(e, action)
-        })
-        matches = await Promise.all(promisess)
-        matches = matches.filter(
-          (e) =>
-            ['input', 'textarea'].includes(e.tagName) ||
-            [true, 'true'].includes(e.editable),
-        )
-      }
-    } else if (action === 'select' && locator.tagName !== 'select') {
-      matches = await locator.element.findElements(
-        By.xpath('./descendant::select'),
-      )
-      const promises = matches.map(async (e) => {
-        return withProperties(e, action)
-      })
-      matches = await Promise.all(promises)
-      matches = matches.filter((e) => e.tagName === 'select')
-      if (matches.length < 1) {
-        matches = await locator.element.findElements(
-          By.xpath('./following::select'),
-        )
-        const promisess = matches.map(async (e) => {
-          return withProperties(e, action)
-        })
-        matches = await Promise.all(promisess)
-        matches = matches.filter((e) => e.tagName === 'select')
-      }
-    } else if (action === 'check' && locator.tagName !== 'input') {
-      matches = await locator.element.findElements(
-        By.xpath(`./preceding-sibling::input[@type='checkbox']`),
-      )
-      const promises = matches.map(async (e) => {
-        return withProperties(e, action)
-      })
-      matches = await Promise.all(promises)
-      matches = matches.filter((e) => e.tagName === 'input')
-    }
-
-    if (matches.length > 0) {
-      ;[locator] = matches
-    }
-    return locator
-  }
-
   async function find(stack, action) {
-    const data = await findElements(stack)
+    const data = await findElements(stack, action)
 
     let element = null
     for (let i = data.length - 1; i > -1; i--) {
@@ -317,10 +305,6 @@ function WebElement(dr) {
         }
       }
       // await driver.executeScript("arguments[0].setAttribute('style', 'background: blue; border: 2px solid red;');", element.element);
-    }
-
-    if (['write', 'select', 'check'].includes(action)) {
-      element = await findActionElement(element, action)
     }
     return element
   }
