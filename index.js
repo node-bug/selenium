@@ -18,6 +18,8 @@ function Driver(driver, options) {
       msg = 'Clicking on '
     } else if (a.action === 'focus') {
       msg = `Focussing on `
+    } else if (a.action === 'scroll') {
+      msg = `Scrolling into view `
     } else if (a.action === 'drag') {
       msg = `Dragging `
     } else if (a.action === 'drop') {
@@ -75,6 +77,22 @@ function Driver(driver, options) {
       await browser.actions().move({ origin: locator.element }).perform()
     } catch (err) {
       log.error(`Error during hover.\nError ${err.stack}`)
+      throw err
+    }
+    stack = []
+    return true
+  }
+
+  async function scroll() {
+    message({ action: 'scroll' })
+    try {
+      const locator = await webElement.find(stack)
+      await driver.executeScript(
+        'return arguments[0].scrollIntoView();',
+        locator.element,
+      )
+    } catch (err) {
+      log.error(`Error during scroll into view.\nError ${err.stack}`)
       throw err
     }
     stack = []
@@ -162,7 +180,7 @@ function Driver(driver, options) {
     message({ action: 'write', data: text })
     try {
       const locator = await webElement.find(stack, 'write')
-      if (locator.tagName === 'input') {
+      if (['input', 'textarea'].includes(locator.tagName)) {
         await locator.element.sendKeys(text)
       } else {
         const eleValue = await locator.element.getAttribute('textContent')
@@ -185,7 +203,7 @@ function Driver(driver, options) {
     message({ action: 'clear' })
     try {
       const locator = await webElement.find(stack, 'write')
-      if (locator.tagName === 'input') {
+      if (['input', 'textarea'].includes(locator.tagName)) {
         await locator.element.clear()
       } else {
         const eleValue = await locator.element.getAttribute('textContent')
@@ -555,6 +573,7 @@ function Driver(driver, options) {
 
   return {
     hover,
+    scroll,
     click,
     focus,
     drag,
