@@ -1,6 +1,6 @@
 {
   "name": "@nodebug/selenium",
-  "version": "1.6.1",
+  "version": "1.6.2",
   "author": {
     "name": "Node Bug",
     "email": "nodebug@outlook.com"
@@ -12,8 +12,8 @@
     "@nodebug/config": "1.0.0",
     "@nodebug/logger": "1.0.0",
     "chai": "latest",
-    "chromedriver": "^85.0.1",
-    "geckodriver": "^1.20.0",
+    "chromedriver": "latest",
+    "geckodriver": "latest",
     "imagemin": "latest",
     "imagemin-pngquant": "^9.0.1",
     "jsonfile": "latest",
