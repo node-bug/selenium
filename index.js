@@ -524,7 +524,10 @@ function Driver(driver, options) {
             try {
               locator = await webElement.find(stack)
             } catch (err) {
-              if (err.message.includes('has no matching elements on page')) {
+              if (
+                err.message.includes('has no matching elements on page') ||
+                err.name === 'StaleElementReferenceError'
+              ) {
                 return true
               }
               throw err
