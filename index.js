@@ -46,6 +46,8 @@ function Driver(driver, options) {
       msg = `Unchecking checkbox for `
     } else if (a.action === 'screenshot') {
       msg = `Capturing screenshot of `
+    } else if (a.action === 'getText') {
+      msg = `Getting text of `
     }
     for (let i = 0; i < stack.length; i++) {
       const obj = stack[i]
@@ -68,6 +70,38 @@ function Driver(driver, options) {
     }
     log.info(msg)
     return true
+  }
+
+  function get() {
+    return this
+  }
+
+  async function text() {
+    let value
+    message({ action: 'getText' })
+    try {
+      const locator = await webElement.find(stack)
+      value = await locator.element.getAttribute('textContent')
+    } catch (err) {
+      log.error(`Error during getting text.\nError ${err.stack}`)
+      throw err
+    }
+    stack = []
+    return value
+  }
+
+  async function attribute(name) {
+    let value
+    message({ action: 'getText' })
+    try {
+      const locator = await webElement.find(stack)
+      value = await locator.element.getAttribute(name)
+    } catch (err) {
+      log.error(`Error during getting text.\nError ${err.stack}`)
+      throw err
+    }
+    stack = []
+    return value
   }
 
   async function hover() {
@@ -176,12 +210,12 @@ function Driver(driver, options) {
     return true
   }
 
-  async function write(text) {
-    message({ action: 'write', data: text })
+  async function write(value) {
+    message({ action: 'write', data: value })
     try {
       const locator = await webElement.find(stack, 'write')
       if (['input', 'textarea'].includes(locator.tagName)) {
-        await locator.element.sendKeys(text)
+        await locator.element.sendKeys(value)
       } else {
         const eleValue = await locator.element.getAttribute('textContent')
         await clicker(locator.element)
@@ -189,7 +223,7 @@ function Driver(driver, options) {
           // eslint-disable-next-line no-await-in-loop
           await browser.actions().sendKeys(Key.RIGHT).perform()
         }
-        await browser.actions().sendKeys(text).perform()
+        await browser.actions().sendKeys(value).perform()
       }
     } catch (err) {
       log.error(`Error while entering data.\nError ${err.stack}`)
@@ -232,13 +266,13 @@ function Driver(driver, options) {
     return true
   }
 
-  async function overwrite(text) {
-    message({ action: 'overwrite', data: text })
+  async function overwrite(value) {
+    message({ action: 'overwrite', data: value })
     try {
       const locator = await webElement.find(stack, 'write')
       if (['input', 'textarea'].includes(locator.tagName)) {
         await locator.element.clear()
-        await locator.element.sendKeys(text)
+        await locator.element.sendKeys(value)
       } else {
         const eleValue = await locator.element.getAttribute('textContent')
         await clicker(locator.element)
@@ -251,7 +285,7 @@ function Driver(driver, options) {
           // eslint-disable-next-line no-await-in-loop
           await browser.actions().sendKeys(Key.LEFT).perform()
         }
-        await browser.actions().keyUp(Key.SHIFT).sendKeys(text).perform()
+        await browser.actions().keyUp(Key.SHIFT).sendKeys(value).perform()
       }
     } catch (err) {
       log.error(`Error while overwriting text in field.\nError ${err.stack}`)
@@ -261,13 +295,13 @@ function Driver(driver, options) {
     return true
   }
 
-  async function select(text) {
-    message({ action: 'select', data: text })
+  async function select(value) {
+    message({ action: 'select', data: value })
     try {
       const locator = await webElement.find(stack, 'select')
       if (locator.tagName === 'select') {
         await locator.element
-          .findElement(By.xpath(`.//option[.="${text}"]`))
+          .findElement(By.xpath(`.//option[.="${value}"]`))
           .click()
       } else {
         throw new ReferenceError(`Element is not of type select`)
@@ -572,6 +606,9 @@ function Driver(driver, options) {
   }
 
   return {
+    get,
+    text,
+    attribute,
     hover,
     scroll,
     click,
