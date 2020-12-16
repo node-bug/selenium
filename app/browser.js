@@ -6,6 +6,18 @@ function Browser(dr, opt) {
   const options = opt
   const driver = dr
 
+  async function name() {
+    return (await driver.getCapabilities())
+      .get('browserName')
+      .replace(/\s/g, '')
+  }
+
+  async function os() {
+    return (await driver.getCapabilities())
+      .get('platformName')
+      .replace(/\s/g, '')
+  }
+
   async function sleep(ms) {
     log.info(`Sleeping for ${ms} ms`)
     return new Promise((resolve) => setTimeout(resolve, ms))
@@ -188,6 +200,8 @@ function Browser(dr, opt) {
   }
 
   return {
+    name,
+    os,
     sleep,
     newWindow,
     close,

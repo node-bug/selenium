@@ -139,7 +139,7 @@ function WebElement(dr) {
     } else {
       elements = item.matches
     }
-    return elements[0]
+    return elements
   }
 
   async function getRect(element) {
@@ -297,7 +297,7 @@ function WebElement(dr) {
       const item = data[i]
       if (['element', 'row', 'column'].includes(item.type)) {
         // eslint-disable-next-line no-await-in-loop
-        element = relativeSearch(item)
+        ;[element] = relativeSearch(item)
         if ([undefined, null, ''].includes(element)) {
           throw new ReferenceError(
             `'${item.id}' has no matching elements on page.`,
@@ -307,7 +307,7 @@ function WebElement(dr) {
       if (item.type === 'location') {
         i -= 1
         // eslint-disable-next-line no-await-in-loop
-        element = relativeSearch(data[i], item.located, element)
+        ;[element] = relativeSearch(data[i], item.located, element)
         if ([undefined, null, ''].includes(element)) {
           throw new ReferenceError(
             `'${data[i].id}' ${item.located} '${
@@ -325,8 +325,47 @@ function WebElement(dr) {
     return element
   }
 
+  async function findAll(stack) {
+    const data = await findElements(stack)
+
+    let element = null
+    for (let i = data.length - 1; i > -1; i--) {
+      const item = data[i]
+      if (['element', 'row', 'column'].includes(item.type)) {
+        // eslint-disable-next-line no-await-in-loop
+        element = relativeSearch(item)
+        if (i !== 0) {
+          ;[element] = relativeSearch(item)
+        }
+        if ([undefined, null, ''].includes(element)) {
+          throw new ReferenceError(
+            `'${item.id}' has no matching elements on page.`,
+          )
+        }
+      }
+      if (item.type === 'location') {
+        i -= 1
+        // eslint-disable-next-line no-await-in-loop
+        element = relativeSearch(data[i], item.located, element)
+        if (i !== 0) {
+          ;[element] = element
+        }
+        if ([undefined, null, ''].includes(element)) {
+          throw new ReferenceError(
+            `'${data[i].id}' ${item.located} '${
+              data[i + 2].id
+            }' has no matching elements on page.`,
+          )
+        }
+      }
+      // await driver.executeScript("arguments[0].setAttribute('style', 'background: blue; border: 2px solid red;');", element.element);
+    }
+    return element
+  }
+
   return {
     find,
+    findAll,
   }
 }
 

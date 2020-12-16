@@ -2,14 +2,13 @@ const { log } = require('@nodebug/logger')
 const imagemin = require('imagemin')
 const pngquant = require('imagemin-pngquant')
 const { By, Key, Condition } = require('selenium-webdriver')
-const Browser = require('./app/browser.js')
-const WebElement = require('./app/elements.js')
-const Visual = require('./app/visual.js')
+const Browser = require('./app/browser')
+const WebElement = require('./app/elements')
+const Visual = require('./app/visual')
 
 function Driver(driver, options) {
   const browser = new Browser(driver, options)
   const webElement = new WebElement(driver)
-  const comparison = new Visual()
   let stack = []
 
   function message(a) {
@@ -48,6 +47,10 @@ function Driver(driver, options) {
       msg = `Capturing screenshot of `
     } else if (a.action === 'getText') {
       msg = `Getting text of `
+    } else if (a.action === 'hide') {
+      msg = `Hiding all matching `
+    } else if (a.action === 'unhide') {
+      msg = `Unhiding all matching `
     }
     for (let i = 0; i < stack.length; i++) {
       const obj = stack[i]
@@ -565,9 +568,9 @@ function Driver(driver, options) {
     return invisibility('fail', timeout)
   }
 
-  async function screenshot(page) {
+  async function screenshot() {
     let dataUrl = false
-    if (!page) {
+    if (stack.length > 0) {
       let locator
       try {
         locator = await webElement.find(stack)
@@ -604,8 +607,50 @@ function Driver(driver, options) {
   }
 
   async function visual(path) {
+    const name = await browser.name()
+    const os = await browser.os()
+    const rect = await browser.getSize()
     const image = await screenshot()
-    return comparison.perform(path, image)
+
+    return Visual.compare(name, os, rect, image, path)
+  }
+
+  async function hide() {
+    message({ action: 'hide' })
+    try {
+      const locators = await webElement.findAll(stack)
+      const promises = locators.map(async (locator) => {
+        await driver.executeScript(
+          'return arguments[0].style.opacity=0',
+          locator.element,
+        )
+      })
+      await Promise.all(promises)
+    } catch (err) {
+      log.error(`Error during hide.\nError ${err.stack}`)
+      throw err
+    }
+    stack = []
+    return true
+  }
+
+  async function unhide() {
+    message({ action: 'unhide' })
+    try {
+      const locators = await webElement.findAll(stack)
+      const promises = locators.map(async (locator) => {
+        await driver.executeScript(
+          'return arguments[0].style.opacity=1',
+          locator.element,
+        )
+      })
+      await Promise.all(promises)
+    } catch (err) {
+      log.error(`Error during unhide.\nError ${err.stack}`)
+      throw err
+    }
+    stack = []
+    return true
   }
 
   return {
@@ -640,6 +685,10 @@ function Driver(driver, options) {
     waitForInvisibility,
     screenshot,
     visual,
+    hide,
+    unhide,
+    name: browser.name,
+    os: browser.os,
     sleep: browser.sleep,
     newWindow: browser.newWindow,
     close: browser.close,

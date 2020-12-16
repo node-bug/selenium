@@ -1,42 +1,59 @@
+const { log } = require('@nodebug/logger')
+const path = require('path')
+const fs = require('fs')
 const resemble = require('resemblejs/compareImages')
 const config = require('@nodebug/config')('visual')
-const fs = require('fs')
-const path = require('path')
+const Gif = require('@nodebug/gifencoder')
 
-function Visual() {
-  const { capture } = config
-  const { compare } = config
-
-  async function perform(oldSnapPath, newSnap) {
-    const baseline = path.resolve(oldSnapPath)
-    const file = `${baseline}/image.png`
-
-    if (capture !== false) {
-      if (!fs.existsSync(file)) {
-        fs.mkdirSync(baseline, { recursive: true })
-        fs.writeFileSync(file, newSnap, 'base64')
-      }
+class Visual {
+  static capture(screenshot, filename) {
+    const dir = path.dirname(filename)
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true })
     }
-
-    if (compare !== false) {
-      if (!fs.existsSync(file)) {
-        throw new ReferenceError(`Old snapshot not found at path ${baseline}`)
-      }
-      const contents = fs.readFileSync(file, { encoding: 'base64' })
-      const data = await resemble(
-        `data:image/png;base64,${contents}`,
-        `data:image/png;base64,${newSnap}`,
-      )
-      const buffer = data.getBuffer()
-
-      // console.log(data.isSameDimensions)
-      // console.log(data.misMatchPercentage)
-      return buffer
-    }
-    return false
+    fs.writeFileSync(filename, screenshot, 'base64')
   }
 
-  return { perform }
+  static async perform(screenshot, filename, size) {
+    if (!fs.existsSync(filename)) {
+      throw new ReferenceError(`Old snapshot not found at path ${filename}`)
+    }
+    const contents = fs.readFileSync(filename, { encoding: 'base64' })
+    const result = await resemble(
+      `data:image/png;base64,${contents}`,
+      `data:image/png;base64,${screenshot}`,
+    )
+
+    if (result.misMatchPercentage > 0.01) {
+      const gif = new Gif(size.width, size.height)
+      await gif.addBuffer(contents)
+      await gif.addBuffer(screenshot)
+      result.gif = await gif.save()
+      result.status = 'failed'
+      log.info(
+        `Actual and expected images mismatch by ${result.misMatchPercentage}%`,
+      )
+    } else {
+      log.info('Actual and expected images match.')
+      result.status = 'passed'
+    }
+
+    return result
+  }
+
+  static async compare(browser, os, size, screenshot, file) {
+    const filename = `${file}/${os}_${browser}_${size.width}_${size.height}.png`
+    if (config.capture !== false) {
+      Visual.capture(screenshot, filename)
+    }
+
+    if (config.compare !== false) {
+      return Visual.perform(screenshot, filename, size)
+    }
+    log.info('Not comparing as Compare flag is set to false in config file.')
+
+    return { status: 'failed', gif: screenshot }
+  }
 }
 
 module.exports = Visual
