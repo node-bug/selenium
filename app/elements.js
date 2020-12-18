@@ -281,6 +281,16 @@ function WebElement(dr) {
       })
       matches = await Promise.all(promises)
       matches = matches.filter((e) => e.tagName === 'input')
+      if (matches.length < 1) {
+        matches = await locator.element.findElements(
+          By.xpath(`./child::input[@type='checkbox']`),
+        )
+        const promisess = matches.map(async (e) => {
+          return withProperties(e, action)
+        })
+        matches = await Promise.all(promisess)
+        matches = matches.filter((e) => e.tagName === 'input')
+      }
     }
 
     if (matches.length > 0) {

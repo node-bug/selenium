@@ -51,8 +51,7 @@ class Visual {
       return Visual.perform(screenshot, filename, size)
     }
     log.info('Not comparing as Compare flag is set to false in config file.')
-
-    return { status: 'failed', gif: screenshot }
+    return { status: 'none', gif: screenshot }
   }
 }
 

@@ -275,7 +275,22 @@ function Driver(driver, options) {
       const locator = await webElement.find(stack, 'write')
       if (['input', 'textarea'].includes(locator.tagName)) {
         await locator.element.clear()
-        await locator.element.sendKeys(value)
+        const eleValue = await locator.element.getAttribute('value')
+        if (eleValue !== '') {
+          await clicker(locator.element)
+          for (let i = 0; i < eleValue.length; i++) {
+            // eslint-disable-next-line no-await-in-loop
+            await browser.actions().sendKeys(Key.RIGHT).perform()
+          }
+          await browser.actions().keyDown(Key.SHIFT).perform()
+          for (let i = 0; i < eleValue.length; i++) {
+            // eslint-disable-next-line no-await-in-loop
+            await browser.actions().sendKeys(Key.LEFT).perform()
+          }
+          await browser.actions().keyUp(Key.SHIFT).sendKeys(value).perform()
+        } else {
+          await locator.element.sendKeys(value)
+        }
       } else {
         const eleValue = await locator.element.getAttribute('textContent')
         await clicker(locator.element)
