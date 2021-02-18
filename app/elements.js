@@ -93,52 +93,96 @@ function WebElement(dr) {
     return getXPathForElement(obj)
   }
 
-  function relativeSearch(item, location, relativeElement) {
+  function relativeSearch(item, rel, relativeElement) {
+    if ([undefined, null, ''].includes(rel)) {
+      return item.matches
+    }
+    if ([undefined, null, ''].includes(rel.located)) {
+      return item.matches
+    }
+
     let elements
-    if (![undefined, null, ''].includes(location)) {
-      if (![undefined, null, ''].includes(relativeElement)) {
-        switch (location) {
-          case 'above':
+    if (![undefined, null, ''].includes(relativeElement)) {
+      switch (rel.located) {
+        case 'above':
+          if (rel.exactly === true) {
+            elements = item.matches.filter((element) => {
+              return (
+                relativeElement.rect.top >= element.rect.bottom &&
+                relativeElement.rect.left <= element.rect.left &&
+                relativeElement.rect.right >= element.rect.right
+              )
+            })
+          } else {
             elements = item.matches.filter((element) => {
               return relativeElement.rect.top >= element.rect.bottom
             })
-            break
-          case 'below':
+          }
+          break
+        case 'below':
+          if (rel.exactly === true) {
+            elements = item.matches.filter((element) => {
+              return (
+                relativeElement.rect.bottom <= element.rect.top &&
+                relativeElement.rect.left <= element.rect.left &&
+                relativeElement.rect.right >= element.rect.right
+              )
+            })
+          } else {
             elements = item.matches.filter((element) => {
               return relativeElement.rect.bottom <= element.rect.top
             })
-            break
-          case 'toLeftOf':
-            elements = item.matches.filter((element) => {
-              return relativeElement.rect.left >= element.rect.right
-            })
-            break
-          case 'toRightOf':
-            elements = item.matches.filter((element) => {
-              return relativeElement.rect.right <= element.rect.left
-            })
-            break
-          case 'within':
+          }
+          break
+        case 'toLeftOf':
+          if (rel.exactly === true) {
             elements = item.matches.filter((element) => {
               return (
-                relativeElement.rect.left <= element.rect.left &&
-                relativeElement.rect.right >= element.rect.right &&
+                relativeElement.rect.left >= element.rect.right &&
                 relativeElement.rect.top <= element.rect.top &&
                 relativeElement.rect.bottom >= element.rect.bottom
               )
             })
-            break
-          default:
-            throw new ReferenceError(`Location '${location}' is not supported`)
-        }
-      } else {
-        throw new ReferenceError(
-          `Location '${location}' cannot be found as relative element is '${relativeElement}'`,
-        )
+          } else {
+            elements = item.matches.filter((element) => {
+              return relativeElement.rect.left >= element.rect.right
+            })
+          }
+          break
+        case 'toRightOf':
+          if (rel.exactly === true) {
+            elements = item.matches.filter((element) => {
+              return (
+                relativeElement.rect.right <= element.rect.left &&
+                relativeElement.rect.top <= element.rect.top &&
+                relativeElement.rect.bottom >= element.rect.bottom
+              )
+            })
+          } else {
+            elements = item.matches.filter((element) => {
+              return relativeElement.rect.right <= element.rect.left
+            })
+          }
+          break
+        case 'within':
+          elements = item.matches.filter((element) => {
+            return (
+              relativeElement.rect.left <= element.rect.left &&
+              relativeElement.rect.right >= element.rect.right &&
+              relativeElement.rect.top <= element.rect.top &&
+              relativeElement.rect.bottom >= element.rect.bottom
+            )
+          })
+          break
+        default:
+          throw new ReferenceError(`Location '${rel.located}' is not supported`)
       }
     } else {
-      elements = item.matches
+      throw new ReferenceError(
+        `Location '${rel.located}' cannot be found as relative element is '${relativeElement}'`,
+      )
     }
+
     return elements
   }
 
@@ -317,7 +361,7 @@ function WebElement(dr) {
       if (item.type === 'location') {
         i -= 1
         // eslint-disable-next-line no-await-in-loop
-        ;[element] = relativeSearch(data[i], item.located, element)
+        ;[element] = relativeSearch(data[i], item, element)
         if ([undefined, null, ''].includes(element)) {
           throw new ReferenceError(
             `'${data[i].id}' ${item.located} '${
@@ -356,7 +400,7 @@ function WebElement(dr) {
       if (item.type === 'location') {
         i -= 1
         // eslint-disable-next-line no-await-in-loop
-        element = relativeSearch(data[i], item.located, element)
+        element = relativeSearch(data[i], item, element)
         if (i !== 0) {
           ;[element] = element
         }

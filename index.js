@@ -63,7 +63,11 @@ function Driver(driver, options) {
           msg += `of index '${obj.index}' `
         }
       } else if (obj.type === 'location') {
-        msg += `located '${obj.located}' `
+        msg += `located `
+        if (obj.exactly === true) {
+          msg += `exactly `
+        }
+        msg += `'${obj.located}' `
       }
     }
     if (a.action === 'isVisible') {
@@ -450,28 +454,65 @@ function Driver(driver, options) {
     return this
   }
 
-  function above() {
-    stack.push({ type: 'location', located: 'above' })
-    return this
-  }
-
-  function below() {
-    stack.push({ type: 'location', located: 'below' })
-    return this
-  }
-
   function near() {
     stack.push({ type: 'location', located: 'near' })
     return this
   }
 
+  function exactly() {
+    stack.push({ exactly: true })
+    return this
+  }
+
+  function above() {
+    const pop = stack.pop()
+    if (JSON.stringify(pop) === JSON.stringify({ exactly: true })) {
+      stack.push({ type: 'location', located: 'above', exactly: true })
+    } else {
+      if (typeof pop !== 'undefined') {
+        stack.push(pop)
+      }
+      stack.push({ type: 'location', located: 'above', exactly: false })
+    }
+    return this
+  }
+
+  function below() {
+    const pop = stack.pop()
+    if (JSON.stringify(pop) === JSON.stringify({ exactly: true })) {
+      stack.push({ type: 'location', located: 'below', exactly: true })
+    } else {
+      if (typeof pop !== 'undefined') {
+        stack.push(pop)
+      }
+      stack.push({ type: 'location', located: 'below', exactly: false })
+    }
+    return this
+  }
+
   function toLeftOf() {
-    stack.push({ type: 'location', located: 'toLeftOf' })
+    const pop = stack.pop()
+    if (JSON.stringify(pop) === JSON.stringify({ exactly: true })) {
+      stack.push({ type: 'location', located: 'toLeftOf', exactly: true })
+    } else {
+      if (typeof pop !== 'undefined') {
+        stack.push(pop)
+      }
+      stack.push({ type: 'location', located: 'toLeftOf', exactly: false })
+    }
     return this
   }
 
   function toRightOf() {
-    stack.push({ type: 'location', located: 'toRightOf' })
+    const pop = stack.pop()
+    if (JSON.stringify(pop) === JSON.stringify({ exactly: true })) {
+      stack.push({ type: 'location', located: 'toRightOf', exactly: true })
+    } else {
+      if (typeof pop !== 'undefined') {
+        stack.push(pop)
+      }
+      stack.push({ type: 'location', located: 'toRightOf', exactly: false })
+    }
     return this
   }
 
@@ -688,6 +729,7 @@ function Driver(driver, options) {
     element,
     row,
     column,
+    exactly,
     above,
     below,
     near,
