@@ -1,6 +1,6 @@
 {
   "name": "@nodebug/selenium",
-  "version": "1.8.2",
+  "version": "1.8.4",
   "author": {
     "name": "Node Bug",
     "email": "nodebug@outlook.com"
@@ -12,7 +12,7 @@
     "@nodebug/config": "1.0.0",
     "@nodebug/gifencoder": "^1.0.0",
     "@nodebug/logger": "1.0.0",
-    "chai": "latest",
+    "chai": "^4.3.3",
     "chromedriver": "latest",
     "geckodriver": "latest",
     "imagemin": "latest",
