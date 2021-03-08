@@ -25,6 +25,8 @@ class Visual {
     )
 
     if (result.misMatchPercentage > 0.01) {
+      result.expected = contents
+      result.actual = screenshot
       const gif = new Gif(size.width, size.height)
       await gif.addBuffer(contents)
       await gif.addBuffer(screenshot)
