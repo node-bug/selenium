@@ -1,6 +1,4 @@
 const { log } = require('@nodebug/logger')
-const imagemin = require('imagemin')
-const pngquant = require('imagemin-pngquant')
 const { By, Key, Condition } = require('selenium-webdriver')
 const Browser = require('./app/browser')
 const WebElement = require('./app/elements')
@@ -645,21 +643,7 @@ function Driver(driver, options) {
     }
 
     stack = []
-
-    try {
-      return (
-        await imagemin.buffer(Buffer.from(dataUrl, 'base64'), {
-          plugins: [
-            pngquant({
-              quality: [0.1, 0.4],
-            }),
-          ],
-        })
-      ).toString('base64')
-    } catch (err) {
-      log.error(err.stack)
-      return false
-    }
+    return dataUrl
   }
 
   async function visual(path) {

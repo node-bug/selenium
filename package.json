@@ -1,6 +1,6 @@
 {
   "name": "@nodebug/selenium",
-  "version": "1.8.6",
+  "version": "1.8.7",
   "author": {
     "name": "Node Bug",
     "email": "nodebug@outlook.com"
@@ -16,7 +16,7 @@
     "chromedriver": "latest",
     "geckodriver": "latest",
     "imagemin": "latest",
-    "imagemin-pngquant": "^9.0.1",
+    "imagemin-pngquant": "latest",
     "jsonfile": "latest",
     "jsonwebtoken": "latest",
     "resemblejs": "^3.2.5",
