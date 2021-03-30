@@ -241,10 +241,14 @@ function WebElement(dr) {
         ['element', 'row', 'column'].includes(data[i].type) &&
         data[i].matches.length < 1
       ) {
-        const frames = (await driver.findElements(By.xpath('//iframe'))).length
+        const frames = (
+          await driver.findElements(
+            By.xpath('//iframe[not(contains(@style,"display: none;"))]'),
+          )
+        ).length
         for (let frame = 0; frame < frames; frame++) {
-          const { pageLoad } = await driver.manage().getTimeouts()
-          await driver.wait(until.ableToSwitchToFrame(frame), pageLoad)
+          const { implicit } = await driver.manage().getTimeouts()
+          await driver.wait(until.ableToSwitchToFrame(frame), implicit)
           data = await resolveElements(data)
         }
         if (data[i].matches.length < 1) {
