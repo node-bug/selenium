@@ -535,18 +535,23 @@ function Driver(driver, options) {
 
   async function visibility(method, timeout) {
     let locator
+    let wait
     const { implicit } = await driver.manage().getTimeouts()
 
     if (typeof timeout === 'number') {
-      await driver.manage().setTimeouts({ implicit: timeout * 1000 })
+      wait = timeout * 1000
+    } else {
+      wait = implicit
     }
 
+    await driver.manage().setTimeouts({ implicit: wait })
     try {
       await driver.wait(
         (async function x() {
           locator = await webElement.find(stack)
           return ![undefined, null, ''].includes(locator)
         })(),
+        wait * 6,
       )
     } catch (err) {
       if (method === 'fail') {

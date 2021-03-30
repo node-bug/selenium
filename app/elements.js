@@ -243,7 +243,8 @@ function WebElement(dr) {
       ) {
         const frames = (await driver.findElements(By.xpath('//iframe'))).length
         for (let frame = 0; frame < frames; frame++) {
-          await driver.wait(until.ableToSwitchToFrame(frame))
+          const { pageLoad } = await driver.manage().getTimeouts()
+          await driver.wait(until.ableToSwitchToFrame(frame), pageLoad)
           data = await resolveElements(data)
         }
         if (data[i].matches.length < 1) {

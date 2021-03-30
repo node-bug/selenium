@@ -78,6 +78,7 @@ function Browser(dr, opt) {
           {
             let found = false
             const og = await windowHandle()
+            const { pageLoad } = await driver.manage().getTimeouts()
             await driver.wait(async () => {
               const hs = await driver.getAllWindowHandles()
               for (let i = 0; i < hs.length; i++) {
@@ -90,7 +91,7 @@ function Browser(dr, opt) {
                 /* eslint-enable no-await-in-loop */
               }
               return found
-            })
+            }, pageLoad)
             if (!found) {
               await driver.switchTo().window(og)
               throw new ReferenceError(`Tab ${tab} was not found`)
