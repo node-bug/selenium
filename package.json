@@ -1,6 +1,6 @@
 {
   "name": "@nodebug/selenium",
-  "version": "1.9.1",
+  "version": "1.9.3",
   "author": {
     "name": "Node Bug",
     "email": "nodebug@outlook.com"
@@ -15,12 +15,12 @@
     "chai": "^4.3.3",
     "chromedriver": "latest",
     "geckodriver": "latest",
-    "imagemin": "latest",
-    "imagemin-pngquant": "latest",
+    "imagemin": "7.0.1",
+    "imagemin-pngquant": "9.0.2",
     "jsonfile": "latest",
     "jsonwebtoken": "latest",
     "resemblejs": "^3.2.5",
-    "selenium-webdriver": "^4.0.0-beta.2"
+    "selenium-webdriver": "^4.0.0-beta.3"
   },
   "description": "implementation of seleniumjs to use with test automation",
   "homepage": "https://github.com/node-bug/selenium#readme",

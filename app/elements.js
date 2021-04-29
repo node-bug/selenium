@@ -109,8 +109,8 @@ function WebElement(dr) {
             elements = item.matches.filter((element) => {
               return (
                 relativeElement.rect.top >= element.rect.bottom &&
-                relativeElement.rect.left <= element.rect.left &&
-                relativeElement.rect.right >= element.rect.right
+                relativeElement.rect.left - 5 <= element.rect.left &&
+                relativeElement.rect.right + 5 >= element.rect.right
               )
             })
           } else {
@@ -124,8 +124,8 @@ function WebElement(dr) {
             elements = item.matches.filter((element) => {
               return (
                 relativeElement.rect.bottom <= element.rect.top &&
-                relativeElement.rect.left <= element.rect.left &&
-                relativeElement.rect.right >= element.rect.right
+                relativeElement.rect.left - 5 <= element.rect.left &&
+                relativeElement.rect.right + 5 >= element.rect.right
               )
             })
           } else {
@@ -139,8 +139,8 @@ function WebElement(dr) {
             elements = item.matches.filter((element) => {
               return (
                 relativeElement.rect.left >= element.rect.right &&
-                relativeElement.rect.top <= element.rect.top &&
-                relativeElement.rect.bottom >= element.rect.bottom
+                relativeElement.rect.top - 5 <= element.rect.top &&
+                relativeElement.rect.bottom + 5 >= element.rect.bottom
               )
             })
           } else {
@@ -154,8 +154,8 @@ function WebElement(dr) {
             elements = item.matches.filter((element) => {
               return (
                 relativeElement.rect.right <= element.rect.left &&
-                relativeElement.rect.top <= element.rect.top &&
-                relativeElement.rect.bottom >= element.rect.bottom
+                relativeElement.rect.top - 5 <= element.rect.top &&
+                relativeElement.rect.bottom + 5 >= element.rect.bottom
               )
             })
           } else {

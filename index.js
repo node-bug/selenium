@@ -182,16 +182,13 @@ function Driver(driver, options) {
   }
 
   async function drag() {
-    message({ action: 'click' })
+    message({ action: 'drag' })
     try {
       const locator = await webElement.find(stack)
-      await browser
-        .actions()
-        .move({ origin: locator.element })
-        .press()
-        .perform()
+      await browser.actions().move({ origin: locator.element }).perform()
+      await browser.actions().press().perform()
     } catch (err) {
-      log.error(`Error during click.\nError ${err.stack}`)
+      log.error(`Error during drag.\nError ${err.stack}`)
       throw err
     }
     stack = []
@@ -199,16 +196,13 @@ function Driver(driver, options) {
   }
 
   async function drop() {
-    message({ action: 'click' })
+    message({ action: 'drop' })
     try {
       const locator = await webElement.find(stack)
-      await browser
-        .actions()
-        .move({ origin: locator.element })
-        .release()
-        .perform()
+      await browser.actions().move({ origin: locator.element }).perform()
+      await browser.actions().release().perform()
     } catch (err) {
-      log.error(`Error during click.\nError ${err.stack}`)
+      log.error(`Error during drop.\nError ${err.stack}`)
       throw err
     }
     stack = []
