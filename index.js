@@ -13,6 +13,8 @@ function Driver(driver, options) {
     let msg = ''
     if (a.action === 'click') {
       msg = 'Clicking on '
+    } else if (a.action === 'doubleclick') {
+      msg = 'Double clicking on '
     } else if (a.action === 'focus') {
       msg = `Focussing on `
     } else if (a.action === 'scroll') {
@@ -175,6 +177,19 @@ function Driver(driver, options) {
       await clicker(locator.element)
     } catch (err) {
       log.error(`Error during click.\nError ${err.stack}`)
+      throw err
+    }
+    stack = []
+    return true
+  }
+
+  async function doubleClick() {
+    message({ action: 'doubleclick' })
+    try {
+      const locator = await webElement.find(stack)
+      await browser.actions().doubleClick(locator.element).perform()
+    } catch (err) {
+      log.error(`Error during double click.\nError ${err.stack}`)
       throw err
     }
     stack = []
@@ -699,6 +714,7 @@ function Driver(driver, options) {
     hover,
     scroll,
     click,
+    doubleClick,
     focus,
     drag,
     drop,

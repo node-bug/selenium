@@ -197,7 +197,8 @@ function Browser(dr, opt) {
   }
 
   function actions() {
-    return driver.actions({ bridge: true })
+    // return driver.actions({ bridge: true })
+    return driver.actions({ async: true })
   }
 
   return {
