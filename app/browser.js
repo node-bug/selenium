@@ -138,13 +138,13 @@ function Browser(dr, opt) {
     log.info(`Loading the url ${url} in the browser.`)
     try {
       await setSize({
-        width: options.width,
-        height: options.height,
+        width: parseInt(options.width, 10),
+        height: parseInt(options.height, 10),
       })
       await driver.manage().setTimeouts({
-        implicit: options.timeout * 1000,
-        pageLoad: 6 * options.timeout * 1000,
-        script: 6 * options.timeout * 1000,
+        implicit: parseInt(options.timeout, 10) * 1000,
+        pageLoad: 6 * parseInt(options.timeout, 10) * 1000,
+        script: 6 * parseInt(options.timeout, 10) * 1000,
       })
       await driver.setFileDetector(new remote.FileDetector())
       await driver.get(url)

@@ -75,7 +75,7 @@ class PageObject {
       if (typeof frame === 'number') {
         log.debug(`Switching to frame number ${frame}`)
         return getDriver().wait(
-          until.ableToSwitchToFrame(frame, config.timeout * 1000),
+          until.ableToSwitchToFrame(frame, parseInt(config.timeout, 10) * 1000),
         )
       }
       log.debug(`Switching to frame ${frame}`)
@@ -83,14 +83,17 @@ class PageObject {
       const WebElementObject = new WebElement(getDriver(), WebElementData)
       const webElement = await WebElementObject.getWebElement()
       return getDriver().wait(
-        until.ableToSwitchToFrame(webElement, config.timeout * 1000),
+        until.ableToSwitchToFrame(
+          webElement,
+          parseInt(config.timeout, 10) * 1000,
+        ),
       )
     }
     return true
   }
 
   async genericAssertElement(payload) {
-    const timeout = (payload.timeout || config.timeout) * 1000
+    const timeout = (payload.timeout || parseInt(config.timeout, 10)) * 1000
     const { implicit } = await getDriver().manage().getTimeouts()
     await getDriver().manage().setTimeouts({ implicit: 1000 })
 
@@ -145,7 +148,7 @@ class PageObject {
     } catch (err) {
       log.info(
         `Element not present on page after ${
-          timeout || config.timeout
+          timeout || parseInt(config.timeout, 10)
         } second wait`,
       )
       throw err
@@ -163,7 +166,7 @@ class PageObject {
     } catch (err) {
       log.info(
         `Element present on page after ${
-          timeout || config.timeout
+          timeout || parseInt(config.timeout, 10)
         } second wait`,
       )
       throw err

@@ -59,10 +59,10 @@ function setFirefoxCapabilities(opts) {
     args: [],
     prefs,
   }
-  if (opts.headless === true || opts.h === true) {
+  if (opts.headless === 'true' || opts.headless === true || opts.h === true) {
     options.args.push('-headless')
   }
-  if (opts.incognito === true) {
+  if (opts.incognito === 'true' || opts.incognito === true) {
     options.args.push('-private')
   }
   const capabilities = Capabilities.firefox()
@@ -84,10 +84,10 @@ function setChromeCapabilities(opts) {
     prefs,
     excludeSwitches: ['enable-automation'],
   }
-  if (opts.headless === true || opts.h === true) {
+  if (opts.headless === 'true' || opts.headless === true || opts.h === true) {
     options.args.push('headless')
   }
-  if (opts.incognito === true) {
+  if (opts.incognito === 'true' || opts.incognito === true) {
     options.args.push('incognito')
   }
   const capabilities = Capabilities.chrome()
@@ -120,7 +120,7 @@ function setCapabilities(options) {
   return capabilities
 }
 
-exports.openBrowser = function (options) {
+exports.openBrowser = function openBrowser(options) {
   log.info(`Launching ${options.browser}`)
 
   const builder = new Builder()

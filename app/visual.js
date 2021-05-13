@@ -45,11 +45,11 @@ class Visual {
 
   static async compare(browser, os, size, screenshot, file) {
     const filename = `${file}/${os}_${browser}_${size.width}_${size.height}.png`
-    if (config.capture !== false) {
+    if (config.capture === 'true' || config.capture === true) {
       Visual.capture(screenshot, filename)
     }
 
-    if (config.compare !== false) {
+    if (config.compare === 'true' || config.compare === true) {
       return Visual.perform(screenshot, filename, size)
     }
     log.info('Not comparing as Compare flag is set to false in config file.')
