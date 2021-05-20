@@ -2,11 +2,13 @@ const { log } = require('@nodebug/logger')
 const { By, Key, Condition } = require('selenium-webdriver')
 const Browser = require('./app/browser')
 const WebElement = require('./app/elements')
+const Alert = require('./app/alerts')
 const Visual = require('./app/visual')
 
 function Driver(driver, options) {
   const browser = new Browser(driver, options)
   const webElement = new WebElement(driver)
+  const alert = new Alert(driver)
   let stack = []
 
   function message(a) {
@@ -623,7 +625,13 @@ function Driver(driver, options) {
 
   async function isVisible(timeout) {
     message({ action: 'isVisible' })
-    return visibility('nofail', timeout)
+    const value = await visibility('nofail', timeout)
+    if (value) {
+      log.info('Element is visible on page')
+    } else {
+      log.info('Element is not visible on page')
+    }
+    return value
   }
 
   async function waitForVisibility(timeout) {
@@ -708,6 +716,7 @@ function Driver(driver, options) {
   }
 
   return {
+    alert,
     get,
     text,
     attribute,
