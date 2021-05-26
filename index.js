@@ -93,6 +93,7 @@ function Driver(driver, options) {
       value = await locator.element.getAttribute('textContent')
     } catch (err) {
       log.error(`Error during getting text.\nError ${err.stack}`)
+      stack = []
       throw err
     }
     stack = []
@@ -107,6 +108,7 @@ function Driver(driver, options) {
       value = await locator.element.getAttribute(name)
     } catch (err) {
       log.error(`Error during getting text.\nError ${err.stack}`)
+      stack = []
       throw err
     }
     stack = []
@@ -120,6 +122,7 @@ function Driver(driver, options) {
       await browser.actions().move({ origin: locator.element }).perform()
     } catch (err) {
       log.error(`Error during hover.\nError ${err.stack}`)
+      stack = []
       throw err
     }
     stack = []
@@ -136,6 +139,7 @@ function Driver(driver, options) {
       )
     } catch (err) {
       log.error(`Error during scroll into view.\nError ${err.stack}`)
+      stack = []
       throw err
     }
     stack = []
@@ -152,6 +156,7 @@ function Driver(driver, options) {
       )
     } catch (err) {
       log.error(`Error during focus.\nError ${err.stack}`)
+      stack = []
       throw err
     }
     stack = []
@@ -179,6 +184,7 @@ function Driver(driver, options) {
       await clicker(locator.element)
     } catch (err) {
       log.error(`Error during click.\nError ${err.stack}`)
+      stack = []
       throw err
     }
     stack = []
@@ -192,6 +198,7 @@ function Driver(driver, options) {
       await browser.actions().doubleClick(locator.element).perform()
     } catch (err) {
       log.error(`Error during double click.\nError ${err.stack}`)
+      stack = []
       throw err
     }
     stack = []
@@ -206,6 +213,7 @@ function Driver(driver, options) {
       await browser.actions().press().perform()
     } catch (err) {
       log.error(`Error during drag.\nError ${err.stack}`)
+      stack = []
       throw err
     }
     stack = []
@@ -220,6 +228,7 @@ function Driver(driver, options) {
       await browser.actions().release().perform()
     } catch (err) {
       log.error(`Error during drop.\nError ${err.stack}`)
+      stack = []
       throw err
     }
     stack = []
@@ -243,6 +252,7 @@ function Driver(driver, options) {
       }
     } catch (err) {
       log.error(`Error while entering data.\nError ${err.stack}`)
+      stack = []
       throw err
     }
     stack = []
@@ -276,6 +286,7 @@ function Driver(driver, options) {
       }
     } catch (err) {
       log.error(`Error while clearing field.\nError ${err.stack}`)
+      stack = []
       throw err
     }
     stack = []
@@ -320,6 +331,7 @@ function Driver(driver, options) {
       }
     } catch (err) {
       log.error(`Error while overwriting text in field.\nError ${err.stack}`)
+      stack = []
       throw err
     }
     stack = []
@@ -339,6 +351,7 @@ function Driver(driver, options) {
       }
     } catch (err) {
       log.error(`Error while selecting value in dropdown.\nError ${err.stack}`)
+      stack = []
       throw err
     }
     stack = []
@@ -357,6 +370,7 @@ function Driver(driver, options) {
       }
     } catch (err) {
       log.error(`Error during checkbox set.\nError ${err.stack}`)
+      stack = []
       throw err
     }
     stack = []
@@ -567,6 +581,7 @@ function Driver(driver, options) {
     } catch (err) {
       if (method === 'fail') {
         log.error(err.stack)
+        stack = []
         throw err
       }
     } finally {
@@ -601,8 +616,10 @@ function Driver(driver, options) {
                 err.message.includes('has no matching elements on page') ||
                 err.name === 'StaleElementReferenceError'
               ) {
+                stack = []
                 return true
               }
+              stack = []
               throw err
             }
             return false
@@ -613,6 +630,7 @@ function Driver(driver, options) {
     } catch (err) {
       if (method === 'fail') {
         log.error(err.stack)
+        stack = []
         throw err
       }
     } finally {
@@ -690,6 +708,7 @@ function Driver(driver, options) {
       await Promise.all(promises)
     } catch (err) {
       log.error(`Error during hide.\nError ${err.stack}`)
+      stack = []
       throw err
     }
     stack = []
@@ -709,6 +728,7 @@ function Driver(driver, options) {
       await Promise.all(promises)
     } catch (err) {
       log.error(`Error during unhide.\nError ${err.stack}`)
+      stack = []
       throw err
     }
     stack = []
