@@ -19,20 +19,38 @@ const attributes = [
 function WebElement(dr) {
   const driver = dr
 
+  function transform(text) {
+    let transformed
+    if (text.includes("'")) {
+      transformed = `concat('${text.replace(`'`, `',"'",'`)}')`
+    } else {
+      transformed = `'${text}'`
+    }
+    return transformed
+  }
+
   function getXPathForElement(obj) {
     let attributecollection = ''
     if (obj.exact) {
       attributes.forEach((attribute) => {
-        attributecollection += `@${attribute}='${obj.id}' or `
+        attributecollection += `@${attribute}=${transform(obj.id)} or `
       })
-      attributecollection += `normalize-space(.)='${obj.id}' `
-      attributecollection += `and not(.//*[normalize-space(.)='${obj.id}'])`
+      attributecollection += `normalize-space(.)=${transform(obj.id)} `
+      attributecollection += `and not(.//*[normalize-space(.)=${transform(
+        obj.id,
+      )}])`
     } else {
       attributes.forEach((attribute) => {
-        attributecollection += `contains(@${attribute},'${obj.id}') or `
+        attributecollection += `contains(@${attribute},${transform(
+          obj.id,
+        )}) or `
       })
-      attributecollection += `contains(normalize-space(.),'${obj.id}') `
-      attributecollection += `and not(.//*[contains(normalize-space(.),'${obj.id}')])`
+      attributecollection += `contains(normalize-space(.),${transform(
+        obj.id,
+      )}) `
+      attributecollection += `and not(.//*[contains(normalize-space(.),${transform(
+        obj.id,
+      )})])`
     }
 
     let xpath = `//*[${attributecollection}]`
@@ -46,14 +64,18 @@ function WebElement(dr) {
     let attributecollection = ''
     if (obj.exact) {
       attributes.forEach((attribute) => {
-        attributecollection += `@${attribute}='${obj.id}' or `
+        attributecollection += `@${attribute}=${transform(obj.id)} or `
       })
-      attributecollection += `normalize-space(.)='${obj.id}' `
+      attributecollection += `normalize-space(.)=${transform(obj.id)} `
     } else {
       attributes.forEach((attribute) => {
-        attributecollection += `contains(@${attribute},'${obj.id}') or `
+        attributecollection += `contains(@${attribute},${transform(
+          obj.id,
+        )}) or `
       })
-      attributecollection += `contains(normalize-space(.),'${obj.id}') `
+      attributecollection += `contains(normalize-space(.),${transform(
+        obj.id,
+      )}) `
     }
 
     let xpath = `//*[${attributecollection}]`
@@ -68,14 +90,18 @@ function WebElement(dr) {
     let attributecollection = ''
     if (obj.exact) {
       attributes.forEach((attribute) => {
-        attributecollection += `@${attribute}='${obj.id}' or `
+        attributecollection += `@${attribute}=${transform(obj.id)} or `
       })
-      attributecollection += `normalize-space(.)='${obj.id}' `
+      attributecollection += `normalize-space(.)=${transform(obj.id)} `
     } else {
       attributes.forEach((attribute) => {
-        attributecollection += `contains(@${attribute},'${obj.id}') or `
+        attributecollection += `contains(@${attribute},${transform(
+          obj.id,
+        )}) or `
       })
-      attributecollection += `contains(normalize-space(.),'${obj.id}') `
+      attributecollection += `contains(normalize-space(.),${transform(
+        obj.id,
+      )}) `
     }
 
     let xpath = `[${attributecollection}]`

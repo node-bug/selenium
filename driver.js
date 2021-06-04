@@ -39,7 +39,8 @@ async function setSize(size) {
   try {
     if (size.height !== undefined && size.width !== undefined) {
       log.info(`Resizing the browser to ${JSON.stringify(size)}.`)
-      return browser.manage().window().setRect(size)
+      await browser.manage().window().setRect(size)
+      return true
     }
   } catch (err) {
     log.error(err)
@@ -55,12 +56,12 @@ async function visitURL(url) {
     size.width = parseInt(config.width, 10)
   }
   log.info(`Loading the url ${url} in the browser.`)
-  await setSize(size)
   await browser.manage().setTimeouts({
     implicit: parseInt(config.timeout, 10) * 1000,
     pageLoad: 6 * parseInt(config.timeout, 10) * 1000,
     script: 6 * parseInt(config.timeout, 10) * 1000,
   })
+  await setSize(size)
   await browser.setFileDetector(new remote.FileDetector())
   await browser.get(url)
 }
