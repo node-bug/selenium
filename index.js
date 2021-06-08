@@ -397,7 +397,7 @@ function Driver(driver, options) {
     if (JSON.stringify(pop) === JSON.stringify({ exact: true })) {
       stack.push({
         type: 'element',
-        id: data,
+        id: data.toString(),
         exact: true,
         matches: [],
         index: false,
@@ -408,7 +408,7 @@ function Driver(driver, options) {
       }
       stack.push({
         type: 'element',
-        id: data,
+        id: data.toString(),
         exact: false,
         matches: [],
         index: false,
