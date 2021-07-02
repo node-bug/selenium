@@ -7,9 +7,13 @@ const Visual = require('./app/visual')
 
 function Driver(driver, options) {
   const browser = new Browser(driver, options)
-  const webElement = new WebElement(driver)
+  const webElement = new WebElement(driver, options)
   const alert = new Alert(driver)
   let stack = []
+
+  function defaultTimeout() {
+    return parseInt(options.timeout, 10) * 1000
+  }
 
   function message(a) {
     let msg = ''
@@ -558,50 +562,62 @@ function Driver(driver, options) {
     return this
   }
 
-  async function visibility(method, timeout) {
-    let locator
-    let wait
-    const { implicit } = await driver.manage().getTimeouts()
-
-    if (typeof timeout === 'number') {
-      wait = timeout * 1000
-    } else {
-      wait = implicit
-    }
-
-    await driver.manage().setTimeouts({ implicit: wait })
-    try {
-      await driver.wait(
-        (async function x() {
-          locator = await webElement.find(stack)
-          return ![undefined, null, ''].includes(locator)
-        })(),
-        wait * 6,
-      )
-    } catch (err) {
-      if (method === 'fail') {
-        log.error(err.stack)
-        stack = []
-        throw err
-      }
-    } finally {
-      await driver.manage().setTimeouts({ implicit })
-    }
-
-    stack = []
-    return ![undefined, null, ''].includes(locator)
+  async function find(timeout) {
+    let e
+    await driver.wait(
+      async () => {
+        /* eslint-disable no-await-in-loop */
+        while (e === undefined) {
+          try {
+            e = (await webElement.find(stack)).element
+          } catch (err) {
+            return false
+          }
+        }
+        /* eslint-enable no-await-in-loop */
+        return true
+      },
+      timeout || defaultTimeout(),
+      `Element was not visible on page after waiting for ${
+        timeout || defaultTimeout()
+      } ms`,
+    )
+    return e
   }
 
-  async function invisibility(method, timeout) {
-    let locator
-    let wait
-    const { implicit } = await driver.manage().getTimeouts()
-
-    if (typeof timeout === 'number') {
-      wait = timeout * 1000
-    } else {
-      wait = implicit
+  async function isVisible(timeout) {
+    message({ action: 'isVisible' })
+    let e
+    try {
+      e = await find(timeout)
+    } catch (err) {
+      stack = []
     }
+    stack = []
+    if (![null, undefined, ''].includes(e)) {
+      log.info('Element is visible on page')
+      return true
+    }
+    log.info('Element is not visible on page')
+    return false
+  }
+
+  async function waitForVisibility(timeout) {
+    message({ action: 'waitVisibility' })
+    try {
+      await find(timeout)
+    } catch (err) {
+      stack = []
+      log.error(err.stack)
+      throw err
+    }
+    log.info('Element is visible on page')
+    stack = []
+    return true
+  }
+
+  async function invisibility(timeout) {
+    let locator
 
     await driver.manage().setTimeouts({ implicit: 1000 })
     try {
@@ -625,41 +641,24 @@ function Driver(driver, options) {
             return false
           },
         ),
-        wait,
+        timeout || defaultTimeout(),
+        `Element was visible on page after waiting for ${
+          timeout || defaultTimeout()
+        } ms`,
       )
+      await driver.manage().setTimeouts({ implicit: defaultTimeout() })
     } catch (err) {
-      if (method === 'fail') {
-        log.error(err.stack)
-        stack = []
-        throw err
-      }
-    } finally {
-      await driver.manage().setTimeouts({ implicit })
+      await driver.manage().setTimeouts({ implicit: defaultTimeout() })
+      stack = []
+      throw err
     }
-
     stack = []
     return [undefined, null, ''].includes(locator)
   }
 
-  async function isVisible(timeout) {
-    message({ action: 'isVisible' })
-    const value = await visibility('nofail', timeout)
-    if (value) {
-      log.info('Element is visible on page')
-    } else {
-      log.info('Element is not visible on page')
-    }
-    return value
-  }
-
-  async function waitForVisibility(timeout) {
-    message({ action: 'waitVisibility' })
-    return visibility('fail', timeout)
-  }
-
   async function waitForInvisibility(timeout) {
     message({ action: 'waitInvisibility' })
-    return invisibility('fail', timeout)
+    return invisibility(timeout)
   }
 
   async function screenshot() {
@@ -765,6 +764,7 @@ function Driver(driver, options) {
     toRightOf,
     within,
     atIndex,
+    find,
     isVisible,
     waitForVisibility,
     waitForInvisibility,

@@ -2,9 +2,13 @@ const { log } = require('@nodebug/logger')
 const remote = require('selenium-webdriver/remote')
 // const {openBrowser} = require('./driver')
 
-function Browser(dr, opt) {
-  const options = opt
-  const driver = dr
+function Browser(webdriver, settings) {
+  const driver = webdriver
+  const options = settings
+
+  function timeout() {
+    return parseInt(options.timeout, 10) * 1000
+  }
 
   async function name() {
     return (await driver.getCapabilities())
@@ -76,25 +80,28 @@ function Browser(dr, opt) {
 
         case 'string':
           {
-            let found = false
             const og = await windowHandle()
-            const { pageLoad } = await driver.manage().getTimeouts()
-            await driver.wait(async () => {
-              const hs = await driver.getAllWindowHandles()
-              for (let i = 0; i < hs.length; i++) {
-                /* eslint-disable no-await-in-loop */
-                await driver.switchTo().window(hs[i])
-                if ((await title()).includes(tab)) {
-                  found = true
-                  break
-                }
-                /* eslint-enable no-await-in-loop */
-              }
-              return found
-            }, pageLoad)
-            if (!found) {
+
+            try {
+              await driver.wait(
+                async () => {
+                  const hs = await driver.getAllWindowHandles()
+                  for (let i = 0; i < hs.length; i++) {
+                    /* eslint-disable no-await-in-loop */
+                    await driver.switchTo().window(hs[i])
+                    if ((await title()).includes(tab)) {
+                      return true
+                    }
+                    /* eslint-enable no-await-in-loop */
+                  }
+                  return false
+                },
+                timeout(),
+                `Tab ${tab} was not found`,
+              )
+            } catch (err) {
               await driver.switchTo().window(og)
-              throw new ReferenceError(`Tab ${tab} was not found`)
+              throw err
             }
           }
           return true
@@ -142,9 +149,9 @@ function Browser(dr, opt) {
         height: parseInt(options.height, 10),
       })
       await driver.manage().setTimeouts({
-        implicit: parseInt(options.timeout, 10) * 1000,
-        pageLoad: 6 * parseInt(options.timeout, 10) * 1000,
-        script: 6 * parseInt(options.timeout, 10) * 1000,
+        implicit: timeout(),
+        pageLoad: 6 * timeout(),
+        script: 6 * timeout(),
       })
       await driver.setFileDetector(new remote.FileDetector())
       await driver.get(url)

@@ -1,4 +1,5 @@
-const { By, until } = require('selenium-webdriver')
+const { By, Condition } = require('selenium-webdriver')
+const { log } = require('@nodebug/logger')
 
 const attributes = [
   'placeholder',
@@ -16,107 +17,101 @@ const attributes = [
   'src',
 ]
 
-function WebElement(dr) {
-  const driver = dr
+function WebElement(webdriver, settings) {
+  const driver = webdriver
+  const options = settings
 
-  function transform(text) {
-    let transformed
-    if (text.includes("'")) {
-      transformed = `concat('${text.replace(`'`, `',"'",'`)}')`
-    } else {
-      transformed = `'${text}'`
-    }
-    return transformed
+  function timeout() {
+    return parseInt(options.timeout, 10) * 1000
   }
 
-  function getXPathForElement(obj) {
-    let attributecollection = ''
+  function transform(text) {
+    let txt
+    if (text.includes("'")) {
+      txt = `concat('${text.replace(`'`, `',"'",'`)}')`
+    } else {
+      txt = `'${text}'`
+    }
+    return txt
+  }
+
+  function getSelector(obj) {
+    let selector = ''
     if (obj.exact) {
       attributes.forEach((attribute) => {
-        attributecollection += `@${attribute}=${transform(obj.id)} or `
+        selector += `@${attribute}=${transform(obj.id)} or `
       })
-      attributecollection += `normalize-space(.)=${transform(obj.id)} `
-      attributecollection += `and not(.//*[normalize-space(.)=${transform(
-        obj.id,
-      )}])`
+      selector += `normalize-space(.)=${transform(obj.id)} `
+      selector += `and not(.//*[normalize-space(.)=${transform(obj.id)}])`
     } else {
       attributes.forEach((attribute) => {
-        attributecollection += `contains(@${attribute},${transform(
-          obj.id,
-        )}) or `
+        selector += `contains(@${attribute},${transform(obj.id)}) or `
       })
-      attributecollection += `contains(normalize-space(.),${transform(
-        obj.id,
-      )}) `
-      attributecollection += `and not(.//*[contains(normalize-space(.),${transform(
+      selector += `contains(normalize-space(.),${transform(obj.id)}) `
+      selector += `and not(.//*[contains(normalize-space(.),${transform(
         obj.id,
       )})])`
     }
 
-    let xpath = `//*[${attributecollection}]`
+    selector = `//*[${selector}]`
     if (obj.index) {
-      xpath = `(${xpath})[${obj.index}]`
+      selector = `(${selector})[${obj.index}]`
     }
-    return xpath
+    log.debug(`Selector::  ${obj.id}`)
+    return By.xpath(selector)
   }
 
-  function getXPathForRow(obj) {
-    let attributecollection = ''
+  function getSelectorForRow(obj) {
+    let selector = ''
     if (obj.exact) {
       attributes.forEach((attribute) => {
-        attributecollection += `@${attribute}=${transform(obj.id)} or `
+        selector += `@${attribute}=${transform(obj.id)} or `
       })
-      attributecollection += `normalize-space(.)=${transform(obj.id)} `
+      selector += `normalize-space(.)=${transform(obj.id)} `
     } else {
       attributes.forEach((attribute) => {
-        attributecollection += `contains(@${attribute},${transform(
-          obj.id,
-        )}) or `
+        selector += `contains(@${attribute},${transform(obj.id)}) or `
       })
-      attributecollection += `contains(normalize-space(.),${transform(
-        obj.id,
-      )}) `
+      selector += `contains(normalize-space(.),${transform(obj.id)}) `
     }
 
-    let xpath = `//*[${attributecollection}]`
-    xpath = `//tbody/tr[(.${xpath})]`
+    selector = `//*[${selector}]`
+    selector = `//tbody/tr[(.${selector})]` // additional for row
     if (obj.index) {
-      xpath = `(${xpath})[${obj.index}]`
+      selector = `(${selector})[${obj.index}]`
     }
-    return xpath
+
+    return By.xpath(selector)
   }
 
-  function getXPathForColumn(obj) {
-    let attributecollection = ''
+  function getSelectorForColumn(obj) {
+    let selector = ''
     if (obj.exact) {
       attributes.forEach((attribute) => {
-        attributecollection += `@${attribute}=${transform(obj.id)} or `
+        selector += `@${attribute}=${transform(obj.id)} or `
       })
-      attributecollection += `normalize-space(.)=${transform(obj.id)} `
+      selector += `normalize-space(.)=${transform(obj.id)} `
     } else {
       attributes.forEach((attribute) => {
-        attributecollection += `contains(@${attribute},${transform(
-          obj.id,
-        )}) or `
+        selector += `contains(@${attribute},${transform(obj.id)}) or `
       })
-      attributecollection += `contains(normalize-space(.),${transform(
-        obj.id,
-      )}) `
+      selector += `contains(normalize-space(.),${transform(obj.id)}) `
     }
 
-    let xpath = `[${attributecollection}]`
-    xpath = `//tbody/tr/*[count(//thead//th${xpath}/preceding-sibling::th)+1]`
-    return xpath
+    selector = `[${selector}]` // additional for column
+    selector = `//tbody/tr/*[count(//thead//th${selector}/preceding-sibling::th)+1]` // additional for column
+
+    return By.xpath(selector)
   }
 
-  function getXPath(obj) {
+  function toSelector(obj) {
     if (obj.type === 'row') {
-      return getXPathForRow(obj)
+      return getSelectorForRow(obj)
     }
     if (obj.type === 'column') {
-      return getXPathForColumn(obj)
+      return getSelectorForColumn(obj)
     }
-    return getXPathForElement(obj)
+    return getSelector(obj)
   }
 
   function relativeSearch(item, rel, relativeElement) {
@@ -219,78 +214,90 @@ function WebElement(dr) {
     )
   }
 
-  async function withProperties(e, action) {
-    const locator = {}
+  async function getElementData(element, action) {
+    const elementData = {}
     if (![undefined, null, ''].includes(action)) {
-      const ce = await e.getAttribute('contenteditable')
-      const cep = await e
+      const ce = await element.getAttribute('contenteditable')
+      const cep = await element
         .findElement(By.xpath('./..'))
         .getAttribute('contenteditable')
-      const ace = (await e.getAttribute('class')).includes('ace_text')
+      const ace = (await element.getAttribute('class')).includes('ace_text')
       const acep = (
-        await e.findElement(By.xpath('./..')).getAttribute('class')
+        await element.findElement(By.xpath('./..')).getAttribute('class')
       ).includes('ace_text')
-      locator.editable = ce || cep || ace || acep || null
+      elementData.editable = ce || cep || ace || acep || null
     }
-    locator.element = e
-    locator.tagName = await e.getTagName()
-    locator.rect = await getRect(e)
-    return locator
-  }
-
-  async function resolveElements(stack) {
-    const promises = stack.map(async (item) => {
-      const obj = { ...item }
-      if (
-        ['element', 'row', 'column'].includes(obj.type) &&
-        obj.matches.length < 1
-      ) {
-        const xpath = getXPath(obj)
-        let elements = await driver.findElements(By.xpath(xpath))
-        const promisess = elements.map(async (e) => {
-          return withProperties(e)
-        })
-        elements = await Promise.all(promisess)
-        obj.matches = elements.filter((e) => e.rect.height > 0)
-      }
-      return obj
-    })
-    return Promise.all(promises)
+    elementData.element = element
+    elementData.tagName = await element.getTagName()
+    elementData.rect = await getRect(element)
+    return elementData
   }
 
   async function findElements(stack) {
-    await driver.switchTo().defaultContent()
-    let data = await resolveElements(stack)
-    for (let i = 0; i < data.length; i++) {
-      /* eslint-disable no-await-in-loop */
+    const items = []
+
+    /* eslint-disable no-await-in-loop */
+    // eslint-disable-next-line no-restricted-syntax
+    for await (const item of stack) {
       if (
-        ['element', 'row', 'column'].includes(data[i].type) &&
-        data[i].matches.length < 1
+        ['element', 'row', 'column'].includes(item.type) &&
+        item.matches.length < 1
       ) {
-        const frames = (
-          await driver.findElements(
-            By.xpath('//iframe[not(contains(@style,"display: none;"))]'),
+        let elements
+        await driver.manage().setTimeouts({ implicit: 1000 })
+        try {
+          await driver.wait(
+            new Condition(
+              `for element to be invisible. Element is still visible on page.`,
+              async function x() {
+                await driver.switchTo().defaultContent()
+                const frames = await driver.findElements(
+                  By.xpath('//iframe[not(contains(@style,"display: none;"))]'),
+                )
+                // console.log(frames.length)
+                for (let i = -1; i < frames.length; i++) {
+                  // console.log(i)
+                  if (i === -1) {
+                    await driver.switchTo().defaultContent()
+                  } else {
+                    await driver.switchTo().frame(i)
+                  }
+                  elements = await driver.findElements(toSelector(item))
+                  if (elements.length > 0) {
+                    return true
+                  }
+                }
+                return false
+              },
+            ),
+            timeout(),
+            `'${item.id}' has no matching elements on page.`,
           )
-        ).length
-        for (let frame = 0; frame < frames; frame++) {
-          const { implicit } = await driver.manage().getTimeouts()
-          await driver.wait(until.ableToSwitchToFrame(frame), implicit)
-          data = await resolveElements(data)
+          await driver.manage().setTimeouts({ implicit: timeout() })
+        } catch (err) {
+          await driver.manage().setTimeouts({ implicit: timeout() })
+          throw err
         }
-        if (data[i].matches.length < 1) {
-          throw new ReferenceError(
-            `'${data[i].id}' has no matching elements on page.`,
-          )
+
+        const matches = []
+        // eslint-disable-next-line no-restricted-syntax
+        for await (const element of elements) {
+          const elementData = await getElementData(element)
+          matches.push(elementData)
         }
+        item.matches = matches.filter((e) => e.rect.height > 0)
       }
-      /* eslint-enable no-await-in-loop */
+
+      items.push(item)
     }
-    return data
+    /* eslint-enable no-await-in-loop */
+
+    return items
   }
 
   async function findActionElement(lctr, action) {
     let matches = []
-    let locator = await withProperties(lctr.element, action)
+    let locator = await getElementData(lctr.element, action)
     if (
       action === 'write' &&
       !['input', 'textarea'].includes(locator.tagName) &&
@@ -306,7 +313,7 @@ function WebElement(dr) {
         By.xpath(`./descendant${write}`),
       )
       const promises = matches.map(async (e) => {
-        return withProperties(e, action)
+        return getElementData(e, action)
       })
       matches = await Promise.all(promises)
       matches = matches.filter(
@@ -319,7 +326,7 @@ function WebElement(dr) {
           By.xpath(`./following${write}`),
         )
         const promisess = matches.map(async (e) => {
-          return withProperties(e, action)
+          return getElementData(e, action)
         })
         matches = await Promise.all(promisess)
         matches = matches.filter(
@@ -333,7 +340,7 @@ function WebElement(dr) {
         By.xpath('./descendant::select'),
       )
       const promises = matches.map(async (e) => {
-        return withProperties(e, action)
+        return getElementData(e, action)
       })
       matches = await Promise.all(promises)
       matches = matches.filter((e) => e.tagName === 'select')
@@ -342,7 +349,7 @@ function WebElement(dr) {
           By.xpath('./following::select'),
         )
         const promisess = matches.map(async (e) => {
-          return withProperties(e, action)
+          return getElementData(e, action)
         })
         matches = await Promise.all(promisess)
         matches = matches.filter((e) => e.tagName === 'select')
@@ -352,7 +359,7 @@ function WebElement(dr) {
         By.xpath(`./preceding-sibling::input[@type='checkbox']`),
       )
       const promises = matches.map(async (e) => {
-        return withProperties(e, action)
+        return getElementData(e, action)
       })
       matches = await Promise.all(promises)
       matches = matches.filter((e) => e.tagName === 'input')
@@ -361,7 +368,7 @@ function WebElement(dr) {
           By.xpath(`./child::input[@type='checkbox']`),
         )
         const promisess = matches.map(async (e) => {
-          return withProperties(e, action)
+          return getElementData(e, action)
         })
         matches = await Promise.all(promisess)
         matches = matches.filter((e) => e.tagName === 'input')
