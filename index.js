@@ -1,5 +1,5 @@
 const { log } = require('@nodebug/logger')
-const { By, Key, Condition } = require('selenium-webdriver')
+const { By, Key } = require('selenium-webdriver')
 const Browser = require('./app/browser')
 const WebElement = require('./app/elements')
 const Alert = require('./app/alerts')
@@ -7,13 +7,10 @@ const Visual = require('./app/visual')
 
 function Driver(driver, options) {
   const browser = new Browser(driver, options)
-  const webElement = new WebElement(driver, options)
+  const webElement = new WebElement(driver)
   const alert = new Alert(driver)
   let stack = []
-
-  function defaultTimeout() {
-    return parseInt(options.timeout, 10) * 1000
-  }
+  let currentMessage
 
   function message(a) {
     let msg = ''
@@ -81,6 +78,7 @@ function Driver(driver, options) {
     } else if (a.action === 'waitVisibility') {
       msg += `to be visible`
     }
+    currentMessage = msg
     log.info(msg)
     return true
   }
@@ -96,7 +94,9 @@ function Driver(driver, options) {
       const locator = await webElement.find(stack)
       value = await locator.element.getAttribute('textContent')
     } catch (err) {
-      log.error(`Error during getting text.\nError ${err.stack}`)
+      log.error(
+        `${currentMessage}\nError during getting text.\nError ${err.stack}`,
+      )
       stack = []
       throw err
     }
@@ -111,7 +111,9 @@ function Driver(driver, options) {
       const locator = await webElement.find(stack)
       value = await locator.element.getAttribute(name)
     } catch (err) {
-      log.error(`Error during getting text.\nError ${err.stack}`)
+      log.error(
+        `${currentMessage}\nError during getting text.\nError ${err.stack}`,
+      )
       stack = []
       throw err
     }
@@ -125,7 +127,7 @@ function Driver(driver, options) {
       const locator = await webElement.find(stack)
       await browser.actions().move({ origin: locator.element }).perform()
     } catch (err) {
-      log.error(`Error during hover.\nError ${err.stack}`)
+      log.error(`${currentMessage}\nError during hover.\nError ${err.stack}`)
       stack = []
       throw err
     }
@@ -142,7 +144,9 @@ function Driver(driver, options) {
         locator.element,
       )
     } catch (err) {
-      log.error(`Error during scroll into view.\nError ${err.stack}`)
+      log.error(
+        `${currentMessage}\nError during scroll into view.\nError ${err.stack}`,
+      )
       stack = []
       throw err
     }
@@ -159,7 +163,7 @@ function Driver(driver, options) {
         locator.element,
       )
     } catch (err) {
-      log.error(`Error during focus.\nError ${err.stack}`)
+      log.error(`${currentMessage}\nError during focus.\nError ${err.stack}`)
       stack = []
       throw err
     }
@@ -187,7 +191,7 @@ function Driver(driver, options) {
       const locator = await webElement.find(stack)
       await clicker(locator.element)
     } catch (err) {
-      log.error(`Error during click.\nError ${err.stack}`)
+      log.error(`${currentMessage}\nError during click.\nError ${err.stack}`)
       stack = []
       throw err
     }
@@ -201,7 +205,9 @@ function Driver(driver, options) {
       const locator = await webElement.find(stack)
       await browser.actions().doubleClick(locator.element).perform()
     } catch (err) {
-      log.error(`Error during double click.\nError ${err.stack}`)
+      log.error(
+        `${currentMessage}\nError during double click.\nError ${err.stack}`,
+      )
       stack = []
       throw err
     }
@@ -216,7 +222,7 @@ function Driver(driver, options) {
       await browser.actions().move({ origin: locator.element }).perform()
       await browser.actions().press().perform()
     } catch (err) {
-      log.error(`Error during drag.\nError ${err.stack}`)
+      log.error(`${currentMessage}\nError during drag.\nError ${err.stack}`)
       stack = []
       throw err
     }
@@ -231,7 +237,7 @@ function Driver(driver, options) {
       await browser.actions().move({ origin: locator.element }).perform()
       await browser.actions().release().perform()
     } catch (err) {
-      log.error(`Error during drop.\nError ${err.stack}`)
+      log.error(`${currentMessage}\nError during drop.\nError ${err.stack}`)
       stack = []
       throw err
     }
@@ -255,7 +261,9 @@ function Driver(driver, options) {
         await browser.actions().sendKeys(value).perform()
       }
     } catch (err) {
-      log.error(`Error while entering data.\nError ${err.stack}`)
+      log.error(
+        `${currentMessage}\nError while entering data.\nError ${err.stack}`,
+      )
       stack = []
       throw err
     }
@@ -289,7 +297,9 @@ function Driver(driver, options) {
         await browser.actions().sendKeys(Key.BACK_SPACE).perform()
       }
     } catch (err) {
-      log.error(`Error while clearing field.\nError ${err.stack}`)
+      log.error(
+        `${currentMessage}\nError while clearing field.\nError ${err.stack}`,
+      )
       stack = []
       throw err
     }
@@ -334,7 +344,9 @@ function Driver(driver, options) {
         await browser.actions().keyUp(Key.SHIFT).sendKeys(value).perform()
       }
     } catch (err) {
-      log.error(`Error while overwriting text in field.\nError ${err.stack}`)
+      log.error(
+        `${currentMessage}\nError while overwriting text in field.\nError ${err.stack}`,
+      )
       stack = []
       throw err
     }
@@ -354,7 +366,9 @@ function Driver(driver, options) {
         throw new ReferenceError(`Element is not of type select`)
       }
     } catch (err) {
-      log.error(`Error while selecting value in dropdown.\nError ${err.stack}`)
+      log.error(
+        `${currentMessage}\nError while selecting value in dropdown.\nError ${err.stack}`,
+      )
       stack = []
       throw err
     }
@@ -373,7 +387,9 @@ function Driver(driver, options) {
         await clicker(locator.element)
       }
     } catch (err) {
-      log.error(`Error during checkbox set.\nError ${err.stack}`)
+      log.error(
+        `${currentMessage}\nError during checkbox set.\nError ${err.stack}`,
+      )
       stack = []
       throw err
     }
@@ -562,37 +578,34 @@ function Driver(driver, options) {
     return this
   }
 
-  async function find(timeout) {
-    let e
-    await driver.wait(
-      async () => {
-        /* eslint-disable no-await-in-loop */
-        while (e === undefined) {
-          try {
-            e = (await webElement.find(stack)).element
-          } catch (err) {
-            return false
-          }
-        }
-        /* eslint-enable no-await-in-loop */
-        return true
-      },
-      timeout || defaultTimeout(),
-      `Element was not visible on page after waiting for ${
-        timeout || defaultTimeout()
-      } ms`,
-    )
-    return e
+  function timeout() {
+    return parseInt(options.timeout, 10) * 1000
   }
 
-  async function isVisible(timeout) {
+  async function find(t = null) {
+    let locator = null
+    await driver.wait(async function x() {
+      try {
+        locator = await webElement.find(stack)
+      } catch (err) {
+        return false
+      }
+      if (locator) return true
+      return false
+    }, t || timeout())
+    stack = []
+    return locator.element
+  }
+
+  async function isVisible(t = null) {
     message({ action: 'isVisible' })
     let e
     try {
-      e = await find(timeout)
+      e = await find(t)
     } catch (err) {
-      stack = []
+      log.info(err.message)
     }
+
     stack = []
     if (![null, undefined, ''].includes(e)) {
       log.info('Element is visible on page')
@@ -602,13 +615,15 @@ function Driver(driver, options) {
     return false
   }
 
-  async function waitForVisibility(timeout) {
+  async function waitForVisibility(t = null) {
     message({ action: 'waitVisibility' })
     try {
-      await find(timeout)
+      await find(t)
     } catch (err) {
+      log.error(
+        `${currentMessage}\nElement is not visible on page\n${err.message}`,
+      )
       stack = []
-      log.error(err.stack)
       throw err
     }
     log.info('Element is visible on page')
@@ -616,49 +631,35 @@ function Driver(driver, options) {
     return true
   }
 
-  async function invisibility(timeout) {
-    let locator
+  async function invisibility(t = null) {
+    await driver.wait(async function x() {
+      let locator = null
+      try {
+        locator = await webElement.find(stack)
+      } catch (err) {
+        return true
+      }
+      if (locator) {
+        return false
+      }
+      return true
+    }, t || timeout())
+    stack = []
+    return false
+  }
 
-    await driver.manage().setTimeouts({ implicit: 1000 })
+  async function waitForInvisibility(t = null) {
+    message({ action: 'waitInvisibility' })
     try {
-      await driver.wait(
-        new Condition(
-          `for element to be invisible. Element is still visible on page.`,
-          async function x() {
-            try {
-              locator = await webElement.find(stack)
-            } catch (err) {
-              if (
-                err.message.includes('has no matching elements on page') ||
-                err.name === 'StaleElementReferenceError'
-              ) {
-                stack = []
-                return true
-              }
-              stack = []
-              throw err
-            }
-            return false
-          },
-        ),
-        timeout || defaultTimeout(),
-        `Element was visible on page after waiting for ${
-          timeout || defaultTimeout()
-        } ms`,
-      )
-      await driver.manage().setTimeouts({ implicit: defaultTimeout() })
+      await invisibility(t)
     } catch (err) {
-      await driver.manage().setTimeouts({ implicit: defaultTimeout() })
+      log.error(`${currentMessage}\n${err.message}\nElement is visible on page`)
       stack = []
       throw err
     }
+    log.info('Element is not visible on page')
     stack = []
-    return [undefined, null, ''].includes(locator)
-  }
-
-  async function waitForInvisibility(timeout) {
-    message({ action: 'waitInvisibility' })
-    return invisibility(timeout)
+    return true
   }
 
   async function screenshot() {
@@ -706,7 +707,7 @@ function Driver(driver, options) {
       })
       await Promise.all(promises)
     } catch (err) {
-      log.error(`Error during hide.\nError ${err.stack}`)
+      log.error(`${currentMessage}\nError during hide.\nError ${err.stack}`)
       stack = []
       throw err
     }
@@ -726,7 +727,7 @@ function Driver(driver, options) {
       })
       await Promise.all(promises)
     } catch (err) {
-      log.error(`Error during unhide.\nError ${err.stack}`)
+      log.error(`${currentMessage}\nError during unhide.\nError ${err.stack}`)
       stack = []
       throw err
     }

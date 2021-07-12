@@ -45,7 +45,7 @@ function setPreferences(opts) {
 function setSafariCapabilities(opts) {
   const prefs = setPreferences(opts)
   const options = {
-    args: ['--start-maximized', '--disable-infobars'],
+    args: ['--start-maximized', '--disable-infobars', '--disable-gpu'],
     prefs,
   }
   const capabilities = Capabilities.safari()

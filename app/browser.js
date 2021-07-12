@@ -149,7 +149,7 @@ function Browser(webdriver, settings) {
         height: parseInt(options.height, 10),
       })
       await driver.manage().setTimeouts({
-        implicit: timeout(),
+        // implicit: timeout(),
         pageLoad: 6 * timeout(),
         script: 6 * timeout(),
       })

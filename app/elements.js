@@ -1,5 +1,4 @@
-const { By, Condition } = require('selenium-webdriver')
-const { log } = require('@nodebug/logger')
+const { By } = require('selenium-webdriver')
 
 const attributes = [
   'placeholder',
@@ -17,13 +16,8 @@ const attributes = [
   'src',
 ]
 
-function WebElement(webdriver, settings) {
+function WebElement(webdriver) {
   const driver = webdriver
-  const options = settings
-
-  function timeout() {
-    return parseInt(options.timeout, 10) * 1000
-  }
 
   function transform(text) {
     let txt
@@ -57,7 +51,7 @@ function WebElement(webdriver, settings) {
     if (obj.index) {
       selector = `(${selector})[${obj.index}]`
     }
-    log.debug(`Selector::  ${obj.id}`)
+    // log.debug(`Selector::  ${obj.id}`)
     return By.xpath(selector)
   }
 
@@ -207,13 +201,6 @@ function WebElement(webdriver, settings) {
     return elements
   }
 
-  async function getRect(element) {
-    return driver.executeScript(
-      'return arguments[0].getBoundingClientRect();',
-      element,
-    )
-  }
-
   async function getElementData(element, action) {
     const elementData = {}
     if (![undefined, null, ''].includes(action)) {
@@ -229,70 +216,7 @@ function WebElement(webdriver, settings) {
     }
     elementData.element = element
     elementData.tagName = await element.getTagName()
-    elementData.rect = await getRect(element)
     return elementData
-  }
-
-  async function findElements(stack) {
-    const items = []
-
-    /* eslint-disable no-await-in-loop */
-    // eslint-disable-next-line no-restricted-syntax
-    for await (const item of stack) {
-      if (
-        ['element', 'row', 'column'].includes(item.type) &&
-        item.matches.length < 1
-      ) {
-        let elements
-        await driver.manage().setTimeouts({ implicit: 1000 })
-        try {
-          await driver.wait(
-            new Condition(
-              `for element to be invisible. Element is still visible on page.`,
-              async function x() {
-                await driver.switchTo().defaultContent()
-                const frames = await driver.findElements(
-                  By.xpath('//iframe[not(contains(@style,"display: none;"))]'),
-                )
-                // console.log(frames.length)
-                for (let i = -1; i < frames.length; i++) {
-                  // console.log(i)
-                  if (i === -1) {
-                    await driver.switchTo().defaultContent()
-                  } else {
-                    await driver.switchTo().frame(i)
-                  }
-                  elements = await driver.findElements(toSelector(item))
-                  if (elements.length > 0) {
-                    return true
-                  }
-                }
-                return false
-              },
-            ),
-            timeout(),
-            `'${item.id}' has no matching elements on page.`,
-          )
-          await driver.manage().setTimeouts({ implicit: timeout() })
-        } catch (err) {
-          await driver.manage().setTimeouts({ implicit: timeout() })
-          throw err
-        }
-
-        const matches = []
-        // eslint-disable-next-line no-restricted-syntax
-        for await (const element of elements) {
-          const elementData = await getElementData(element)
-          matches.push(elementData)
-        }
-        item.matches = matches.filter((e) => e.rect.height > 0)
-      }
-
-      items.push(item)
-    }
-    /* eslint-enable no-await-in-loop */
-
-    return items
   }
 
   async function findActionElement(lctr, action) {
@@ -381,8 +305,87 @@ function WebElement(webdriver, settings) {
     return locator
   }
 
+  async function findElements(elementData) {
+    const promises = []
+    await driver.switchTo().defaultContent()
+    promises.push({
+      frame: 'default',
+      elements: driver.findElements(toSelector(elementData)),
+    })
+    const frames = await driver.findElements(
+      By.xpath('//iframe[not(contains(@style,"display: none;"))]'),
+    )
+
+    /* eslint-disable no-await-in-loop */
+    for (let i = 0; i < frames.length; i++) {
+      await driver.switchTo().frame(i)
+      promises.push({
+        frame: i,
+        elements: driver.findElements(toSelector(elementData)),
+      })
+    }
+
+    while (promises.length > 0) {
+      for (let i = 0; i < promises.length; i++) {
+        if (Promise.resolve(promises[i].elements)) {
+          const elements = await Promise.resolve(promises[i].elements)
+          if (elements.length > 0) {
+            await driver.switchTo().defaultContent()
+            if (promises[i].frame !== 'default') {
+              await driver.switchTo().frame(promises[i].frame)
+            }
+            return elements
+          }
+          promises.splice(i, 1)
+        }
+      }
+    }
+    /* eslint-enable no-await-in-loop */
+    return []
+  }
+
+  async function getRect(element) {
+    const rect = await driver.executeScript(
+      'return arguments[0].getBoundingClientRect();',
+      element,
+    )
+
+    return {
+      element,
+      rect,
+    }
+  }
+
+  async function resolveElements(stack) {
+    const items = []
+
+    /* eslint-disable no-await-in-loop */
+    // eslint-disable-next-line no-restricted-syntax
+    for (let i = 0; i < stack.length; i++) {
+      const item = { ...stack[i] }
+      if (
+        ['element', 'row', 'column'].includes(item.type) &&
+        item.matches.length < 1
+      ) {
+        // log.debug('resolveElement: start')
+        const elements = await findElements(item)
+        const matches = await Promise.all(
+          elements.map((element) => getRect(element)),
+        )
+        item.matches = matches.filter(
+          (e) => e.rect.height > 0 && e.rect.width > 0,
+        )
+      }
+      items.push(item)
+    }
+    // log.debug('resolveElement: done')
+    /* eslint-enable no-await-in-loop */
+    return items
+  }
+
   async function find(stack, action) {
-    const data = await findElements(stack)
+    // log.debug('find: start')
+    const data = await resolveElements(stack)
 
     let element = null
     for (let i = data.length - 1; i > -1; i--) {
@@ -410,6 +413,7 @@ function WebElement(webdriver, settings) {
       }
       // await driver.executeScript("arguments[0].setAttribute('style', 'background: blue; border: 2px solid red;');", element.element);
     }
+    // log.debug('find: done')
 
     if (['write', 'select', 'check'].includes(action)) {
       element = await findActionElement(element, action)
@@ -418,7 +422,7 @@ function WebElement(webdriver, settings) {
   }
 
   async function findAll(stack) {
-    const data = await findElements(stack)
+    const data = await resolveElements(stack)
 
     let element = null
     for (let i = data.length - 1; i > -1; i--) {
