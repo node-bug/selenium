@@ -87,11 +87,30 @@ function Driver(driver, options) {
     return this
   }
 
+  function timeout() {
+    return parseInt(options.timeout, 10) * 1000
+  }
+
+  async function find(t = null, action = null) {
+    let locator = null
+    await driver.wait(async function x() {
+      try {
+        locator = await webElement.find(stack, action)
+      } catch (err) {
+        return false
+      }
+      if (locator) return true
+      return false
+    }, t || timeout())
+    stack = []
+    return locator
+  }
+
   async function text() {
     let value
     message({ action: 'getText' })
     try {
-      const locator = await webElement.find(stack)
+      const locator = await find()
       value = await locator.element.getAttribute('textContent')
     } catch (err) {
       log.error(
@@ -108,7 +127,7 @@ function Driver(driver, options) {
     let value
     message({ action: 'getText' })
     try {
-      const locator = await webElement.find(stack)
+      const locator = await find()
       value = await locator.element.getAttribute(name)
     } catch (err) {
       log.error(
@@ -124,7 +143,7 @@ function Driver(driver, options) {
   async function hover() {
     message({ action: 'hover' })
     try {
-      const locator = await webElement.find(stack)
+      const locator = await find()
       await browser.actions().move({ origin: locator.element }).perform()
     } catch (err) {
       log.error(`${currentMessage}\nError during hover.\nError ${err.stack}`)
@@ -138,7 +157,7 @@ function Driver(driver, options) {
   async function scroll() {
     message({ action: 'scroll' })
     try {
-      const locator = await webElement.find(stack)
+      const locator = await find()
       await driver.executeScript(
         'return arguments[0].scrollIntoView();',
         locator.element,
@@ -157,7 +176,7 @@ function Driver(driver, options) {
   async function focus() {
     message({ action: 'focus' })
     try {
-      const locator = await webElement.find(stack)
+      const locator = await find()
       await driver.executeScript(
         'return arguments[0].focus();',
         locator.element,
@@ -188,7 +207,7 @@ function Driver(driver, options) {
   async function click() {
     message({ action: 'click' })
     try {
-      const locator = await webElement.find(stack)
+      const locator = await find()
       await clicker(locator.element)
     } catch (err) {
       log.error(`${currentMessage}\nError during click.\nError ${err.stack}`)
@@ -202,7 +221,7 @@ function Driver(driver, options) {
   async function doubleClick() {
     message({ action: 'doubleclick' })
     try {
-      const locator = await webElement.find(stack)
+      const locator = await find()
       await browser.actions().doubleClick(locator.element).perform()
     } catch (err) {
       log.error(
@@ -218,7 +237,7 @@ function Driver(driver, options) {
   async function drag() {
     message({ action: 'drag' })
     try {
-      const locator = await webElement.find(stack)
+      const locator = await find()
       await browser.actions().move({ origin: locator.element }).perform()
       await browser.actions().press().perform()
     } catch (err) {
@@ -233,7 +252,7 @@ function Driver(driver, options) {
   async function drop() {
     message({ action: 'drop' })
     try {
-      const locator = await webElement.find(stack)
+      const locator = await find()
       await browser.actions().move({ origin: locator.element }).perform()
       await browser.actions().release().perform()
     } catch (err) {
@@ -248,7 +267,7 @@ function Driver(driver, options) {
   async function write(value) {
     message({ action: 'write', data: value })
     try {
-      const locator = await webElement.find(stack, 'write')
+      const locator = await find(null, 'write')
       if (['input', 'textarea'].includes(locator.tagName)) {
         await locator.element.sendKeys(value)
       } else {
@@ -274,7 +293,7 @@ function Driver(driver, options) {
   async function clear() {
     message({ action: 'clear' })
     try {
-      const locator = await webElement.find(stack, 'write')
+      const locator = await find(null, 'write')
       if (['input', 'textarea'].includes(locator.tagName)) {
         await locator.element.clear()
       } else {
@@ -310,7 +329,7 @@ function Driver(driver, options) {
   async function overwrite(value) {
     message({ action: 'overwrite', data: value })
     try {
-      const locator = await webElement.find(stack, 'write')
+      const locator = await find(null, 'write')
       if (['input', 'textarea'].includes(locator.tagName)) {
         await locator.element.clear()
         const eleValue = await locator.element.getAttribute('value')
@@ -357,7 +376,7 @@ function Driver(driver, options) {
   async function select(value) {
     message({ action: 'select', data: value })
     try {
-      const locator = await webElement.find(stack, 'select')
+      const locator = await find(null, 'select')
       if (locator.tagName === 'select') {
         await locator.element
           .findElement(By.xpath(`.//option[.="${value}"]`))
@@ -378,7 +397,7 @@ function Driver(driver, options) {
 
   async function checkbox(action) {
     try {
-      const locator = await webElement.find(stack, 'check')
+      const locator = await find(null, 'check')
       const isChecked = await locator.element.isSelected()
       if (
         (action === 'check' && !isChecked) ||
@@ -578,25 +597,6 @@ function Driver(driver, options) {
     return this
   }
 
-  function timeout() {
-    return parseInt(options.timeout, 10) * 1000
-  }
-
-  async function find(t = null) {
-    let locator = null
-    await driver.wait(async function x() {
-      try {
-        locator = await webElement.find(stack)
-      } catch (err) {
-        return false
-      }
-      if (locator) return true
-      return false
-    }, t || timeout())
-    stack = []
-    return locator.element
-  }
-
   async function isVisible(t = null) {
     message({ action: 'isVisible' })
     let e
@@ -635,7 +635,7 @@ function Driver(driver, options) {
     await driver.wait(async function x() {
       let locator = null
       try {
-        locator = await webElement.find(stack)
+        locator = await find()
       } catch (err) {
         return true
       }
@@ -667,7 +667,7 @@ function Driver(driver, options) {
     if (stack.length > 0) {
       let locator
       try {
-        locator = await webElement.find(stack)
+        locator = await find()
       } catch (err) {
         log.error(err.stack)
       }

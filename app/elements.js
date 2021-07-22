@@ -51,7 +51,6 @@ function WebElement(webdriver) {
     if (obj.index) {
       selector = `(${selector})[${obj.index}]`
     }
-    // log.debug(`Selector::  ${obj.id}`)
     return By.xpath(selector)
   }
 
@@ -305,55 +304,43 @@ function WebElement(webdriver) {
     return locator
   }
 
-  async function findElements(elementData) {
-    const promises = []
-    await driver.switchTo().defaultContent()
-    promises.push({
-      frame: 'default',
-      elements: driver.findElements(toSelector(elementData)),
-    })
-    const frames = await driver.findElements(
-      By.xpath('//iframe[not(contains(@style,"display: none;"))]'),
-    )
-
-    /* eslint-disable no-await-in-loop */
-    for (let i = 0; i < frames.length; i++) {
-      await driver.switchTo().frame(i)
-      promises.push({
-        frame: i,
-        elements: driver.findElements(toSelector(elementData)),
-      })
-    }
-
-    while (promises.length > 0) {
-      for (let i = 0; i < promises.length; i++) {
-        if (Promise.resolve(promises[i].elements)) {
-          const elements = await Promise.resolve(promises[i].elements)
-          if (elements.length > 0) {
-            await driver.switchTo().defaultContent()
-            if (promises[i].frame !== 'default') {
-              await driver.switchTo().frame(promises[i].frame)
-            }
-            return elements
-          }
-          promises.splice(i, 1)
-        }
-      }
-    }
-    /* eslint-enable no-await-in-loop */
-    return []
-  }
-
   async function getRect(element) {
     const rect = await driver.executeScript(
       'return arguments[0].getBoundingClientRect();',
       element,
     )
-
     return {
       element,
       rect,
     }
+  }
+
+  async function findElements(elementData) {
+    const c = []
+    await driver.switchTo().defaultContent()
+    const frames = await driver.findElements(
+      By.xpath('//iframe[not(contains(@style,"display: none;"))]'),
+    )
+
+    /* eslint-disable no-await-in-loop */
+    for (let i = -1; i < frames.length; i++) {
+      if (i > -1) {
+        await driver.switchTo().frame(i)
+      }
+      const elements = await driver.findElements(toSelector(elementData))
+      if (elements.length > 0) {
+        elements.forEach((element) => {
+          return { ...element, frame: i }
+        })
+        const matches = await Promise.all(
+          elements.map((element) => getRect(element)),
+        )
+        c.push(...matches.filter((e) => e.rect.height > 0 && e.rect.width > 0))
+      }
+    }
+    /* eslint-enable no-await-in-loop */
+
+    return c
   }
 
   async function resolveElements(stack) {
@@ -367,24 +354,15 @@ function WebElement(webdriver) {
         ['element', 'row', 'column'].includes(item.type) &&
         item.matches.length < 1
       ) {
-        // log.debug('resolveElement: start')
-        const elements = await findElements(item)
-        const matches = await Promise.all(
-          elements.map((element) => getRect(element)),
-        )
-        item.matches = matches.filter(
-          (e) => e.rect.height > 0 && e.rect.width > 0,
-        )
+        item.matches = await findElements(item)
       }
       items.push(item)
     }
-    // log.debug('resolveElement: done')
     /* eslint-enable no-await-in-loop */
     return items
   }
 
-  async function find(stack, action) {
-    // log.debug('find: start')
+  async function find(stack, action = null) {
     const data = await resolveElements(stack)
 
     let element = null
@@ -413,8 +391,11 @@ function WebElement(webdriver) {
       }
       // await driver.executeScript("arguments[0].setAttribute('style', 'background: blue; border: 2px solid red;');", element.element);
     }
-    // log.debug('find: done')
 
+    await driver.switchTo().defaultContent()
+    if (element.element.frame >= 0) {
+      await driver.switchTo().frame(element.element.frame)
+    }
     if (['write', 'select', 'check'].includes(action)) {
       element = await findActionElement(element, action)
     }
