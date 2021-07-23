@@ -329,9 +329,9 @@ function WebElement(webdriver) {
       }
       const elements = await driver.findElements(toSelector(elementData))
       if (elements.length > 0) {
-        elements.forEach((element) => {
-          return { ...element, frame: i }
-        })
+        for (let j = 0; j < elements.length; j++) {
+          elements[j].frame = i
+        }
         const matches = await Promise.all(
           elements.map((element) => getRect(element)),
         )

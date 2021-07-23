@@ -635,7 +635,7 @@ function Driver(driver, options) {
     await driver.wait(async function x() {
       let locator = null
       try {
-        locator = await find()
+        locator = await webElement.find(stack)
       } catch (err) {
         return true
       }
