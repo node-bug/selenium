@@ -1,5 +1,5 @@
 const { log } = require('@nodebug/logger')
-const { By, Key } = require('selenium-webdriver')
+const { By, Key, withTagName } = require('selenium-webdriver')
 const Browser = require('./app/browser')
 const WebElement = require('./app/elements')
 const Alert = require('./app/alerts')
@@ -36,12 +36,13 @@ function Driver(driver, options) {
       msg = `Overwriting with '${a.data}' in `
     } else if (a.action === 'select') {
       msg = `Selecting '${a.data}' from dropdown `
-    } else if (a.action === 'isVisible') {
+    } else if (a.action === 'isVisible' || a.action === 'isDisabled') {
       msg = `Checking `
-    } else if (a.action === 'waitVisibility') {
+    } else if (
+      a.action === 'waitVisibility' ||
+      a.action === 'waitInvisibility'
+    ) {
       msg = `Waiting for `
-    } else if (a.action === 'waitInvisibility') {
-      msg = `Waiting for invisibility of `
     } else if (a.action === 'check') {
       msg = `Checking checkbox for `
     } else if (a.action === 'uncheck') {
@@ -57,7 +58,7 @@ function Driver(driver, options) {
     }
     for (let i = 0; i < stack.length; i++) {
       const obj = stack[i]
-      if (['element', 'row', 'column'].includes(obj.type)) {
+      if (['element', 'radio', 'row', 'column'].includes(obj.type)) {
         if (obj.exact) {
           msg += 'exact '
         }
@@ -77,6 +78,10 @@ function Driver(driver, options) {
       msg += `is visible`
     } else if (a.action === 'waitVisibility') {
       msg += `to be visible`
+    } else if (a.action === 'waitInvisibility') {
+      msg += `to not be visible`
+    } else if (a.action === 'isDisabled') {
+      msg += `is disabled`
     }
     currentMessage = msg
     log.info(msg)
@@ -194,10 +199,13 @@ function Driver(driver, options) {
     try {
       await e.click()
     } catch (err) {
-      if (err.name === 'ElementNotInteractableError') {
+      if (
+        err.name === 'ElementNotInteractableError' ||
+        err.name === 'ElementClickInterceptedError'
+      ) {
         await driver.executeScript('return arguments[0].click();', e)
-      } else if (err.name === 'ElementClickInterceptedError') {
-        await browser.actions().move({ origin: e }).click().perform()
+        // } else if (err.name === 'ElementClickInterceptedError') {
+        //   await browser.actions().move({ origin: e }).click().perform()
       } else {
         throw err
       }
@@ -395,9 +403,15 @@ function Driver(driver, options) {
     return true
   }
 
-  async function checkbox(action) {
+  async function checkboxaction(action) {
     try {
-      const locator = await find(null, 'check')
+      const locator = await find()
+      const type = await locator.element.getAttribute('type')
+      if (type !== 'checkbox') {
+        locator.element = await driver.findElement(
+          withTagName('[type=checkbox]').near(locator.element),
+        )
+      }
       const isChecked = await locator.element.isSelected()
       if (
         (action === 'check' && !isChecked) ||
@@ -418,12 +432,12 @@ function Driver(driver, options) {
 
   async function check() {
     message({ action: 'check' })
-    return checkbox('check')
+    return checkboxaction('check')
   }
 
   async function uncheck() {
     message({ action: 'uncheck' })
-    return checkbox('uncheck')
+    return checkboxaction('uncheck')
   }
 
   function exact() {
@@ -454,6 +468,54 @@ function Driver(driver, options) {
       })
     }
     return this
+  }
+
+  function radio(data) {
+    element(data)
+    const pop = stack.pop()
+    pop.type = 'radio'
+    stack.push(pop)
+    return this
+  }
+
+  function textbox(data) {
+    element(data)
+    const pop = stack.pop()
+    pop.type = 'textbox'
+    stack.push(pop)
+    return this
+  }
+
+  function checkbox(data) {
+    element(data)
+    const pop = stack.pop()
+    pop.type = 'checkbox'
+    stack.push(pop)
+    return this
+  }
+
+  function button(data) {
+    element(data)
+    const pop = stack.pop()
+    pop.type = 'button'
+    stack.push(pop)
+    return this
+  }
+
+  async function isDisabled() {
+    message({ action: 'isDisabled' })
+
+    let result
+    try {
+      const e = await find()
+      result = !(await e.element.isEnabled())
+    } catch (err) {
+      stack = []
+      log.info(err.message)
+      throw err
+    }
+    stack = []
+    return result
   }
 
   function row(data) {
@@ -753,6 +815,11 @@ function Driver(driver, options) {
     select,
     check,
     uncheck,
+    radio,
+    textbox,
+    checkbox,
+    button,
+    isDisabled,
     exact,
     element,
     row,

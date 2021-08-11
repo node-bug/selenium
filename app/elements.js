@@ -1,4 +1,4 @@
-const { By } = require('selenium-webdriver')
+const { By, withTagName } = require('selenium-webdriver')
 
 const attributes = [
   'placeholder',
@@ -277,25 +277,6 @@ function WebElement(webdriver) {
         matches = await Promise.all(promisess)
         matches = matches.filter((e) => e.tagName === 'select')
       }
-    } else if (action === 'check' && locator.tagName !== 'input') {
-      matches = await locator.element.findElements(
-        By.xpath(`./preceding-sibling::input[@type='checkbox']`),
-      )
-      const promises = matches.map(async (e) => {
-        return getElementData(e, action)
-      })
-      matches = await Promise.all(promises)
-      matches = matches.filter((e) => e.tagName === 'input')
-      if (matches.length < 1) {
-        matches = await locator.element.findElements(
-          By.xpath(`./child::input[@type='checkbox']`),
-        )
-        const promisess = matches.map(async (e) => {
-          return getElementData(e, action)
-        })
-        matches = await Promise.all(promisess)
-        matches = matches.filter((e) => e.tagName === 'input')
-      }
     }
 
     if (matches.length > 0) {
@@ -351,7 +332,15 @@ function WebElement(webdriver) {
     for (let i = 0; i < stack.length; i++) {
       const item = { ...stack[i] }
       if (
-        ['element', 'row', 'column'].includes(item.type) &&
+        [
+          'element',
+          'radio',
+          'checkbox',
+          'button',
+          'textbox',
+          'row',
+          'column',
+        ].includes(item.type) &&
         item.matches.length < 1
       ) {
         item.matches = await findElements(item)
@@ -368,7 +357,17 @@ function WebElement(webdriver) {
     let element = null
     for (let i = data.length - 1; i > -1; i--) {
       const item = data[i]
-      if (['element', 'row', 'column'].includes(item.type)) {
+      if (
+        [
+          'element',
+          'radio',
+          'checkbox',
+          'button',
+          'textbox',
+          'row',
+          'column',
+        ].includes(item.type)
+      ) {
         // eslint-disable-next-line no-await-in-loop
         ;[element] = relativeSearch(item)
         if ([undefined, null, ''].includes(element)) {
@@ -399,6 +398,37 @@ function WebElement(webdriver) {
     if (['write', 'select', 'check'].includes(action)) {
       element = await findActionElement(element, action)
     }
+    if (stack[0].type === 'radio') {
+      const type = await element.element.getAttribute('type')
+      if (type !== 'radio') {
+        element.element = await driver.findElement(
+          withTagName(`[type=radio]`).near(element.element),
+        )
+      }
+    } else if (stack[0].type === 'textbox') {
+      const type = await element.element.getAttribute('type')
+      if (!['number', 'text'].includes(type)) {
+        element.element = await driver.findElement(
+          withTagName(
+            `input:not([type=radio], [type=checkbox], [type=submit], [type=file])`,
+          ).near(element.element),
+        )
+      }
+    } else if (stack[0].type === 'checkbox') {
+      const type = await element.element.getAttribute('type')
+      if (type !== 'checkbox') {
+        element.element = await driver.findElement(
+          withTagName(`[type=checkbox]`).near(element.element),
+        )
+      }
+    } else if (stack[0].type === 'button') {
+      const tagName = await element.element.getTagName()
+      if (tagName !== 'button') {
+        element.element = await driver.findElement(
+          withTagName(`//button`).near(element.element),
+        )
+      }
+    }
     return element
   }
 
@@ -408,7 +438,17 @@ function WebElement(webdriver) {
     let element = null
     for (let i = data.length - 1; i > -1; i--) {
       const item = data[i]
-      if (['element', 'row', 'column'].includes(item.type)) {
+      if (
+        [
+          'element',
+          'radio',
+          'textbox',
+          'checkbox',
+          'button',
+          'row',
+          'column',
+        ].includes(item.type)
+      ) {
         // eslint-disable-next-line no-await-in-loop
         element = relativeSearch(item)
         if (i !== 0) {
