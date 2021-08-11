@@ -199,6 +199,22 @@ function Browser(webdriver, settings) {
     )
   }
 
+  async function consoleErrors() {
+    log.info(`Getting console errors on page ${await title()}`)
+
+    const entries = []
+    const logs = []
+    const promises = ['browser'].map(async (type) => {
+      entries.push(...(await driver.manage().logs().get(type)))
+    })
+    await Promise.all(promises)
+    ;['SEVERE'].map(async (level) => {
+      logs.push(...entries.filter((entry) => entry.level === level))
+    })
+
+    return logs
+  }
+
   async function getDriver() {
     return driver
   }
@@ -229,6 +245,7 @@ function Browser(webdriver, settings) {
     goBack,
     goForward,
     reset,
+    consoleErrors,
     getDriver,
     actions,
   }

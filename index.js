@@ -860,6 +860,7 @@ function Driver(driver, options) {
     goBack: browser.goBack,
     goForward: browser.goForward,
     reset: browser.reset,
+    consoleErrors: browser.consoleErrors,
     getDriver: browser.getDriver,
     actions: browser.actions,
   }
