@@ -209,7 +209,7 @@ function Browser(webdriver, settings) {
     })
     await Promise.all(promises)
     ;['SEVERE'].map(async (level) => {
-      logs.push(...entries.filter((entry) => entry.level === level))
+      logs.push(...entries.filter((entry) => entry.level.name === level))
     })
 
     return logs
