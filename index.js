@@ -98,15 +98,21 @@ function Driver(driver, options) {
 
   async function find(t = null, action = null) {
     let locator = null
-    await driver.wait(async function x() {
-      try {
-        locator = await webElement.find(stack, action)
-      } catch (err) {
+    await driver.wait(
+      async function x() {
+        try {
+          locator = await webElement.find(stack, action)
+        } catch (err) {
+          return false
+        }
+        if (locator) return true
         return false
-      }
-      if (locator) return true
-      return false
-    }, t || timeout())
+      },
+      t || timeout(),
+      `Element ${stack[0].id} was not visible on page after ${
+        t || timeout()
+      } ms timeout`,
+    )
     stack = []
     return locator
   }
