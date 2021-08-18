@@ -58,7 +58,17 @@ function Driver(driver, options) {
     }
     for (let i = 0; i < stack.length; i++) {
       const obj = stack[i]
-      if (['element', 'radio', 'row', 'column'].includes(obj.type)) {
+      if (
+        [
+          'element',
+          'radio',
+          'checkbox',
+          'textbox',
+          'button',
+          'row',
+          'column',
+        ].includes(obj.type)
+      ) {
         if (obj.exact) {
           msg += 'exact '
         }

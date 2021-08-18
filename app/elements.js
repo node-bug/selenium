@@ -227,7 +227,7 @@ function WebElement(webdriver) {
       !locator.editable
     ) {
       let write = `::*[`
-      write += `self::input[@type='text' or @type='password'] or `
+      write += `self::input[not(@type='radio' or @type='checkbox' or @type='submit' or @type='file')] or `
       write += `self::textarea or `
       write += `self::*[@contenteditable='true'] or `
       write += `self::*[contains(@class,'ace_text')]`
