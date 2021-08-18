@@ -210,6 +210,7 @@ function Driver(driver, options) {
         err.name === 'ElementClickInterceptedError'
       ) {
         await driver.executeScript('return arguments[0].click();', e)
+        await browser.actions().move({ origin: e }).click().perform()
         // } else if (err.name === 'ElementClickInterceptedError') {
         //   await browser.actions().move({ origin: e }).click().perform()
       } else {

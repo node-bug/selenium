@@ -425,7 +425,7 @@ function WebElement(webdriver) {
       const tagName = await element.element.getTagName()
       if (tagName !== 'button') {
         element.element = await driver.findElement(
-          withTagName(`//button`).near(element.element),
+          withTagName(`button`).near(element.element),
         )
       }
     }
