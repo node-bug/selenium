@@ -220,7 +220,15 @@ function Driver(driver, options) {
         err.name === 'ElementClickInterceptedError'
       ) {
         await driver.executeScript('return arguments[0].click();', e)
-        await browser.actions().move({ origin: e }).click().perform()
+        try {
+          await browser.actions().move({ origin: e }).click().perform()
+        } catch (error) {
+          if (error.name !== 'StaleElementReferenceError') {
+            log.error(
+              `Error while clicking on element '${stack[0].id}'. ${error.stack}`,
+            )
+          }
+        }
         // } else if (err.name === 'ElementClickInterceptedError') {
         //   await browser.actions().move({ origin: e }).click().perform()
       } else {
