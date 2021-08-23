@@ -51,6 +51,8 @@ function Driver(driver, options) {
       msg = `Capturing screenshot of `
     } else if (a.action === 'getText') {
       msg = `Getting text of `
+    } else if (a.action === 'getAttribute') {
+      msg = `Getting attribute '${a.data}' of `
     } else if (a.action === 'hide') {
       msg = `Hiding all matching `
     } else if (a.action === 'unhide') {
@@ -119,9 +121,7 @@ function Driver(driver, options) {
         return false
       },
       t || timeout(),
-      `Element ${stack[0].id} was not visible on page after ${
-        t || timeout()
-      } ms timeout`,
+      `Element was not visible on page after ${t || timeout()} ms timeout`,
     )
     stack = []
     return locator
@@ -138,6 +138,7 @@ function Driver(driver, options) {
         `${currentMessage}\nError during getting text.\nError ${err.stack}`,
       )
       stack = []
+      err.message = `Error while ${currentMessage}\n${err.message}`
       throw err
     }
     stack = []
@@ -146,7 +147,7 @@ function Driver(driver, options) {
 
   async function attribute(name) {
     let value
-    message({ action: 'getText' })
+    message({ action: 'getAttribute', data: name })
     try {
       const locator = await find()
       value = await locator.element.getAttribute(name)
@@ -155,6 +156,7 @@ function Driver(driver, options) {
         `${currentMessage}\nError during getting text.\nError ${err.stack}`,
       )
       stack = []
+      err.message = `Error while ${currentMessage}\n${err.message}`
       throw err
     }
     stack = []
@@ -169,6 +171,7 @@ function Driver(driver, options) {
     } catch (err) {
       log.error(`${currentMessage}\nError during hover.\nError ${err.stack}`)
       stack = []
+      err.message = `Error while ${currentMessage}\n${err.message}`
       throw err
     }
     stack = []
@@ -188,6 +191,7 @@ function Driver(driver, options) {
         `${currentMessage}\nError during scroll into view.\nError ${err.stack}`,
       )
       stack = []
+      err.message = `Error while ${currentMessage}\n${err.message}`
       throw err
     }
     stack = []
@@ -205,6 +209,7 @@ function Driver(driver, options) {
     } catch (err) {
       log.error(`${currentMessage}\nError during focus.\nError ${err.stack}`)
       stack = []
+      err.message = `Error while ${currentMessage}\n${err.message}`
       throw err
     }
     stack = []
@@ -215,22 +220,10 @@ function Driver(driver, options) {
     try {
       await e.click()
     } catch (err) {
-      if (
-        err.name === 'ElementNotInteractableError' ||
-        err.name === 'ElementClickInterceptedError'
-      ) {
+      if (err.name === 'ElementNotInteractableError') {
         await driver.executeScript('return arguments[0].click();', e)
-        try {
-          await browser.actions().move({ origin: e }).click().perform()
-        } catch (error) {
-          if (error.name !== 'StaleElementReferenceError') {
-            log.error(
-              `Error while clicking on element '${stack[0].id}'. ${error.stack}`,
-            )
-          }
-        }
-        // } else if (err.name === 'ElementClickInterceptedError') {
-        //   await browser.actions().move({ origin: e }).click().perform()
+      } else if (err.name === 'ElementClickInterceptedError') {
+        await browser.actions().move({ origin: e }).click().perform()
       } else {
         throw err
       }
@@ -245,6 +238,7 @@ function Driver(driver, options) {
     } catch (err) {
       log.error(`${currentMessage}\nError during click.\nError ${err.stack}`)
       stack = []
+      err.message = `Error while ${currentMessage}\n${err.message}`
       throw err
     }
     stack = []
@@ -261,6 +255,7 @@ function Driver(driver, options) {
         `${currentMessage}\nError during double click.\nError ${err.stack}`,
       )
       stack = []
+      err.message = `Error while ${currentMessage}\n${err.message}`
       throw err
     }
     stack = []
@@ -276,6 +271,7 @@ function Driver(driver, options) {
     } catch (err) {
       log.error(`${currentMessage}\nError during drag.\nError ${err.stack}`)
       stack = []
+      err.message = `Error while ${currentMessage}\n${err.message}`
       throw err
     }
     stack = []
@@ -291,6 +287,7 @@ function Driver(driver, options) {
     } catch (err) {
       log.error(`${currentMessage}\nError during drop.\nError ${err.stack}`)
       stack = []
+      err.message = `Error while ${currentMessage}\n${err.message}`
       throw err
     }
     stack = []
@@ -317,6 +314,7 @@ function Driver(driver, options) {
         `${currentMessage}\nError while entering data.\nError ${err.stack}`,
       )
       stack = []
+      err.message = `Error while ${currentMessage}\n${err.message}`
       throw err
     }
     stack = []
@@ -353,6 +351,7 @@ function Driver(driver, options) {
         `${currentMessage}\nError while clearing field.\nError ${err.stack}`,
       )
       stack = []
+      err.message = `Error while ${currentMessage}\n${err.message}`
       throw err
     }
     stack = []
@@ -400,6 +399,7 @@ function Driver(driver, options) {
         `${currentMessage}\nError while overwriting text in field.\nError ${err.stack}`,
       )
       stack = []
+      err.message = `Error while ${currentMessage}\n${err.message}`
       throw err
     }
     stack = []
@@ -422,6 +422,7 @@ function Driver(driver, options) {
         `${currentMessage}\nError while selecting value in dropdown.\nError ${err.stack}`,
       )
       stack = []
+      err.message = `Error while ${currentMessage}\n${err.message}`
       throw err
     }
     stack = []
@@ -444,11 +445,24 @@ function Driver(driver, options) {
       ) {
         await clicker(locator.element)
       }
+
+      if (isChecked === (await locator.element.isSelected())) {
+        if (
+          (action === 'check' && !isChecked) ||
+          (action === 'uncheck' && isChecked)
+        ) {
+          await driver.executeScript(
+            'return arguments[0].click();',
+            locator.element,
+          )
+        }
+      }
     } catch (err) {
       log.error(
         `${currentMessage}\nError during checkbox set.\nError ${err.stack}`,
       )
       stack = []
+      err.message = `Error while ${currentMessage}\n${err.message}`
       throw err
     }
     stack = []
@@ -536,7 +550,8 @@ function Driver(driver, options) {
       result = !(await e.element.isEnabled())
     } catch (err) {
       stack = []
-      log.info(err.message)
+      log.info(`Error while ${currentMessage}\n${err.message}`)
+      err.message = `Error while ${currentMessage}\n${err.message}`
       throw err
     }
     stack = []
@@ -711,6 +726,7 @@ function Driver(driver, options) {
         `${currentMessage}\nElement is not visible on page\n${err.message}`,
       )
       stack = []
+      err.message = `Error while ${currentMessage}\n${err.message}`
       throw err
     }
     log.info('Element is visible on page')
@@ -742,6 +758,7 @@ function Driver(driver, options) {
     } catch (err) {
       log.error(`${currentMessage}\n${err.message}\nElement is visible on page`)
       stack = []
+      err.message = `Error while ${currentMessage}\n${err.message}`
       throw err
     }
     log.info('Element is not visible on page')
@@ -796,6 +813,7 @@ function Driver(driver, options) {
     } catch (err) {
       log.error(`${currentMessage}\nError during hide.\nError ${err.stack}`)
       stack = []
+      err.message = `Error while ${currentMessage}\n${err.message}`
       throw err
     }
     stack = []
@@ -816,6 +834,7 @@ function Driver(driver, options) {
     } catch (err) {
       log.error(`${currentMessage}\nError during unhide.\nError ${err.stack}`)
       stack = []
+      err.message = `Error while ${currentMessage}\n${err.message}`
       throw err
     }
     stack = []
