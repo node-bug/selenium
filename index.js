@@ -547,7 +547,7 @@ function Driver(driver, options) {
     let result
     try {
       const e = await find()
-      result = !(await e.element.isEnabled())
+      result = await e.element.isEnabled()
     } catch (err) {
       stack = []
       log.info(`Error while ${currentMessage}\n${err.message}`)
@@ -555,7 +555,7 @@ function Driver(driver, options) {
       throw err
     }
     stack = []
-    return result
+    return !result
   }
 
   function row(data) {
@@ -614,6 +614,30 @@ function Driver(driver, options) {
         matches: [],
         index: false,
       })
+    }
+    return this
+  }
+
+  function table(data) {
+    if (typeof data !== 'string') {
+      throw new TypeError(
+        `Expected parameter for table is string. Received ${typeof data} instead`,
+      )
+    }
+
+    for (let i = stack.length - 1; i >= 0; i--) {
+      if (stack[i].type === 'row' || stack[i].type === 'column')
+        stack[i].table = data
+    }
+
+    const pop = stack.pop()
+    if (
+      JSON.stringify(pop) !==
+      JSON.stringify({ type: 'location', located: 'within' })
+    ) {
+      if (typeof pop !== 'undefined') {
+        stack.push(pop)
+      }
     }
     return this
   }
@@ -859,15 +883,16 @@ function Driver(driver, options) {
     select,
     check,
     uncheck,
+    isDisabled,
+    exact,
     radio,
     textbox,
     checkbox,
     button,
-    isDisabled,
-    exact,
     element,
     row,
     column,
+    table,
     exactly,
     above,
     below,

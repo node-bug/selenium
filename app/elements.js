@@ -51,11 +51,13 @@ function WebElement(webdriver) {
     if (obj.index) {
       selector = `(${selector})[${obj.index}]`
     }
+
     return By.xpath(selector)
   }
 
   function getSelectorForRow(obj) {
     let selector = ''
+    let t = ''
     if (obj.exact) {
       attributes.forEach((attribute) => {
         selector += `@${attribute}=${transform(obj.id)} or `
@@ -69,7 +71,16 @@ function WebElement(webdriver) {
     }
 
     selector = `//*[${selector}]`
-    selector = `//tbody/tr[(.${selector})]` // additional for row
+    if (obj.table !== undefined) {
+      attributes.forEach((attribute) => {
+        t += `contains(@${attribute},${transform(obj.table)}) or `
+      })
+      t += `contains(normalize-space(.),${transform(obj.table)}) `
+      selector = `//table[${t}]/tbody/tr[(.${selector})]` // additional for row
+    } else {
+      selector = `//tbody/tr[(.${selector})]` // additional for row
+    }
+
     if (obj.index) {
       selector = `(${selector})[${obj.index}]`
     }
@@ -79,6 +90,7 @@ function WebElement(webdriver) {
 
   function getSelectorForColumn(obj) {
     let selector = ''
+    let t = ''
     if (obj.exact) {
       attributes.forEach((attribute) => {
         selector += `@${attribute}=${transform(obj.id)} or `
@@ -92,8 +104,17 @@ function WebElement(webdriver) {
     }
 
     selector = `[${selector}]` // additional for column
-    selector = `//tbody/tr/*[count(//thead//th${selector}/preceding-sibling::th)+1]` // additional for column
-
+    if (obj.table !== undefined) {
+      attributes.forEach((attribute) => {
+        t += `contains(@${attribute},${transform(obj.table)}) or `
+      })
+      t += `contains(normalize-space(.),${transform(obj.table)}) `
+      selector = `//table[${t}]/tbody/tr/*[count(//table[${t}]/thead//th${selector}/preceding-sibling::th)+1]`
+      // additional for column
+    } else {
+      selector = `//tbody/tr/*[count(//thead//th${selector}/preceding-sibling::th)+1]`
+      // additional for column
+    }
     return By.xpath(selector)
   }
 
