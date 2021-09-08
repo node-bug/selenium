@@ -94,6 +94,10 @@ function Driver(driver, options) {
       msg += `to not be visible`
     } else if (a.action === 'isDisabled') {
       msg += `is disabled`
+    } else if (a.action === 'click') {
+      if (a.x !== null && a.y !== null) {
+        msg += `at location x:${a.x} y:${a.y}`
+      }
     }
     currentMessage = msg
     log.info(msg)
@@ -216,25 +220,51 @@ function Driver(driver, options) {
     return true
   }
 
-  async function clicker(e) {
-    try {
-      await e.click()
-    } catch (err) {
-      if (err.name === 'ElementNotInteractableError') {
-        await driver.executeScript('return arguments[0].click();', e)
-      } else if (err.name === 'ElementClickInterceptedError') {
-        await browser.actions().move({ origin: e }).click().perform()
+  async function clicker(e, x, y) {
+    let ex
+    let ey
+    if (x !== null && y !== null) {
+      const rect = await e.getRect()
+      if (x >= rect.width) {
+        throw new Error(
+          `Cannot click on element at x:${x} y:${y} as element width is ${rect.width}`,
+        )
       } else {
-        throw err
+        ex = rect.x + parseInt(x, 10)
+      }
+      if (y >= rect.height) {
+        throw new Error(
+          `Cannot click on element at x:${x} y:${y} as element height is ${rect.height}`,
+        )
+      } else {
+        ey = rect.y + parseInt(y, 10)
+      }
+      await browser
+        .actions()
+        .move({ x: Math.ceil(ex), y: Math.ceil(ey) })
+        .pause(1000)
+        .click()
+        .perform()
+    } else {
+      try {
+        await e.click()
+      } catch (err) {
+        if (err.name === 'ElementNotInteractableError') {
+          await driver.executeScript('return arguments[0].click();', e)
+        } else if (err.name === 'ElementClickInterceptedError') {
+          await browser.actions().move({ origin: e }).click().perform()
+        } else {
+          throw err
+        }
       }
     }
   }
 
-  async function click() {
-    message({ action: 'click' })
+  async function click(x = null, y = null) {
+    message({ action: 'click', x, y })
     try {
       const locator = await find()
-      await clicker(locator.element)
+      await clicker(locator.element, x, y)
     } catch (err) {
       log.error(`${currentMessage}\nError during click.\nError ${err.stack}`)
       stack = []

@@ -14,6 +14,7 @@ const attributes = [
   'tooltip',
   'alt',
   'src',
+  'role',
 ]
 
 function WebElement(webdriver) {
