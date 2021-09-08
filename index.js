@@ -187,7 +187,7 @@ function Driver(driver, options) {
     try {
       const locator = await find()
       await driver.executeScript(
-        'return arguments[0].scrollIntoView();',
+        'return arguments[0].scrollIntoView(true);',
         locator.element,
       )
     } catch (err) {
@@ -223,7 +223,10 @@ function Driver(driver, options) {
   async function clicker(e, x, y) {
     let ex
     let ey
-    if (x !== null && y !== null) {
+    if (
+      ![null, undefined, ''].includes(x) &&
+      ![null, undefined, ''].includes(y)
+    ) {
       const rect = await e.getRect()
       if (x >= rect.width) {
         throw new Error(
@@ -249,10 +252,13 @@ function Driver(driver, options) {
       try {
         await e.click()
       } catch (err) {
-        if (err.name === 'ElementNotInteractableError') {
+        if (
+          err.name === 'ElementNotInteractableError' ||
+          err.name === 'ElementClickInterceptedError'
+        ) {
           await driver.executeScript('return arguments[0].click();', e)
-        } else if (err.name === 'ElementClickInterceptedError') {
-          await browser.actions().move({ origin: e }).click().perform()
+          // } else if (err.name === 'ElementClickInterceptedError') {
+          //   await browser.actions().move({ origin: e }).pause(500).click().perform()
         } else {
           throw err
         }
@@ -296,7 +302,11 @@ function Driver(driver, options) {
     message({ action: 'drag' })
     try {
       const locator = await find()
-      await browser.actions().move({ origin: locator.element }).perform()
+      await browser
+        .actions()
+        .move({ origin: locator.element })
+        .pause(500)
+        .perform()
       await browser.actions().press().perform()
     } catch (err) {
       log.error(`${currentMessage}\nError during drag.\nError ${err.stack}`)
@@ -312,7 +322,11 @@ function Driver(driver, options) {
     message({ action: 'drop' })
     try {
       const locator = await find()
-      await browser.actions().move({ origin: locator.element }).perform()
+      await browser
+        .actions()
+        .move({ origin: locator.element })
+        .pause(500)
+        .perform()
       await browser.actions().release().perform()
     } catch (err) {
       log.error(`${currentMessage}\nError during drop.\nError ${err.stack}`)
