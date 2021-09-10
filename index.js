@@ -252,13 +252,16 @@ function Driver(driver, options) {
       try {
         await e.click()
       } catch (err) {
-        if (
-          err.name === 'ElementNotInteractableError' ||
-          err.name === 'ElementClickInterceptedError'
-        ) {
+        if (err.name === 'ElementNotInteractableError') {
           await driver.executeScript('return arguments[0].click();', e)
-          // } else if (err.name === 'ElementClickInterceptedError') {
-          //   await browser.actions().move({ origin: e }).pause(500).click().perform()
+        } else if (err.name === 'ElementClickInterceptedError') {
+          // this is required for clicking on Froala edit boxes
+          await browser
+            .actions()
+            .move({ origin: e })
+            .pause(500)
+            .click()
+            .perform()
         } else {
           throw err
         }
