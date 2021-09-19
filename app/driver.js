@@ -80,7 +80,11 @@ function setChromeCapabilities(opts) {
   }
   const prefs = setPreferences(opts)
   const options = {
-    args: ['force-device-scale-factor=1', 'disable-extensions'],
+    args: [
+      'force-device-scale-factor=1',
+      'disable-extensions',
+      '--disable-gpu',
+    ],
     prefs,
     excludeSwitches: ['enable-automation'],
   }
@@ -116,7 +120,7 @@ function setCapabilities(options) {
     default:
       capabilities = setChromeCapabilities(options)
   }
-  capabilities.set('pageLoadStrategy', 'normal')
+  capabilities.set('pageLoadStrategy', 'none')
   return capabilities
 }
 

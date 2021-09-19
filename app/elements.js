@@ -436,10 +436,10 @@ function WebElement(webdriver) {
           ).near(element.element),
         )
       }
-      await driver.executeScript(
-        "arguments[0].setAttribute('style', 'background: blue; border: 2px solid red;');",
-        element.element,
-      )
+      // await driver.executeScript(
+      //   "arguments[0].setAttribute('style', 'background: blue; border: 2px solid red;');",
+      //   element.element,
+      // )
     } else if (stack[0].type === 'checkbox') {
       const type = await element.element.getAttribute('type')
       if (type !== 'checkbox') {
