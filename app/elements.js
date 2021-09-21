@@ -49,9 +49,9 @@ function WebElement(webdriver) {
     }
 
     selector = `//*[${selector}]`
-    if (obj.index) {
-      selector = `(${selector})[${obj.index}]`
-    }
+    // if (obj.index) {
+    //   selector = `(${selector})[${obj.index}]`
+    // }
 
     return By.xpath(selector)
   }
@@ -82,9 +82,9 @@ function WebElement(webdriver) {
       selector = `//tbody/tr[(.${selector})]` // additional for row
     }
 
-    if (obj.index) {
-      selector = `(${selector})[${obj.index}]`
-    }
+    // if (obj.index) {
+    //   selector = `(${selector})[${obj.index}]`
+    // }
 
     return By.xpath(selector)
   }
@@ -129,7 +129,69 @@ function WebElement(webdriver) {
     return getSelector(obj)
   }
 
-  function relativeSearch(item, rel, relativeElement) {
+  async function getRect(element) {
+    const rect = await driver.executeScript(
+      'return arguments[0].getBoundingClientRect();',
+      element,
+    )
+    return {
+      element,
+      rect,
+    }
+  }
+
+  async function findChildElements(parent, childData) {
+    const c = []
+    await driver.switchTo().defaultContent()
+    if (parent.element.frame >= 0) {
+      await driver.switchTo().frame(parent.element.frame)
+    }
+
+    const selector = toSelector(childData)
+    selector.value = `.${selector.value}`
+    const elements = await parent.element.findElements(selector)
+    if (elements.length > 0) {
+      for (let j = 0; j < elements.length; j++) {
+        elements[j].frame = parent.element.frame
+      }
+      const matches = await Promise.all(
+        elements.map((element) => getRect(element)),
+      )
+      c.push(...matches.filter((e) => e.rect.height > 0 && e.rect.width > 0))
+    }
+
+    return c
+  }
+
+  async function findElements(elementData) {
+    const c = []
+    await driver.switchTo().defaultContent()
+    const frames = await driver.findElements(
+      By.xpath('//iframe[not(contains(@style,"display: none;"))]'),
+    )
+
+    /* eslint-disable no-await-in-loop */
+    for (let i = -1; i < frames.length; i++) {
+      if (i > -1) {
+        await driver.switchTo().frame(i)
+      }
+      const elements = await driver.findElements(toSelector(elementData))
+      if (elements.length > 0) {
+        for (let j = 0; j < elements.length; j++) {
+          elements[j].frame = i
+        }
+        const matches = await Promise.all(
+          elements.map((element) => getRect(element)),
+        )
+        c.push(...matches.filter((e) => e.rect.height > 0 && e.rect.width > 0))
+      }
+    }
+    /* eslint-enable no-await-in-loop */
+
+    return c
+  }
+
+  async function relativeSearch(item, rel, relativeElement) {
     if ([undefined, null, ''].includes(rel)) {
       return item.matches
     }
@@ -201,6 +263,10 @@ function WebElement(webdriver) {
           }
           break
         case 'within':
+          if (item.type === 'element') {
+            // eslint-disable-next-line no-param-reassign
+            item.matches = await findChildElements(relativeElement, item)
+          }
           elements = item.matches.filter((element) => {
             return (
               relativeElement.rect.left <= element.rect.left &&
@@ -307,45 +373,6 @@ function WebElement(webdriver) {
     return locator
   }
 
-  async function getRect(element) {
-    const rect = await driver.executeScript(
-      'return arguments[0].getBoundingClientRect();',
-      element,
-    )
-    return {
-      element,
-      rect,
-    }
-  }
-
-  async function findElements(elementData) {
-    const c = []
-    await driver.switchTo().defaultContent()
-    const frames = await driver.findElements(
-      By.xpath('//iframe[not(contains(@style,"display: none;"))]'),
-    )
-
-    /* eslint-disable no-await-in-loop */
-    for (let i = -1; i < frames.length; i++) {
-      if (i > -1) {
-        await driver.switchTo().frame(i)
-      }
-      const elements = await driver.findElements(toSelector(elementData))
-      if (elements.length > 0) {
-        for (let j = 0; j < elements.length; j++) {
-          elements[j].frame = i
-        }
-        const matches = await Promise.all(
-          elements.map((element) => getRect(element)),
-        )
-        c.push(...matches.filter((e) => e.rect.height > 0 && e.rect.width > 0))
-      }
-    }
-    /* eslint-enable no-await-in-loop */
-
-    return c
-  }
-
   async function resolveElements(stack) {
     const items = []
 
@@ -377,6 +404,7 @@ function WebElement(webdriver) {
     const data = await resolveElements(stack)
 
     let element = null
+    /* eslint-disable no-await-in-loop */
     for (let i = data.length - 1; i > -1; i--) {
       const item = data[i]
       if (
@@ -390,8 +418,12 @@ function WebElement(webdriver) {
           'column',
         ].includes(item.type)
       ) {
-        // eslint-disable-next-line no-await-in-loop
-        ;[element] = relativeSearch(item)
+        const results = await relativeSearch(item)
+        if (item.index !== false) {
+          element = results[item.index - 1]
+        } else {
+          ;[element] = results
+        }
         if ([undefined, null, ''].includes(element)) {
           throw new ReferenceError(
             `'${item.id}' has no matching elements on page.`,
@@ -400,8 +432,12 @@ function WebElement(webdriver) {
       }
       if (item.type === 'location') {
         i -= 1
-        // eslint-disable-next-line no-await-in-loop
-        ;[element] = relativeSearch(data[i], item, element)
+        const results = await relativeSearch(data[i], item, element)
+        if (data[i].index !== false) {
+          element = results[data[i].index - 1]
+        } else {
+          ;[element] = results
+        }
         if ([undefined, null, ''].includes(element)) {
           throw new ReferenceError(
             `'${data[i].id}' ${item.located} '${
@@ -410,8 +446,8 @@ function WebElement(webdriver) {
           )
         }
       }
-      // await driver.executeScript("arguments[0].setAttribute('style', 'background: blue; border: 2px solid red;');", element.element);
     }
+    /* eslint-enable no-await-in-loop */
 
     await driver.switchTo().defaultContent()
     if (element.element.frame >= 0) {
@@ -436,10 +472,6 @@ function WebElement(webdriver) {
           ).near(element.element),
         )
       }
-      // await driver.executeScript(
-      //   "arguments[0].setAttribute('style', 'background: blue; border: 2px solid red;');",
-      //   element.element,
-      // )
     } else if (stack[0].type === 'checkbox') {
       const type = await element.element.getAttribute('type')
       if (type !== 'checkbox') {
@@ -462,6 +494,7 @@ function WebElement(webdriver) {
     const data = await resolveElements(stack)
 
     let element = null
+    /* eslint-disable no-await-in-loop */
     for (let i = data.length - 1; i > -1; i--) {
       const item = data[i]
       if (
@@ -475,10 +508,9 @@ function WebElement(webdriver) {
           'column',
         ].includes(item.type)
       ) {
-        // eslint-disable-next-line no-await-in-loop
-        element = relativeSearch(item)
+        element = await relativeSearch(item)
         if (i !== 0) {
-          ;[element] = relativeSearch(item)
+          ;[element] = await relativeSearch(item)
         }
         if ([undefined, null, ''].includes(element)) {
           throw new ReferenceError(
@@ -488,8 +520,7 @@ function WebElement(webdriver) {
       }
       if (item.type === 'location') {
         i -= 1
-        // eslint-disable-next-line no-await-in-loop
-        element = relativeSearch(data[i], item, element)
+        element = await relativeSearch(data[i], item, element)
         if (i !== 0) {
           ;[element] = element
         }
@@ -503,6 +534,7 @@ function WebElement(webdriver) {
       }
       // await driver.executeScript("arguments[0].setAttribute('style', 'background: blue; border: 2px solid red;');", element.element);
     }
+    /* eslint-enable no-await-in-loop */
     return element
   }
 
