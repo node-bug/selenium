@@ -264,8 +264,11 @@ function WebElement(webdriver) {
           break
         case 'within':
           if (item.type === 'element') {
-            // eslint-disable-next-line no-param-reassign
-            item.matches = await findChildElements(relativeElement, item)
+            const matches = await findChildElements(relativeElement, item)
+            if (matches.length > 0) {
+              // eslint-disable-next-line no-param-reassign
+              item.matches = matches
+            }
           }
           elements = item.matches.filter((element) => {
             return (
