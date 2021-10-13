@@ -873,14 +873,21 @@ function Driver(driver, options) {
   async function hide() {
     message({ action: 'hide' })
     try {
-      const locators = await webElement.findAll(stack)
-      const promises = locators.map(async (locator) => {
+      const elements = await webElement.findAll(stack)
+      log.debug(`${elements.length} matching elements found.`)
+      /* eslint-disable no-await-in-loop */
+      for (let i = 0; i < elements.length; i++) {
+        const e = elements[i]
+        await driver.switchTo().defaultContent()
+        if (e.element.frame >= 0) {
+          await driver.switchTo().frame(e.element.frame)
+        }
         await driver.executeScript(
           'return arguments[0].style.opacity=0',
-          locator.element,
+          e.element,
         )
-      })
-      await Promise.all(promises)
+      }
+      /* eslint-enable no-await-in-loop */
     } catch (err) {
       log.error(`${currentMessage}\nError during hide.\nError ${err.stack}`)
       stack = []

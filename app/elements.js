@@ -49,10 +49,6 @@ function WebElement(webdriver) {
     }
 
     selector = `//*[${selector}]`
-    // if (obj.index) {
-    //   selector = `(${selector})[${obj.index}]`
-    // }
-
     return By.xpath(selector)
   }
 
@@ -81,11 +77,6 @@ function WebElement(webdriver) {
     } else {
       selector = `//tbody/tr[(.${selector})]` // additional for row
     }
-
-    // if (obj.index) {
-    //   selector = `(${selector})[${obj.index}]`
-    // }
-
     return By.xpath(selector)
   }
 
