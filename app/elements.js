@@ -164,7 +164,13 @@ function WebElement(webdriver) {
     /* eslint-disable no-await-in-loop */
     for (let i = -1; i < frames.length; i++) {
       if (i > -1) {
-        await driver.switchTo().frame(i)
+        try {
+          await driver.switchTo().frame(i)
+        } catch (ex) {
+          if (ex.name !== 'NoSuchFrameError') {
+            throw ex
+          }
+        }
       }
       const elements = await driver.findElements(toSelector(elementData))
       if (elements.length > 0) {

@@ -301,36 +301,42 @@ function Driver(driver, options) {
     return true
   }
 
-  async function drag() {
-    message({ action: 'drag' })
-    try {
-      const locator = await find()
-      await browser
-        .actions()
-        .move({ origin: locator.element })
-        .pause(500)
-        .perform()
-      await browser.actions().press().perform()
-    } catch (err) {
-      log.error(`${currentMessage}\nError during drag.\nError ${err.stack}`)
-      stack = []
-      err.message = `Error while ${currentMessage}\n${err.message}`
-      throw err
-    }
-    stack = []
-    return true
+  function drag() {
+    stack.push({ type: 'action', perform: 'drag' })
+    return this
+  }
+
+  function onto() {
+    stack.push({ type: 'action', perform: 'onto' })
+    return this
   }
 
   async function drop() {
-    message({ action: 'drop' })
+    let indx
+    indx = stack.findIndex((c) => c.type === 'action' && c.perform === 'drag')
+    stack = stack.splice(indx + 1)
+    indx = stack.findIndex((c) => c.type === 'action' && c.perform === 'onto')
+    const dropStack = stack.splice(indx + 1)
+    stack = stack.slice(0, indx)
+
     try {
-      const locator = await find()
-      await browser
-        .actions()
-        .move({ origin: locator.element })
+      message({ action: 'drag' })
+      const draglocator = await find()
+      stack = dropStack
+      message({ action: 'drop' })
+      const droplocator = await find()
+
+      const actions = await driver.actions({ async: true })
+      await actions
+        .move({ origin: draglocator.element, x: 2, y: 2 })
+        .pause(1000)
+        .press()
+        .move({ origin: draglocator.element, x: 20, y: 20 })
+        .pause(1000)
+        .move({ origin: droplocator.element })
         .pause(500)
+        .release()
         .perform()
-      await browser.actions().release().perform()
     } catch (err) {
       log.error(`${currentMessage}\nError during drop.\nError ${err.stack}`)
       stack = []
@@ -532,8 +538,8 @@ function Driver(driver, options) {
   }
 
   function element(data) {
-    const pop = stack.pop()
-    if (JSON.stringify(pop) === JSON.stringify({ exact: true })) {
+    const description = stack.pop()
+    if (JSON.stringify(description) === JSON.stringify({ exact: true })) {
       stack.push({
         type: 'element',
         id: data.toString(),
@@ -542,8 +548,8 @@ function Driver(driver, options) {
         index: false,
       })
     } else {
-      if (typeof pop !== 'undefined') {
-        stack.push(pop)
+      if (typeof description !== 'undefined') {
+        stack.push(description)
       }
       stack.push({
         type: 'element',
@@ -558,33 +564,33 @@ function Driver(driver, options) {
 
   function radio(data) {
     element(data)
-    const pop = stack.pop()
-    pop.type = 'radio'
-    stack.push(pop)
+    const description = stack.pop()
+    description.type = 'radio'
+    stack.push(description)
     return this
   }
 
   function textbox(data) {
     element(data)
-    const pop = stack.pop()
-    pop.type = 'textbox'
-    stack.push(pop)
+    const description = stack.pop()
+    description.type = 'textbox'
+    stack.push(description)
     return this
   }
 
   function checkbox(data) {
     element(data)
-    const pop = stack.pop()
-    pop.type = 'checkbox'
-    stack.push(pop)
+    const description = stack.pop()
+    description.type = 'checkbox'
+    stack.push(description)
     return this
   }
 
   function button(data) {
     element(data)
-    const pop = stack.pop()
-    pop.type = 'button'
-    stack.push(pop)
+    const description = stack.pop()
+    description.type = 'button'
+    stack.push(description)
     return this
   }
 
@@ -611,8 +617,8 @@ function Driver(driver, options) {
         `Expected parameter for row is string. Received ${typeof data} instead`,
       )
     }
-    const pop = stack.pop()
-    if (JSON.stringify(pop) === JSON.stringify({ exact: true })) {
+    const description = stack.pop()
+    if (JSON.stringify(description) === JSON.stringify({ exact: true })) {
       stack.push({
         type: 'row',
         id: data,
@@ -621,8 +627,8 @@ function Driver(driver, options) {
         index: false,
       })
     } else {
-      if (typeof pop !== 'undefined') {
-        stack.push(pop)
+      if (typeof description !== 'undefined') {
+        stack.push(description)
       }
       stack.push({
         type: 'row',
@@ -641,8 +647,8 @@ function Driver(driver, options) {
         `Expected parameter for column is string. Received ${typeof data} instead`,
       )
     }
-    const pop = stack.pop()
-    if (JSON.stringify(pop) === JSON.stringify({ exact: true })) {
+    const description = stack.pop()
+    if (JSON.stringify(description) === JSON.stringify({ exact: true })) {
       stack.push({
         type: 'column',
         id: data,
@@ -651,8 +657,8 @@ function Driver(driver, options) {
         index: false,
       })
     } else {
-      if (typeof pop !== 'undefined') {
-        stack.push(pop)
+      if (typeof description !== 'undefined') {
+        stack.push(description)
       }
       stack.push({
         type: 'column',
@@ -677,13 +683,13 @@ function Driver(driver, options) {
         stack[i].table = data
     }
 
-    const pop = stack.pop()
+    const description = stack.pop()
     if (
-      JSON.stringify(pop) !==
+      JSON.stringify(description) !==
       JSON.stringify({ type: 'location', located: 'within' })
     ) {
-      if (typeof pop !== 'undefined') {
-        stack.push(pop)
+      if (typeof description !== 'undefined') {
+        stack.push(description)
       }
     }
     return this
@@ -700,12 +706,12 @@ function Driver(driver, options) {
   }
 
   function above() {
-    const pop = stack.pop()
-    if (JSON.stringify(pop) === JSON.stringify({ exactly: true })) {
+    const description = stack.pop()
+    if (JSON.stringify(description) === JSON.stringify({ exactly: true })) {
       stack.push({ type: 'location', located: 'above', exactly: true })
     } else {
-      if (typeof pop !== 'undefined') {
-        stack.push(pop)
+      if (typeof description !== 'undefined') {
+        stack.push(description)
       }
       stack.push({ type: 'location', located: 'above', exactly: false })
     }
@@ -713,12 +719,12 @@ function Driver(driver, options) {
   }
 
   function below() {
-    const pop = stack.pop()
-    if (JSON.stringify(pop) === JSON.stringify({ exactly: true })) {
+    const description = stack.pop()
+    if (JSON.stringify(description) === JSON.stringify({ exactly: true })) {
       stack.push({ type: 'location', located: 'below', exactly: true })
     } else {
-      if (typeof pop !== 'undefined') {
-        stack.push(pop)
+      if (typeof description !== 'undefined') {
+        stack.push(description)
       }
       stack.push({ type: 'location', located: 'below', exactly: false })
     }
@@ -726,12 +732,12 @@ function Driver(driver, options) {
   }
 
   function toLeftOf() {
-    const pop = stack.pop()
-    if (JSON.stringify(pop) === JSON.stringify({ exactly: true })) {
+    const description = stack.pop()
+    if (JSON.stringify(description) === JSON.stringify({ exactly: true })) {
       stack.push({ type: 'location', located: 'toLeftOf', exactly: true })
     } else {
-      if (typeof pop !== 'undefined') {
-        stack.push(pop)
+      if (typeof description !== 'undefined') {
+        stack.push(description)
       }
       stack.push({ type: 'location', located: 'toLeftOf', exactly: false })
     }
@@ -739,12 +745,12 @@ function Driver(driver, options) {
   }
 
   function toRightOf() {
-    const pop = stack.pop()
-    if (JSON.stringify(pop) === JSON.stringify({ exactly: true })) {
+    const description = stack.pop()
+    if (JSON.stringify(description) === JSON.stringify({ exactly: true })) {
       stack.push({ type: 'location', located: 'toRightOf', exactly: true })
     } else {
-      if (typeof pop !== 'undefined') {
-        stack.push(pop)
+      if (typeof description !== 'undefined') {
+        stack.push(description)
       }
       stack.push({ type: 'location', located: 'toRightOf', exactly: false })
     }
@@ -762,10 +768,10 @@ function Driver(driver, options) {
         `Expected parameter for atIndex is number. Received ${typeof index} instead`,
       )
     }
-    const pop = stack.pop()
-    if (typeof pop !== 'undefined') {
-      pop.index = index
-      stack.push(pop)
+    const description = stack.pop()
+    if (typeof description !== 'undefined') {
+      description.index = index
+      stack.push(description)
     }
     return this
   }
@@ -930,6 +936,7 @@ function Driver(driver, options) {
     doubleClick,
     focus,
     drag,
+    onto,
     drop,
     write,
     clear,
