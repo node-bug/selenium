@@ -84,6 +84,8 @@ function Driver(driver, options) {
           msg += `exactly `
         }
         msg += `'${obj.located}' `
+      } else if (obj.type === 'condition') {
+        msg += `'${obj.operator}' `
       }
     }
     if (a.action === 'isVisible') {
@@ -112,14 +114,44 @@ function Driver(driver, options) {
     return parseInt(options.timeout, 10) * 1000
   }
 
+  function or() {
+    stack.push({ type: 'condition', operator: 'or' })
+    return this
+  }
+
+  function getDescriptions() {
+    const arrayOfArrays = []
+    let arr = stack
+    let index = arr.findIndex(
+      (c) => c.type === 'condition' && c.operator === 'or',
+    )
+    while (index !== -1) {
+      arrayOfArrays.push(arr.slice(0, index))
+      arr = arr.splice(index + 1)
+      index = arr.findIndex(
+        (c) => c.type === 'condition' && c.operator === 'or',
+      )
+    }
+    arrayOfArrays.push(arr)
+
+    return arrayOfArrays
+  }
+
   async function find(t = null, action = null) {
     let locator = null
+    const stacks = getDescriptions()
     await driver.wait(
       async function x() {
-        try {
-          locator = await webElement.find(stack, action)
-        } catch (err) {
-          return false
+        for (let i = 0; i < stacks.length; i++) {
+          const currentStack = stacks[i]
+          try {
+            // eslint-disable-next-line no-await-in-loop
+            locator = await webElement.find(currentStack, action)
+            break
+          } catch (err) {
+            // eslint-disable-next-line no-continue
+            continue
+          }
         }
         if (locator) return true
         return false
@@ -812,17 +844,18 @@ function Driver(driver, options) {
   }
 
   async function invisibility(t = null) {
+    const stacks = getDescriptions()
     await driver.wait(async function x() {
-      let locator = null
-      try {
-        locator = await webElement.find(stack)
-      } catch (err) {
-        return true
+      for (let i = 0; i < stacks.length; i++) {
+        const currentStack = stacks[i]
+        try {
+          // eslint-disable-next-line no-await-in-loop
+          await webElement.find(currentStack)
+        } catch (err) {
+          return true
+        }
       }
-      if (locator) {
-        return false
-      }
-      return true
+      return false
     }, t || timeout())
     stack = []
     return false
@@ -954,6 +987,7 @@ function Driver(driver, options) {
     row,
     column,
     table,
+    or,
     exactly,
     above,
     below,
