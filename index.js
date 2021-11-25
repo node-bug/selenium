@@ -449,6 +449,7 @@ function Driver(driver, options) {
       const locator = await find(null, 'write')
       if (['input', 'textarea'].includes(locator.tagName)) {
         await locator.element.clear()
+        await clicker(locator.element)
         const eleValue = await locator.element.getAttribute('value')
         if (eleValue !== '') {
           await clicker(locator.element)
