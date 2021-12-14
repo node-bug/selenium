@@ -1,5 +1,5 @@
 const { log } = require('@nodebug/logger')
-const { By, Key, withTagName } = require('selenium-webdriver')
+const { By, Key } = require('selenium-webdriver')
 const Browser = require('./app/browser')
 const WebElement = require('./app/elements')
 const Alert = require('./app/alerts')
@@ -14,7 +14,9 @@ function Driver(driver, options) {
 
   function message(a) {
     let msg = ''
-    if (a.action === 'click') {
+    if (a.action === 'find') {
+      msg = 'Finding '
+    } else if (a.action === 'click') {
       msg = 'Clicking on '
     } else if (a.action === 'doubleclick') {
       msg = 'Double clicking on '
@@ -137,7 +139,7 @@ function Driver(driver, options) {
     return arrayOfArrays
   }
 
-  async function find(t = null, action = null) {
+  async function finder(t = null, action = null) {
     let locator = null
     const stacks = getDescriptions()
     await driver.wait(
@@ -159,6 +161,20 @@ function Driver(driver, options) {
       t || timeout(),
       `Element was not visible on page after ${t || timeout()} ms timeout`,
     )
+    return locator
+  }
+
+  async function find() {
+    let locator
+    message({ action: 'find' })
+    try {
+      locator = await finder()
+    } catch (err) {
+      log.error(`${currentMessage}\nError while finding element.\n${err.stack}`)
+      stack = []
+      err.message = `Error while ${currentMessage}\n${err.message}`
+      throw err
+    }
     stack = []
     return locator
   }
@@ -167,8 +183,8 @@ function Driver(driver, options) {
     let value
     message({ action: 'getText' })
     try {
-      const locator = await find()
-      value = await locator.element.getAttribute('textContent')
+      const locator = await finder()
+      value = await locator.getAttribute('textContent')
     } catch (err) {
       log.error(
         `${currentMessage}\nError during getting text.\nError ${err.stack}`,
@@ -185,8 +201,8 @@ function Driver(driver, options) {
     let value
     message({ action: 'getAttribute', data: name })
     try {
-      const locator = await find()
-      value = await locator.element.getAttribute(name)
+      const locator = await finder()
+      value = await locator.getAttribute(name)
     } catch (err) {
       log.error(
         `${currentMessage}\nError during getting text.\nError ${err.stack}`,
@@ -202,8 +218,8 @@ function Driver(driver, options) {
   async function hover() {
     message({ action: 'hover' })
     try {
-      const locator = await find()
-      await browser.actions().move({ origin: locator.element }).perform()
+      const locator = await finder()
+      await browser.actions().move({ origin: locator }).perform()
     } catch (err) {
       log.error(`${currentMessage}\nError during hover.\nError ${err.stack}`)
       stack = []
@@ -217,10 +233,10 @@ function Driver(driver, options) {
   async function scroll() {
     message({ action: 'scroll' })
     try {
-      const locator = await find()
+      const locator = await finder()
       await driver.executeScript(
         'return arguments[0].scrollIntoView(true);',
-        locator.element,
+        locator,
       )
     } catch (err) {
       log.error(
@@ -237,11 +253,8 @@ function Driver(driver, options) {
   async function focus() {
     message({ action: 'focus' })
     try {
-      const locator = await find()
-      await driver.executeScript(
-        'return arguments[0].focus();',
-        locator.element,
-      )
+      const locator = await finder()
+      await driver.executeScript('return arguments[0].focus();', locator)
     } catch (err) {
       log.error(`${currentMessage}\nError during focus.\nError ${err.stack}`)
       stack = []
@@ -304,8 +317,8 @@ function Driver(driver, options) {
   async function click(x = null, y = null) {
     message({ action: 'click', x, y })
     try {
-      const locator = await find()
-      await clicker(locator.element, x, y)
+      const locator = await finder()
+      await clicker(locator, x, y)
     } catch (err) {
       log.error(`${currentMessage}\nError during click.\nError ${err.stack}`)
       stack = []
@@ -319,8 +332,8 @@ function Driver(driver, options) {
   async function doubleClick() {
     message({ action: 'doubleclick' })
     try {
-      const locator = await find()
-      await browser.actions().doubleClick(locator.element).perform()
+      const locator = await finder()
+      await browser.actions().doubleClick(locator).perform()
     } catch (err) {
       log.error(
         `${currentMessage}\nError during double click.\nError ${err.stack}`,
@@ -353,19 +366,19 @@ function Driver(driver, options) {
 
     try {
       message({ action: 'drag' })
-      const draglocator = await find()
+      const draglocator = await finder()
       stack = dropStack
       message({ action: 'drop' })
-      const droplocator = await find()
+      const droplocator = await finder()
 
       const actions = await driver.actions({ async: true })
       await actions
-        .move({ origin: draglocator.element, x: 2, y: 2 })
+        .move({ origin: draglocator, x: 2, y: 2 })
         .pause(1000)
         .press()
-        .move({ origin: draglocator.element, x: 20, y: 20 })
+        .move({ origin: draglocator, x: 20, y: 20 })
         .pause(1000)
-        .move({ origin: droplocator.element })
+        .move({ origin: droplocator })
         .pause(500)
         .release()
         .perform()
@@ -382,12 +395,12 @@ function Driver(driver, options) {
   async function write(value) {
     message({ action: 'write', data: value })
     try {
-      const locator = await find(null, 'write')
+      const locator = await finder(null, 'write')
       if (['input', 'textarea'].includes(locator.tagName)) {
-        await locator.element.sendKeys(value)
+        await locator.sendKeys(value)
       } else {
-        const eleValue = await locator.element.getAttribute('textContent')
-        await clicker(locator.element)
+        const eleValue = await locator.getAttribute('textContent')
+        await clicker(locator)
         for (let i = 0; i < eleValue.length; i++) {
           // eslint-disable-next-line no-await-in-loop
           await browser.actions().sendKeys(Key.RIGHT).perform()
@@ -409,12 +422,12 @@ function Driver(driver, options) {
   async function clear() {
     message({ action: 'clear' })
     try {
-      const locator = await find(null, 'write')
+      const locator = await finder(null, 'write')
       if (['input', 'textarea'].includes(locator.tagName)) {
-        await locator.element.clear()
+        await locator.clear()
       } else {
-        const eleValue = await locator.element.getAttribute('textContent')
-        await clicker(locator.element)
+        const eleValue = await locator.getAttribute('textContent')
+        await clicker(locator)
         for (let i = 0; i < eleValue.length; i++) {
           // eslint-disable-next-line no-await-in-loop
           await browser.actions().sendKeys(Key.RIGHT).perform()
@@ -446,13 +459,22 @@ function Driver(driver, options) {
   async function overwrite(value) {
     message({ action: 'overwrite', data: value })
     try {
-      const locator = await find(null, 'write')
+      let locator = await finder(null, 'write')
       if (['input', 'textarea'].includes(locator.tagName)) {
-        await locator.element.clear()
-        await clicker(locator.element)
-        const eleValue = await locator.element.getAttribute('value')
+        if ((await locator.getAttribute('type')) !== 'number') {
+          await locator.clear()
+        }
+        try {
+          await clicker(locator)
+        } catch (err) {
+          if (err.name === 'StaleElementReferenceError') {
+            locator = await finder(null, 'write')
+            await clicker(locator)
+          }
+        }
+        const eleValue = await locator.getAttribute('value')
         if (eleValue !== '') {
-          await clicker(locator.element)
+          await clicker(locator)
           for (let i = 0; i < eleValue.length; i++) {
             // eslint-disable-next-line no-await-in-loop
             await browser.actions().sendKeys(Key.RIGHT).perform()
@@ -464,11 +486,20 @@ function Driver(driver, options) {
           }
           await browser.actions().keyUp(Key.SHIFT).sendKeys(value).perform()
         } else {
-          await locator.element.sendKeys(value)
+          try {
+            await locator.sendKeys(value)
+          } catch (err) {
+            if (err.name === 'StaleElementReferenceError') {
+              locator = await finder(null, 'write')
+              await locator.sendKeys(value)
+            } else {
+              throw err
+            }
+          }
         }
       } else {
-        const eleValue = await locator.element.getAttribute('textContent')
-        await clicker(locator.element)
+        const eleValue = await locator.getAttribute('textContent')
+        await clicker(locator)
         for (let i = 0; i < eleValue.length; i++) {
           // eslint-disable-next-line no-await-in-loop
           await browser.actions().sendKeys(Key.RIGHT).perform()
@@ -495,17 +526,27 @@ function Driver(driver, options) {
   async function select(value) {
     message({ action: 'select', data: value })
     try {
-      const locator = await find(null, 'select')
+      const locator = await finder(null, 'select')
       if (locator.tagName === 'select') {
-        await locator.element
-          .findElement(By.xpath(`.//option[.="${value}"]`))
-          .click()
+        const selected = await locator.findElements(
+          By.xpath(`.//option[.="${value}"][@selected]`),
+        )
+        if (selected.length > 0) {
+          log.debug(
+            `'${value}' is already selected in the dropdown. Skipping select.`,
+          )
+        } else if (await locator.isEnabled()) {
+          await locator.click()
+          await locator.findElement(By.xpath(`.//option[.="${value}"]`)).click()
+        } else {
+          throw new ReferenceError(`Select element is disabled.`)
+        }
       } else {
         throw new ReferenceError(`Element is not of type select`)
       }
     } catch (err) {
       log.error(
-        `${currentMessage}\nError while selecting value in dropdown.\nError ${err.stack}`,
+        `${currentMessage}\nError while selecting value in dropdown.\n${err.stack}`,
       )
       stack = []
       err.message = `Error while ${currentMessage}\n${err.message}`
@@ -517,30 +558,21 @@ function Driver(driver, options) {
 
   async function checkboxaction(action) {
     try {
-      const locator = await find()
-      const type = await locator.element.getAttribute('type')
-      if (type !== 'checkbox') {
-        locator.element = await driver.findElement(
-          withTagName('[type=checkbox]').near(locator.element),
-        )
-      }
-      const isChecked = await locator.element.isSelected()
+      const locator = await finder(null, 'check')
+      const isChecked = await locator.isSelected()
       if (
         (action === 'check' && !isChecked) ||
         (action === 'uncheck' && isChecked)
       ) {
-        await clicker(locator.element)
+        await clicker(locator)
       }
 
-      if (isChecked === (await locator.element.isSelected())) {
+      if (isChecked === (await locator.isSelected())) {
         if (
           (action === 'check' && !isChecked) ||
           (action === 'uncheck' && isChecked)
         ) {
-          await driver.executeScript(
-            'return arguments[0].click();',
-            locator.element,
-          )
+          await driver.executeScript('return arguments[0].click();', locator)
         }
       }
     } catch (err) {
@@ -632,8 +664,8 @@ function Driver(driver, options) {
 
     let result
     try {
-      const e = await find()
-      result = await e.element.isEnabled()
+      const e = await finder()
+      result = await e.isEnabled()
     } catch (err) {
       stack = []
       log.info(`Error while ${currentMessage}\n${err.message}`)
@@ -813,7 +845,7 @@ function Driver(driver, options) {
     message({ action: 'isVisible' })
     let e
     try {
-      e = await find(t)
+      e = await finder(t)
     } catch (err) {
       log.info(err.message)
     }
@@ -830,7 +862,7 @@ function Driver(driver, options) {
   async function waitForVisibility(t = null) {
     message({ action: 'waitVisibility' })
     try {
-      await find(t)
+      await finder(t)
     } catch (err) {
       log.error(
         `${currentMessage}\nElement is not visible on page\n${err.message}`,
@@ -882,13 +914,13 @@ function Driver(driver, options) {
     if (stack.length > 0) {
       let locator
       try {
-        locator = await find()
+        locator = await finder()
       } catch (err) {
         log.error(err.stack)
       }
       if (![undefined, null, ''].includes(locator)) {
         message({ action: 'screenshot' })
-        dataUrl = await locator.element.takeScreenshot(true)
+        dataUrl = await locator.takeScreenshot(true)
       }
     }
 
@@ -919,13 +951,10 @@ function Driver(driver, options) {
       for (let i = 0; i < elements.length; i++) {
         const e = elements[i]
         await driver.switchTo().defaultContent()
-        if (e.element.frame >= 0) {
-          await driver.switchTo().frame(e.element.frame)
+        if (e.frame >= 0) {
+          await driver.switchTo().frame(e.frame)
         }
-        await driver.executeScript(
-          'return arguments[0].style.opacity=0',
-          e.element,
-        )
+        await driver.executeScript('return arguments[0].style.opacity=0', e)
       }
       /* eslint-enable no-await-in-loop */
     } catch (err) {
@@ -945,7 +974,7 @@ function Driver(driver, options) {
       const promises = locators.map(async (locator) => {
         await driver.executeScript(
           'return arguments[0].style.opacity=1',
-          locator.element,
+          locator,
         )
       })
       await Promise.all(promises)

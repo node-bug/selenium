@@ -1,4 +1,4 @@
-const { By, withTagName } = require('selenium-webdriver')
+const { By } = require('selenium-webdriver')
 
 const attributes = [
   'placeholder',
@@ -120,33 +120,34 @@ function WebElement(webdriver) {
     return getSelector(obj)
   }
 
-  async function getRect(element) {
-    const rect = await driver.executeScript(
+  async function addQualifiers(locator) {
+    const element = locator
+    element.rect = await driver.executeScript(
       'return arguments[0].getBoundingClientRect();',
       element,
     )
-    return {
-      element,
-      rect,
-    }
+    element.rect.midx = element.rect.x + element.rect.width / 2
+    element.rect.midy = element.rect.y + element.rect.height / 2
+    element.tagName = await element.getTagName()
+    return element
   }
 
   async function findChildElements(parent, childData) {
     const c = []
     await driver.switchTo().defaultContent()
-    if (parent.element.frame >= 0) {
-      await driver.switchTo().frame(parent.element.frame)
+    if (parent.frame >= 0) {
+      await driver.switchTo().frame(parent.frame)
     }
 
     const selector = toSelector(childData)
     selector.value = `.${selector.value}`
-    const elements = await parent.element.findElements(selector)
+    const elements = await parent.findElements(selector)
     if (elements.length > 0) {
       for (let j = 0; j < elements.length; j++) {
-        elements[j].frame = parent.element.frame
+        elements[j].frame = parent.frame
       }
       const matches = await Promise.all(
-        elements.map((element) => getRect(element)),
+        elements.map((element) => addQualifiers(element)),
       )
       c.push(...matches.filter((e) => e.rect.height > 0 && e.rect.width > 0))
     }
@@ -178,7 +179,7 @@ function WebElement(webdriver) {
           elements[j].frame = i
         }
         const matches = await Promise.all(
-          elements.map((element) => getRect(element)),
+          elements.map((element) => addQualifiers(element)),
         )
         c.push(...matches.filter((e) => e.rect.height > 0 && e.rect.width > 0))
       }
@@ -269,10 +270,10 @@ function WebElement(webdriver) {
           }
           elements = item.matches.filter((element) => {
             return (
-              relativeElement.rect.left <= element.rect.left &&
-              relativeElement.rect.right >= element.rect.right &&
-              relativeElement.rect.top <= element.rect.top &&
-              relativeElement.rect.bottom >= element.rect.bottom
+              relativeElement.rect.left <= element.rect.left + 5 &&
+              relativeElement.rect.right + 5 >= element.rect.right &&
+              relativeElement.rect.top <= element.rect.top + 5 &&
+              relativeElement.rect.bottom + 5 >= element.rect.bottom
             )
           })
           break
@@ -288,89 +289,47 @@ function WebElement(webdriver) {
     return elements
   }
 
-  async function getElementData(element, action) {
-    const elementData = {}
-    if (![undefined, null, ''].includes(action)) {
-      const ce = await element.getAttribute('contenteditable')
-      const cep = await element
-        .findElement(By.xpath('./..'))
-        .getAttribute('contenteditable')
-      const ace = (await element.getAttribute('class')).includes('ace_text')
-      const acep = (
-        await element.findElement(By.xpath('./..')).getAttribute('class')
-      ).includes('ace_text')
-      elementData.editable = ce || cep || ace || acep || null
-    }
-    elementData.element = element
-    elementData.tagName = await element.getTagName()
-    return elementData
-  }
-
-  async function findActionElement(lctr, action) {
-    let matches = []
-    let locator = await getElementData(lctr.element, action)
-    if (
-      action === 'write' &&
-      !['input', 'textarea'].includes(locator.tagName) &&
-      !locator.editable
-    ) {
-      let write = `::*[`
-      write += `self::input[not(@type='radio' or @type='checkbox' or @type='submit' or @type='file')] or `
-      write += `self::textarea or `
-      write += `self::*[@contenteditable='true'] or `
-      write += `self::*[contains(@class,'ace_text')]`
-      write += `]`
-      matches = await locator.element.findElements(
-        By.xpath(`./descendant${write}`),
-      )
-      const promises = matches.map(async (e) => {
-        return getElementData(e, action)
-      })
-      matches = await Promise.all(promises)
-      matches = matches.filter(
-        (e) =>
-          ['input', 'textarea'].includes(e.tagName) ||
-          [true, 'true'].includes(e.editable),
-      )
-      if (matches.length < 1) {
-        matches = await locator.element.findElements(
-          By.xpath(`./following${write}`),
-        )
-        const promisess = matches.map(async (e) => {
-          return getElementData(e, action)
-        })
-        matches = await Promise.all(promisess)
-        matches = matches.filter(
-          (e) =>
-            ['input', 'textarea'].includes(e.tagName) ||
-            [true, 'true'].includes(e.editable),
-        )
-      }
-    } else if (action === 'select' && locator.tagName !== 'select') {
-      matches = await locator.element.findElements(
-        By.xpath('./descendant::select'),
-      )
-      const promises = matches.map(async (e) => {
-        return getElementData(e, action)
-      })
-      matches = await Promise.all(promises)
-      matches = matches.filter((e) => e.tagName === 'select')
-      if (matches.length < 1) {
-        matches = await locator.element.findElements(
-          By.xpath('./following::select'),
-        )
-        const promisess = matches.map(async (e) => {
-          return getElementData(e, action)
-        })
-        matches = await Promise.all(promisess)
-        matches = matches.filter((e) => e.tagName === 'select')
+  async function nearestWriteElement(locator) {
+    if (locator.tagName === 'input') {
+      const inputType = await locator.getAttribute('type')
+      if (!['radio', 'checkbox', 'submit', 'file'].includes(inputType)) {
+        return locator
       }
     }
-
-    if (matches.length > 0) {
-      ;[locator] = matches
+    if (locator.tagName === 'textarea') {
+      return locator
     }
-    return locator
+    const inputs = await driver.findElements(
+      By.xpath(
+        `//input[not(@type='radio') and not(@type='checkbox') and not(@type='submit') and not(@type='file')]`,
+      ),
+    )
+    const textareas = await driver.findElements(By.xpath(`//textarea`))
+    const contentEditables = await driver.findElements(
+      By.xpath(`//*[@contenteditable]`),
+    )
+    const aceTexts = await driver.findElements(
+      By.xpath(`//*[contains(@class, 'ace_text')]`),
+    )
+    const elements = [...inputs, ...textareas, ...contentEditables, ...aceTexts]
+
+    await Promise.all(
+      elements.map(async (ele) => {
+        let e = ele
+        e = await addQualifiers(e)
+        e.frame = locator.frame
+        e.distance = Math.sqrt(
+          (e.rect.midx - locator.rect.midx) ** 2 +
+            (e.rect.y - locator.rect.y) ** 2,
+        )
+        return e
+      }),
+    )
+
+    elements.sort(function swap(a, b) {
+      return parseFloat(a.distance) - parseFloat(b.distance)
+    })
+    return elements[0]
   }
 
   async function resolveElements(stack) {
@@ -400,6 +359,91 @@ function WebElement(webdriver) {
     return items
   }
 
+  async function nearestElement(locator, type) {
+    let elements = []
+    const tagName = await locator.getTagName()
+    if (type === 'button') {
+      if (tagName === 'button') {
+        return locator
+      }
+      if (tagName === 'input') {
+        const inputType = await locator.getAttribute('type')
+        if (inputType === 'submit' || inputType === 'button') {
+          return locator
+        }
+      }
+      const buttons = await driver.findElements(By.xpath(`//button`))
+      const inputs = await driver.findElements(
+        By.xpath(`//input[@type='submit' or @type='button']`),
+      )
+      const rest = await driver.findElements(
+        By.xpath(
+          `//*[contains(@class,'button') or contains(@data-test-id,'button')]`,
+        ),
+      )
+      elements = [...buttons, ...inputs, ...rest]
+    }
+    if (type === 'textbox') {
+      if (tagName === 'input') {
+        const inputType = await locator.getAttribute('type')
+        if (!['radio', 'checkbox', 'submit', 'file'].includes(inputType)) {
+          return locator
+        }
+      }
+      if (tagName === 'textarea') {
+        return locator
+      }
+      const inputs = await driver.findElements(
+        By.xpath(
+          `//input[not(@type='radio') and not(@type='checkbox') and not(@type='submit') and not(@type='file')]`,
+        ),
+      )
+      const textareas = await driver.findElements(By.xpath(`//textarea`))
+      elements = [...inputs, ...textareas]
+    } else if (type === 'radio') {
+      if (tagName === 'input') {
+        const inputType = await locator.getAttribute('type')
+        if (inputType === 'radio') {
+          return locator
+        }
+      }
+      elements = await driver.findElements(By.xpath(`//input[@type='radio']`))
+    } else if (type === 'checkbox') {
+      if (tagName === 'input') {
+        const inputType = await locator.getAttribute('type')
+        if (inputType === 'checkbox') {
+          return locator
+        }
+      }
+      elements = await driver.findElements(
+        By.xpath(`//input[@type='checkbox']`),
+      )
+    } else if (type === 'select') {
+      if (tagName === 'select') {
+        return locator
+      }
+      elements = await driver.findElements(By.xpath(`//select`))
+    }
+
+    await Promise.all(
+      elements.map(async (ele) => {
+        let e = ele
+        e = await addQualifiers(e)
+        e.frame = locator.frame
+        e.distance = Math.sqrt(
+          (e.rect.midx - locator.rect.midx) ** 2 +
+            (e.rect.midy - locator.rect.midy) ** 2,
+        )
+        return e
+      }),
+    )
+
+    elements.sort(function swap(a, b) {
+      return parseFloat(a.distance) - parseFloat(b.distance)
+    })
+    return elements[0]
+  }
+
   async function find(stack, action = null) {
     const data = await resolveElements(stack)
 
@@ -418,25 +462,24 @@ function WebElement(webdriver) {
           'column',
         ].includes(item.type)
       ) {
-        const results = await relativeSearch(item)
+        const elements = await relativeSearch(item)
         if (item.index !== false) {
-          element = results[item.index - 1]
+          element = elements[item.index - 1]
         } else {
-          ;[element] = results
+          ;[element] = elements
         }
         if ([undefined, null, ''].includes(element)) {
           throw new ReferenceError(
             `'${item.id}' has no matching elements on page.`,
           )
         }
-      }
-      if (item.type === 'location') {
+      } else if (item.type === 'location') {
         i -= 1
-        const results = await relativeSearch(data[i], item, element)
+        const elements = await relativeSearch(data[i], item, element)
         if (data[i].index !== false) {
-          element = results[data[i].index - 1]
+          element = elements[data[i].index - 1]
         } else {
-          ;[element] = results
+          ;[element] = elements
         }
         if ([undefined, null, ''].includes(element)) {
           throw new ReferenceError(
@@ -448,44 +491,20 @@ function WebElement(webdriver) {
       }
     }
     /* eslint-enable no-await-in-loop */
+    // await driver.executeScript("arguments[0].setAttribute('style', 'background: blue; border: 2px solid red;');", element);
 
     await driver.switchTo().defaultContent()
-    if (element.element.frame >= 0) {
-      await driver.switchTo().frame(element.element.frame)
+    if (element.frame >= 0) {
+      await driver.switchTo().frame(element.frame)
     }
-    if (['write', 'select', 'check'].includes(action)) {
-      element = await findActionElement(element, action)
-    }
-    if (stack[0].type === 'radio') {
-      const type = await element.element.getAttribute('type')
-      if (type !== 'radio') {
-        element.element = await driver.findElement(
-          withTagName(`[type=radio]`).near(element.element),
-        )
-      }
-    } else if (stack[0].type === 'textbox') {
-      const type = await element.element.getAttribute('type')
-      if (!['number', 'text'].includes(type)) {
-        element.element = await driver.findElement(
-          withTagName(
-            `input:not([type=radio], [type=checkbox], [type=submit], [type=file])`,
-          ).near(element.element),
-        )
-      }
-    } else if (stack[0].type === 'checkbox') {
-      const type = await element.element.getAttribute('type')
-      if (type !== 'checkbox') {
-        element.element = await driver.findElement(
-          withTagName(`[type=checkbox]`).near(element.element),
-        )
-      }
-    } else if (stack[0].type === 'button') {
-      const tagName = await element.element.getTagName()
-      if (tagName !== 'button') {
-        element.element = await driver.findElement(
-          withTagName(`button`).near(element.element),
-        )
-      }
+    if (['radio', 'textbox', 'checkbox', 'button'].includes(stack[0].type)) {
+      element = await nearestElement(element, stack[0].type)
+    } else if (action === 'select') {
+      element = await nearestElement(element, action)
+    } else if (action === 'check') {
+      element = await nearestElement(element, 'checkbox')
+    } else if (['write'].includes(action)) {
+      element = await nearestWriteElement(element)
     }
     return element
   }
@@ -494,6 +513,7 @@ function WebElement(webdriver) {
     const data = await resolveElements(stack)
 
     let element = null
+    let elements = []
     /* eslint-disable no-await-in-loop */
     for (let i = data.length - 1; i > -1; i--) {
       const item = data[i]
@@ -508,23 +528,16 @@ function WebElement(webdriver) {
           'column',
         ].includes(item.type)
       ) {
-        element = await relativeSearch(item)
-        if (i !== 0) {
-          ;[element] = await relativeSearch(item)
-        }
-        if ([undefined, null, ''].includes(element)) {
+        elements = await relativeSearch(item)
+        if (elements.length < 1) {
           throw new ReferenceError(
             `'${item.id}' has no matching elements on page.`,
           )
         }
-      }
-      if (item.type === 'location') {
+      } else if (item.type === 'location') {
         i -= 1
-        element = await relativeSearch(data[i], item, element)
-        if (i !== 0) {
-          ;[element] = element
-        }
-        if ([undefined, null, ''].includes(element)) {
+        elements = await relativeSearch(data[i], item, element)
+        if (elements.length < 1) {
           throw new ReferenceError(
             `'${data[i].id}' ${item.located} '${
               data[i + 2].id
@@ -532,10 +545,13 @@ function WebElement(webdriver) {
           )
         }
       }
-      // await driver.executeScript("arguments[0].setAttribute('style', 'background: blue; border: 2px solid red;');", element.element);
+      if (i !== 0) {
+        ;[element] = elements
+      }
+      // await driver.executeScript("arguments[0].setAttribute('style', 'background: blue; border: 2px solid red;');", element);
     }
     /* eslint-enable no-await-in-loop */
-    return element
+    return elements
   }
 
   return {

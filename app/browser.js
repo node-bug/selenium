@@ -128,7 +128,17 @@ function Browser(webdriver, settings) {
     try {
       if (size.height !== undefined && size.width !== undefined) {
         log.info(`Resizing the browser to ${JSON.stringify(size)}.`)
-        return driver.manage().window().setRect(size)
+        await driver.switchTo().defaultContent()
+        const deltaWidth = await driver.executeScript(
+          'return window.outerWidth - window.innerWidth',
+        )
+        const deltaHeight = await driver.executeScript(
+          'return window.outerHeight - window.innerHeight',
+        )
+        const lSize = size
+        lSize.width += deltaWidth
+        lSize.height += deltaHeight
+        await driver.manage().window().setRect(lSize)
       }
     } catch (err) {
       log.error(err)
@@ -138,7 +148,10 @@ function Browser(webdriver, settings) {
   }
 
   async function getSize() {
-    return driver.manage().window().getRect()
+    await driver.switchTo().defaultContent()
+    const width = await driver.executeScript('return window.innerWidth')
+    const height = await driver.executeScript('return window.innerHeight')
+    return { width, height }
   }
 
   async function goto(url) {
