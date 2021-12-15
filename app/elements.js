@@ -308,10 +308,12 @@ function WebElement(webdriver) {
     const contentEditables = await driver.findElements(
       By.xpath(`//*[@contenteditable]`),
     )
-    const aceTexts = await driver.findElements(
-      By.xpath(`//*[contains(@class, 'ace_text')]`),
+    const rest = await driver.findElements(
+      By.xpath(
+        `//*[contains(@class, 'ace_text') or contains(@class,'input') or contains(@class,'editable')]`,
+      ),
     )
-    const elements = [...inputs, ...textareas, ...contentEditables, ...aceTexts]
+    const elements = [...inputs, ...textareas, ...contentEditables, ...rest]
 
     await Promise.all(
       elements.map(async (ele) => {
