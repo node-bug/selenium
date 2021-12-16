@@ -230,7 +230,7 @@ function Driver(driver, options) {
     return true
   }
 
-  async function scroll() {
+  async function scroll(d = null) {
     message({ action: 'scroll' })
     try {
       const locator = await finder()
@@ -238,6 +238,12 @@ function Driver(driver, options) {
         'return arguments[0].scrollIntoView(true);',
         locator,
       )
+      if (d !== null) {
+        await driver.executeScript(
+          'arguments[0].scrollLeft = arguments[0].scrollWidth',
+          locator,
+        )
+      }
     } catch (err) {
       log.error(
         `${currentMessage}\nError during scroll into view.\nError ${err.stack}`,
