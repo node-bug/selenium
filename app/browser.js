@@ -128,6 +128,7 @@ function Browser(webdriver, settings) {
     try {
       if (size.height !== undefined && size.width !== undefined) {
         log.info(`Resizing the browser to ${JSON.stringify(size)}.`)
+        await driver.manage().window().setRect(size)
         await driver.switchTo().defaultContent()
         const deltaWidth = await driver.executeScript(
           'return window.outerWidth - window.innerWidth',
@@ -138,6 +139,8 @@ function Browser(webdriver, settings) {
         const lSize = size
         lSize.width += deltaWidth
         lSize.height += deltaHeight
+        lSize.x = 0
+        lSize.y = 0
         await driver.manage().window().setRect(lSize)
       }
     } catch (err) {

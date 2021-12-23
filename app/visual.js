@@ -1,7 +1,7 @@
 const { log } = require('@nodebug/logger')
 const path = require('path')
 const fs = require('fs')
-const resemble = require('resemblejs/compareImages')
+const BlinkDiff = require('blink-diff')
 const config = require('@nodebug/config')('visual')
 const Gif = require('@nodebug/gifencoder')
 
@@ -19,12 +19,15 @@ class Visual {
       throw new ReferenceError(`Old snapshot not found at path ${filename}`)
     }
     const contents = fs.readFileSync(filename, { encoding: 'base64' })
-    const result = await resemble(
-      `data:image/png;base64,${contents}`,
-      `data:image/png;base64,${screenshot}`,
-    )
-
-    if (result.misMatchPercentage > 0.01) {
+    const diff = new BlinkDiff({
+      imageA: Buffer.from(contents, 'base64'),
+      imageB: Buffer.from(screenshot, 'base64'),
+      gamma: 0.001,
+      perceptual: true,
+    })
+    const result = await diff.runSync()
+    console.log(result.differences)
+    if (result.differences > 1) {
       result.expected = contents
       result.actual = screenshot
       const gif = new Gif(size.width, size.height)
@@ -33,7 +36,7 @@ class Visual {
       result.gif = await gif.save()
       result.status = 'failed'
       log.info(
-        `Actual and expected images mismatch by ${result.misMatchPercentage}%`,
+        `Actual and expected images have ${result.differences} differences`,
       )
     } else {
       log.info('Actual and expected images match.')
