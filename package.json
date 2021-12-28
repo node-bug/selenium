@@ -1,6 +1,6 @@
 {
   "name": "@nodebug/selenium",
-  "version": "2.4.0",
+  "version": "2.5.0",
   "author": {
     "name": "Node Bug",
     "email": "nodebug@outlook.com"
@@ -20,7 +20,7 @@
     "imagemin-pngquant": "9.0.2",
     "jsonfile": "latest",
     "jsonwebtoken": "latest",
-    "selenium-webdriver": "^4.0.0"
+    "selenium-webdriver": "^4.1.0"
   },
   "description": "implementation of seleniumjs to use with test automation",
   "homepage": "https://github.com/node-bug/selenium#readme",

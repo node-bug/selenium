@@ -26,7 +26,6 @@ class Visual {
       perceptual: true,
     })
     const result = await diff.runSync()
-    console.log(result.differences)
     if (result.differences > 1) {
       result.expected = contents
       result.actual = screenshot
