@@ -127,7 +127,21 @@ function Browser(webdriver, settings) {
     await maximize()
     try {
       if (size.height !== undefined && size.width !== undefined) {
+        log.info(`Resizing the browser to ${JSON.stringify(size)}.`)
+        await driver.manage().window().setRect(size)
         await driver.switchTo().defaultContent()
+        const deltaWidth = await driver.executeScript(
+          'return window.outerWidth - window.innerWidth',
+        )
+        const deltaHeight = await driver.executeScript(
+          'return window.outerHeight - window.innerHeight',
+        )
+        const lSize = size
+        lSize.width += deltaWidth
+        lSize.height += deltaHeight
+        lSize.x = 0
+        lSize.y = 0
+        await driver.manage().window().setRect(lSize)
         log.info(`Resizing the browser to ${JSON.stringify(size)}.`)
         return driver.manage().window().setRect(size)
       }
@@ -140,9 +154,9 @@ function Browser(webdriver, settings) {
 
   async function getSize() {
     await driver.switchTo().defaultContent()
-    const browserSize = await driver.manage().window().getRect()
-    log.info(`Current browser dimensions are ${browserSize}.`)
-    return browserSize
+    const width = await driver.executeScript('return window.innerWidth')
+    const height = await driver.executeScript('return window.innerHeight')
+    return { width, height }
   }
 
   async function goto(url) {

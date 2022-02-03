@@ -32,6 +32,11 @@ function setDownloadsDir(path) {
 function setPreferences(opts) {
   const downloadDir = setDownloadsDir(opts.downloadsPath)
   const prefs = {
+    'browser.enable_spellchecking': false,
+    'browser.enable_autospellcorrect': false,
+    'spellcheck.use_spelling_service': '',
+    'spellcheck.dictionary': '',
+    'translate.enabled': false,
     'browser.sessionstore.resume_from_crash': false,
     'profile.content_settings.exceptions.automatic_downloads.*.setting': 1,
     credentials_enable_service: false,
