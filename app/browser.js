@@ -1,6 +1,5 @@
 const { log } = require('@nodebug/logger')
 const remote = require('selenium-webdriver/remote')
-// const {openBrowser} = require('./driver')
 
 function Browser(webdriver, settings) {
   const driver = webdriver

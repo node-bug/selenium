@@ -81,7 +81,7 @@ function setChromeCapabilities(opts) {
       new chrome.ServiceBuilder(chromedriver.path).build(),
     )
   } catch (err) {
-    log.error(`Error while launching chrome\nError ${err.stack}`)
+    log.error(`Error while launching chrome\nError ${err.message}`)
   }
   const prefs = setPreferences(opts)
   const options = {
