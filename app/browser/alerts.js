@@ -1,13 +1,15 @@
 const { log } = require('@nodebug/logger')
 const { until } = require('selenium-webdriver')
 
-function Alert(driver) {
-  let alert
+class Alert {
+  constructor(driver) {
+    this.driver = driver
+  }
 
-  async function isVisible() {
+  async isVisible() {
     try {
-      if (await driver.wait(until.alertIsPresent(), 10000)) {
-        alert = await driver.switchTo().alert()
+      if (await this.driver.wait(until.alertIsPresent(), 10000)) {
+        alert = await this.driver.switchTo().alert()
         log.info(`Alert ${await alert.getText()} is present on page`)
         return true
       }
@@ -19,7 +21,7 @@ function Alert(driver) {
     }
   }
 
-  function Get() {
+  get() {
     async function text() {
       await isVisible()
       return alert.getText()
@@ -28,7 +30,7 @@ function Alert(driver) {
     return { text }
   }
 
-  async function accept() {
+  async accept() {
     log.info('Accepting Alert')
     await isVisible()
     try {
@@ -39,7 +41,7 @@ function Alert(driver) {
     }
   }
 
-  async function dismiss() {
+  async dismiss() {
     log.info('Dismissing Alert')
     await isVisible()
     try {
@@ -49,10 +51,6 @@ function Alert(driver) {
       throw err
     }
   }
-
-  const get = new Get()
-
-  return { isVisible, accept, dismiss, get }
 }
 
 module.exports = Alert
