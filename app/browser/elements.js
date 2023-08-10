@@ -170,7 +170,7 @@ class ElementLocator extends Selectors {
     const c = []
     await this.driver.switchTo().defaultContent()
     const frames = await this.driver.findElements(
-      By.xpath('//iframe[not(contains(@style,"display: none;"))]'),
+      By.xpath('//iframe'),
     )
 
     /* eslint-disable no-await-in-loop */
@@ -206,7 +206,7 @@ class ElementLocator extends Selectors {
     if (!(c.length > 0) && elementData.type !== 'element') {
       await this.driver.switchTo().defaultContent()
       const frames = await this.driver.findElements(
-        By.xpath('//iframe[not(contains(@style,"display: none;"))]'),
+        By.xpath('//iframe'),
       )
 
       /* eslint-disable no-await-in-loop */

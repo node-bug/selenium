@@ -1,9 +1,9 @@
 const config = require('@nodebug/config')('selenium')
 const { log } = require('@nodebug/logger')
 const { Builder } = require('selenium-webdriver')
-const remote = require('selenium-webdriver/remote')
 const capabilities = require('../capabilities')
 const Window = require('./window')
+const remote = require('selenium-webdriver/remote')
 
 class Browser {
     constructor() {
@@ -33,13 +33,19 @@ class Browser {
         return this._driver
     }
 
-    new() {
+    async new() {
         const builder = new Builder()
         builder.withCapabilities(this.capabilities)
         if (this.hub !== undefined) {
             builder.usingServer(this.hub)
         }
         this.driver = builder.build()
+
+        if (!['', undefined, null].includes(this.hub)) {
+            await this.driver.setFileDetector(new remote.FileDetector())
+        }
+
+        await this.sleep(2000)
 
             ;['SIGINT', 'SIGTERM', 'exit', 'uncaughtException'].forEach((signal) =>
                 process.on(signal, async () => {
@@ -189,11 +195,10 @@ class Browser {
                 height: parseInt(config.height, 10),
             })
             await this.driver.manage().setTimeouts({
-                implicit: 1000,
+                implicit: 500,
                 pageLoad: 6 * this.timeout(),
                 script: 6 * this.timeout(),
             })
-            await this.driver.setFileDetector(new remote.FileDetector())
             await this.driver.get(url)
             return true
         } catch (err) {

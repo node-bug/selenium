@@ -7,7 +7,6 @@ const messenger = require('./app/messenger')
 // const Alert = require('./app/alerts')
 // const Visual = require('./app/visual')
 class Driver extends Browser {
-  // // const alert = new Alert(driver)
   constructor() {
     super()
     this.stack = []
