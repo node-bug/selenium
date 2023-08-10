@@ -524,7 +524,7 @@ class Driver extends Browser {
     this.message = messenger({ stack: this.stack, action: 'select', data: value })
     try {
       const locator = await this.finder(null, 'select')
-      if (locator.tagName === 'select') {
+      if (['select'].includes(locator.tagName)) {
         const selected = await locator.findElements(
           By.xpath(`.//option[.="${value}"][@selected]`),
         )

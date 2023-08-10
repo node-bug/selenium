@@ -138,7 +138,7 @@ class ElementLocator extends Selectors {
     )
     element.rect.midx = element.rect.x + element.rect.width / 2
     element.rect.midy = element.rect.y + element.rect.height / 2
-    element.tagName = await element.getTagName()
+    element.tagName = (await element.getTagName()).toLowerCase()
     return element
   }
 
