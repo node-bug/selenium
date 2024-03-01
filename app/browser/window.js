@@ -151,6 +151,24 @@ class Window {
     )
   }
 
+  async new() {
+    log.info(`Opening new ${config.browser} browser window`)
+    return this.driver.switchTo().newWindow('window')
+  }
+
+  async close() {
+    log.info(`Closing window with title ${await this.get.title()}`)
+    await this.driver.close()
+    const windows = await this.driver.getAllWindowHandles()
+    if(windows.length < 0){
+      log.error(`No browser windows are currenlty open. Is this expected?`)
+    } else {
+      await this.driver.switchTo().window(windows[0])
+    }
+    log.info(`Currently active window is ${await this.get.title()}`)
+    return true
+  }
+
   async maximize() {
     log.info(`Maximizing browser`)
     return this.driver.manage().window().maximize()

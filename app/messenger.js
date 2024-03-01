@@ -29,17 +29,17 @@ function messenger(a) {
         message = `Overwriting with '${a.data}' in `
       } else if (a.action === 'select') {
         message = `Selecting '${a.data}' from dropdown `
-      } else if (a.action === 'isVisible' || a.action === 'isDisabled') {
-        message = `Checking `
+      } else if (a.action === 'isVisible' || a.action === 'isDisabled' || a.action === 'isChecked' || a.action === 'isNotChecked') {
+        message = `Validating `
       } else if (
         a.action === 'waitVisibility' ||
         a.action === 'waitInvisibility'
       ) {
         message = `Waiting for `
       } else if (a.action === 'check') {
-        message = `Checking checkbox for `
+        message = `Checking `
       } else if (a.action === 'uncheck') {
-        message = `Unchecking checkbox for `
+        message = `Unchecking `
       } else if (a.action === 'screenshot') {
         message = `Capturing screenshot of `
       } else if (a.action === 'getText') {
@@ -65,7 +65,6 @@ function messenger(a) {
             'row',
             'column',
             'toolbar',
-            'tab',
             'link',
             'dialog',
             'file',
@@ -99,6 +98,10 @@ function messenger(a) {
         message += `to not be visible`
       } else if (a.action === 'isDisabled') {
         message += `is disabled`
+      } else if (a.action === 'isChecked') {
+        message += `is checked`
+      } else if (a.action === 'isNotChecked') {
+        message += `is not checked`
       } else if (a.action === 'click') {
         if (a.x !== null && a.y !== null) {
           message += `at location x:${a.x} y:${a.y}`

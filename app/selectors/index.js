@@ -65,7 +65,6 @@ class Selectors {
     
     return {
       link: `//*[(${str}) and @href]`,
-      tab: `//*[(${str}) and @role='tab']`,
       button: `//*[(${str}) and (@role='button' or @type='button' or @type='submit' or self::button)]`,
       toolbar: `//*[(${str}) and @role='toolbar']`,
       radio: `//*[(${str}) and @role='radio']`,
@@ -87,7 +86,6 @@ class Selectors {
   get selectors() {
     return {
       link: `//*[@href]`,
-      tab: `//*[@role='tab']`,
       button: `//*[(@role='button' or @type='button' or @type='submit' or self::button)]`,
       toolbar: `//*[@role='toolbar']`,
       radio: `//*[@role='radio']`,

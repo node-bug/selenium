@@ -10,6 +10,7 @@ class Chrome {
                 '--disable-extensions',
                 '--disable-gpu',
                 '--disable-notifications',
+                '--enable-automation',
             ],
             prefs,
             excludeSwitches: [

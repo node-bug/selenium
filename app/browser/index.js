@@ -76,11 +76,6 @@ class Browser {
             .replace(/\s/g, '')
     }
 
-    async newWindow() {
-        log.info(`Opening new ${config.browser} browser window`)
-        return this.driver.switchTo().newWindow('window')
-    }
-
     async close() {
         try {
             log.info(`Closing the browser. Current URL is ${await this.window.get.url()}.`)
@@ -90,63 +85,6 @@ class Browser {
                 `Unrecognized error while deleting existing sessions : ${err.message}`,
             )
         }
-        return true
-    }
-
-    async newTab() {
-        log.info(`Opening new tab in the browser`)
-        return this.driver.switchTo().newWindow('tab')
-    }
-
-    async switchTab(tab) {
-        log.info(`Switching to tab ${tab}`)
-        const handles = await this.driver.getAllWindowHandles()
-        try {
-            switch (typeof tab) {
-                case 'number':
-                    return this.driver.switchTo().window(handles[tab])
-
-                case 'string':
-                    {
-                        const og = await this.driver.getWindowHandle()
-                        try {
-                            await this.driver.wait(
-                                async () => {
-                                    const hs = await this.driver.getAllWindowHandles()
-                                    for (let i = 0; i < hs.length; i++) {
-                                        /* eslint-disable no-await-in-loop */
-                                        await this.driver.switchTo().window(hs[i])
-                                        if ((await this.window.get.title()).includes(tab)) {
-                                            return true
-                                        }
-                                        /* eslint-enable no-await-in-loop */
-                                    }
-                                    return false
-                                },
-                                this.timeout(),
-                                `Tab ${tab} was not found`,
-                            )
-                        } catch (err) {
-                            await this.driver.switchTo().window(og)
-                            throw err
-                        }
-                    }
-                    return true
-
-                default:
-                    return this.driver.switchTo().window(handles[0])
-            }
-        } catch (err) {
-            log.error(`Unable to switch to tab ${tab}\nError ${err.stack}`)
-            throw err
-        }
-    }
-
-    async closeTab() {
-        log.info(`Closing tab with title ${await this.window.get.title()}`)
-        await this.driver.close()
-        await this.switchTab()
-        log.info(`Current tab ${await this.window.get.title()}`)
         return true
     }
 

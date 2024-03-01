@@ -5,7 +5,6 @@ const Browser = require('./app/browser')
 const ElementLocator = require('./app/browser/elements')
 const messenger = require('./app/messenger')
 // const Alert = require('./app/alerts')
-// const Visual = require('./app/visual')
 class Driver extends Browser {
   constructor() {
     super()
@@ -555,20 +554,19 @@ class Driver extends Browser {
   async checkboxaction(action) {
     try {
       const locator = await this.finder(null, 'check')
-      const isChecked = await locator.isSelected()
+      const isChecked = await this.getCheckboxState()
       if (
         (action === 'check' && !isChecked) ||
         (action === 'uncheck' && isChecked)
       ) {
         await this.clicker(locator)
       }
-      if (isChecked === (await locator.isSelected())) {
-        if (
-          (action === 'check' && !isChecked) ||
-          (action === 'uncheck' && isChecked)
-        ) {
-          await this.driver.executeScript('return arguments[0].click();', locator)
-        }
+      const confirmIsChecked = await this.getCheckboxState()
+      if (
+        (action === 'check' && !confirmIsChecked) ||
+        (action === 'uncheck' && confirmIsChecked)
+      ) {
+        await this.driver.executeScript('return arguments[0].click();', locator)
       }
     } catch (err) {
       log.error(
@@ -582,6 +580,35 @@ class Driver extends Browser {
     return true
   }
 
+  async getCheckboxState() {
+    let checked = false
+    try {
+      const locator = await this.finder(null, 'check')
+      if(locator.tagName === 'input'){
+        checked = await locator.isSelected()
+      } else if(locator.tagName === 'md-checkbox'){
+        checked = await locator.getAttribute('aria-checked')
+      } else {
+        checked = await locator.getAttribute('value')
+      }
+      checked = JSON.parse(checked)
+    } catch (err) {
+      log.error(
+        `${this.message}\n${err.stack}`,
+      )
+      this.stack = []
+      err.message = `Error while ${this.message}\n${err.message}`
+      throw err
+    }
+
+    if (checked) {
+      log.info('Checkbox is checked.')
+    } else {
+      log.info('Checkbox is not checked.')
+    }
+    return checked
+  }
+
   async check() {
     this.message = messenger({ stack: this.stack, action: 'check' })
     return this.checkboxaction('check')
@@ -590,6 +617,34 @@ class Driver extends Browser {
   async uncheck() {
     this.message = messenger({ stack: this.stack, action: 'uncheck' })
     return this.checkboxaction('uncheck')
+  }
+
+  async isChecked() {
+    this.message = messenger({ stack: this.stack, action: 'isChecked' })
+    const checked = await this.getCheckboxState()
+    if (!checked) {
+      log.info(`Error while ${this.message}\nCheckbox is not checked.`)
+      err.message = `Error while ${this.message}\nCheckbox is not checked.`
+      throw err
+    }
+    this.stack = []
+    return true
+  }
+
+  async isNotChecked() {
+    this.message = messenger({ stack: this.stack, action: 'isNotChecked' })
+    const checked = await this.getCheckboxState()
+    if (checked) {
+      log.info(`Error while ${this.message}\nCheckbox is checked.`)
+      err.message = `Error while ${this.message}\nCheckbox is checked.`
+      throw err
+    }
+    this.stack = []
+    return true
+  }
+
+  async isUnchecked(){
+    await this.isNotChecked()
   }
 
   async isDisabled() {
@@ -780,7 +835,7 @@ class Driver extends Browser {
       ].includes(JSON.stringify(og))) {
         member.exact = og.exact
         member.hidden = og.hidden
-        this.stack.push(member)
+        // this.stack.push(member)
       } else {
         this.stack.push(og)
       }
@@ -873,10 +928,6 @@ class Driver extends Browser {
 
   toolbar(data) {
     return this.typefixer(data, 'toolbar')
-  }
-
-  tab(data) {
-    return this.typefixer(data, 'tab')
   }
 
   link(data) {
@@ -1005,15 +1056,6 @@ class Driver extends Browser {
     this.stack.push({ type: 'action', perform: 'onto' })
     return this
   }
-
-  // async visual(path) {
-  //   const name = await browser.name()
-  //   const os = await browser.os()
-  //   const rect = await browser.getSize()
-  //   const image = await screenshot()
-
-  //   return Visual.compare(name, os, rect, image, path)
-  // }
 }
 
 module.exports = Driver

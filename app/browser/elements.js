@@ -46,8 +46,8 @@ class ElementLocator extends Selectors {
             elements = item.matches.filter((element) => {
               return (
                 relativeElement.rect.top >= element.rect.bottom &&
-                relativeElement.rect.left - 5 <= element.rect.left &&
-                relativeElement.rect.right + 5 >= element.rect.right
+                relativeElement.rect.left <= element.rect.midx &&
+                relativeElement.rect.right >= element.rect.midx
               )
             })
           } else {
@@ -61,8 +61,8 @@ class ElementLocator extends Selectors {
             elements = item.matches.filter((element) => {
               return (
                 relativeElement.rect.bottom <= element.rect.top &&
-                relativeElement.rect.left - 5 <= element.rect.left &&
-                relativeElement.rect.right + 5 >= element.rect.right
+                relativeElement.rect.left <= element.rect.midx &&
+                relativeElement.rect.right >= element.rect.midx
               )
             })
           } else {
@@ -76,8 +76,8 @@ class ElementLocator extends Selectors {
             elements = item.matches.filter((element) => {
               return (
                 relativeElement.rect.left >= element.rect.right &&
-                relativeElement.rect.top - 5 <= element.rect.top &&
-                relativeElement.rect.bottom + 5 >= element.rect.bottom
+                relativeElement.rect.top <= element.rect.midy &&
+                relativeElement.rect.bottom >= element.rect.midy
               )
             })
           } else {
@@ -91,8 +91,8 @@ class ElementLocator extends Selectors {
             elements = item.matches.filter((element) => {
               return (
                 relativeElement.rect.right <= element.rect.left &&
-                relativeElement.rect.top - 5 <= element.rect.top &&
-                relativeElement.rect.bottom + 5 >= element.rect.bottom
+                relativeElement.rect.top <= element.rect.midy &&
+                relativeElement.rect.bottom >= element.rect.midy
               )
             })
           } else {
@@ -264,7 +264,6 @@ class ElementLocator extends Selectors {
           // 'row',
           // 'column',
           'toolbar',
-          'tab',
           'link',
           'dialog',
           'file',
@@ -297,7 +296,6 @@ class ElementLocator extends Selectors {
           // 'row',
           // 'column',
           'toolbar',
-          'tab',
           'link',
           'dialog',
           'file',
@@ -359,7 +357,6 @@ class ElementLocator extends Selectors {
           // 'row',
           // 'column',
           'toolbar',
-          'tab',
           'link',
           'dialog',
           'file',
