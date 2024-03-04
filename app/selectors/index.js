@@ -1,5 +1,6 @@
 class Selectors {
-  get attributes(){
+  // eslint-disable-next-line class-methods-use-this
+  get attributes() {
     return [
       'placeholder',
       'value',
@@ -62,7 +63,7 @@ class Selectors {
 
   getSelectors(attribute, exact = false) {
     const str = this.matcher(attribute, exact)
-    
+
     return {
       link: `//*[(${str}) and @href]`,
       button: `//*[(${str}) and (@role='button' or @type='button' or @type='submit' or self::button)]`,
@@ -79,6 +80,7 @@ class Selectors {
     }
   }
 
+  // eslint-disable-next-line class-methods-use-this
   get selectors() {
     return {
       link: `//*[@href]`,
@@ -96,5 +98,5 @@ class Selectors {
     }
   }
 }
-test
+
 module.exports = Selectors

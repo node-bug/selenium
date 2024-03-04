@@ -13,10 +13,12 @@ class Driver extends Browser {
   }
 
   get message() {
+    // eslint-disable-next-line no-underscore-dangle
     return this._message
   }
 
   set message(value) {
+    // eslint-disable-next-line no-underscore-dangle
     this._message = value
   }
 
@@ -91,6 +93,7 @@ class Driver extends Browser {
         }
         if (locator) break
       } catch (err) {
+        // eslint-disable-next-line no-continue
         continue
       }
     }
@@ -105,7 +108,11 @@ class Driver extends Browser {
   }
 
   async write(value) {
-    this.message = messenger({ stack: this.stack, action: 'write', data: value })
+    this.message = messenger({
+      stack: this.stack,
+      action: 'write',
+      data: value,
+    })
     try {
       const locator = await this.finder(null, 'write')
       if (['input', 'textarea'].includes(locator.tagName)) {
@@ -173,6 +180,7 @@ class Driver extends Browser {
         }
         if (locators.length > 0) break
       } catch (err) {
+        // eslint-disable-next-line no-continue
         continue
       }
     }
@@ -211,7 +219,11 @@ class Driver extends Browser {
 
   async attribute(name) {
     let value
-    this.message = messenger({ stack: this.stack, action: 'getAttribute', data: name })
+    this.message = messenger({
+      stack: this.stack,
+      action: 'getAttribute',
+      data: name,
+    })
     try {
       const locator = await this.finder()
       value = await locator.getAttribute(name)
@@ -318,11 +330,7 @@ class Driver extends Browser {
           await this.driver.executeScript('return arguments[0].click();', e)
         } else if (err.name === 'ElementClickInterceptedError') {
           // this is required for clicking on Froala edit boxes
-          await this.actions()
-            .move({ origin: e })
-            .pause(1000)
-            .click()
-            .perform()
+          await this.actions().move({ origin: e }).pause(1000).click().perform()
         } else {
           throw err
         }
@@ -381,20 +389,25 @@ class Driver extends Browser {
 
   async drop() {
     let indx
-    indx = this.stack.findIndex((c) => c.type === 'action' && c.perform === 'drag')
-    stack = this.stack.splice(indx + 1)
-    indx = this.stack.findIndex((c) => c.type === 'action' && c.perform === 'onto')
-    const dropStack = this.stack.splice(indx + 1)
+    indx = this.stack.findIndex(
+      (c) => c.type === 'action' && c.perform === 'drag',
+    )
+    const dragStack = JSON.parse(JSON.stringify(this.stack.splice(indx + 1)))
+    indx = this.stack.findIndex(
+      (c) => c.type === 'action' && c.perform === 'onto',
+    )
+    const dropStack = JSON.parse(JSON.stringify(this.stack.splice(indx + 1)))
     this.stack = this.stack.slice(0, indx)
 
     try {
+      this.stack = JSON.parse(JSON.stringify(dragStack))
       this.message = messenger({ stack: this.stack, action: 'drag' })
       const draglocator = await this.finder()
-      this.stack = dropStack
+      this.stack = JSON.parse(JSON.stringify(dropStack))
       this.message = messenger({ stack: this.stack, action: 'drop' })
       const droplocator = await this.finder()
 
-      const actions = await driver.actions({ async: true })
+      const actions = await this.driver.actions({ async: true })
       await actions
         .move({ origin: draglocator, x: 2, y: 2 })
         .pause(1000)
@@ -433,10 +446,7 @@ class Driver extends Browser {
           // eslint-disable-next-line no-await-in-loop
           await this.actions().sendKeys(Key.LEFT).perform()
         }
-        await this.actions()
-          .keyUp(Key.SHIFT)
-          .sendKeys(Key.BACK_SPACE)
-          .perform()
+        await this.actions().keyUp(Key.SHIFT).sendKeys(Key.BACK_SPACE).perform()
         await this.actions().sendKeys(Key.BACK_SPACE).perform()
       }
     } catch (err) {
@@ -452,7 +462,11 @@ class Driver extends Browser {
   }
 
   async overwrite(value) {
-    this.message = messenger({ stack: this.stack, action: 'overwrite', data: value })
+    this.message = messenger({
+      stack: this.stack,
+      action: 'overwrite',
+      data: value,
+    })
     try {
       let locator = await this.finder(null, 'write')
       if (['input', 'textarea'].includes(locator.tagName)) {
@@ -519,7 +533,11 @@ class Driver extends Browser {
   }
 
   async select(value) {
-    this.message = messenger({ stack: this.stack, action: 'select', data: value })
+    this.message = messenger({
+      stack: this.stack,
+      action: 'select',
+      data: value,
+    })
     try {
       const locator = await this.finder(null, 'select')
       if (['select'].includes(locator.tagName)) {
@@ -593,9 +611,7 @@ class Driver extends Browser {
       }
       checked = JSON.parse(checked)
     } catch (err) {
-      log.error(
-        `${this.message}\n${err.stack}`,
-      )
+      log.error(`${this.message}\n${err.stack}`)
       this.stack = []
       err.message = `Error while ${this.message}\n${err.message}`
       throw err
@@ -685,9 +701,7 @@ class Driver extends Browser {
     try {
       await this.finder(t)
     } catch (err) {
-      log.error(
-        `${this.message}\nElement is not visible on screen.`,
-      )
+      log.error(`${this.message}\nElement is not visible on screen.`)
       this.stack = []
       err.message = `Error while ${this.message}\n${err.message}`
       throw err
@@ -710,7 +724,6 @@ class Driver extends Browser {
     while (Date.now() < now + timeout) {
       try {
         await this.finder(1000)
-        continue
       } catch (err) {
         log.info('Element is not visible on screen')
         this.stack = []
@@ -718,9 +731,13 @@ class Driver extends Browser {
       }
     }
     /* eslint-enable no-await-in-loop */
-    log.error(`${this.message}\nElement is visible on screen after ${timeout} ms`)
+    log.error(
+      `${this.message}\nElement is visible on screen after ${timeout} ms`,
+    )
     this.stack = []
-    throw new Error(`Error while ${this.message}\nElement is visible on screen after ${timeout} ms`)
+    throw new Error(
+      `Error while ${this.message}\nElement is visible on screen after ${timeout} ms`,
+    )
   }
 
   async screenshot() {
@@ -759,7 +776,10 @@ class Driver extends Browser {
         if (e.frame >= 0) {
           await this.driver.switchTo().frame(e.frame)
         }
-        await this.driver.executeScript('return arguments[0].style.opacity=0', e)
+        await this.driver.executeScript(
+          'return arguments[0].style.opacity=0',
+          e,
+        )
       }
       /* eslint-enable no-await-in-loop */
     } catch (err) {
@@ -784,7 +804,10 @@ class Driver extends Browser {
         if (e.frame >= 0) {
           await this.driver.switchTo().frame(e.frame)
         }
-        await this.driver.executeScript('return arguments[0].style.opacity=1', e)
+        await this.driver.executeScript(
+          'return arguments[0].style.opacity=1',
+          e,
+        )
       }
       /* eslint-enable no-await-in-loop */
     } catch (err) {
@@ -798,7 +821,11 @@ class Driver extends Browser {
   }
 
   async upload(value) {
-    this.message = messenger({ stack: this.stack, action: 'upload', data: value })
+    this.message = messenger({
+      stack: this.stack,
+      action: 'upload',
+      data: value,
+    })
     try {
       const locator = await this.finder()
       await locator.sendKeys(value)
@@ -825,12 +852,14 @@ class Driver extends Browser {
     }
     const og = this.stack.pop()
     if (typeof og !== 'undefined') {
-      if ([
-        JSON.stringify({ exact: true, hidden: true }),
-        JSON.stringify({ exact: false, hidden: true }),
-        JSON.stringify({ exact: true, hidden: false }),
-        JSON.stringify({ exact: false, hidden: false }),
-      ].includes(JSON.stringify(og))) {
+      if (
+        [
+          JSON.stringify({ exact: true, hidden: true }),
+          JSON.stringify({ exact: false, hidden: true }),
+          JSON.stringify({ exact: true, hidden: false }),
+          JSON.stringify({ exact: false, hidden: false }),
+        ].includes(JSON.stringify(og))
+      ) {
         member.exact = og.exact
         member.hidden = og.hidden
         // this.stack.push(member)
@@ -851,20 +880,20 @@ class Driver extends Browser {
     if (typeof og === 'undefined') {
       member.exact = true
       this.stack.push(member)
-    } else {
-      if ([
+    } else if (
+      [
         JSON.stringify({ exact: true, hidden: true }),
         JSON.stringify({ exact: false, hidden: true }),
         JSON.stringify({ exact: true, hidden: false }),
         JSON.stringify({ exact: false, hidden: false }),
-      ].includes(JSON.stringify(og))) {
-        og.exact = true
-        this.stack.push(og)
-      } else {
-        this.stack.push(og)
-        member.exact = true
-        this.stack.push(member)
-      }
+      ].includes(JSON.stringify(og))
+    ) {
+      og.exact = true
+      this.stack.push(og)
+    } else {
+      this.stack.push(og)
+      member.exact = true
+      this.stack.push(member)
     }
     return this
   }
@@ -878,20 +907,20 @@ class Driver extends Browser {
     if (typeof og === 'undefined') {
       member.hidden = true
       this.stack.push(member)
-    } else {
-      if ([
+    } else if (
+      [
         JSON.stringify({ exact: true, hidden: true }),
         JSON.stringify({ exact: false, hidden: true }),
         JSON.stringify({ exact: true, hidden: false }),
         JSON.stringify({ exact: false, hidden: false }),
-      ].includes(JSON.stringify(og))) {
-        og.hidden = true
-        this.stack.push(og)
-      } else {
-        this.stack.push(og)
-        member.hidden = true
-        this.stack.push(member)
-      }
+      ].includes(JSON.stringify(og))
+    ) {
+      og.hidden = true
+      this.stack.push(og)
+    } else {
+      this.stack.push(og)
+      member.hidden = true
+      this.stack.push(member)
     }
     return this
   }

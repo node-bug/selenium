@@ -3,10 +3,12 @@ const Selectors = require('../selectors')
 
 class ElementLocator extends Selectors {
   get driver() {
+    // eslint-disable-next-line no-underscore-dangle
     return this._driver
   }
 
   set driver(value) {
+    // eslint-disable-next-line no-underscore-dangle
     this._driver = value
   }
 
@@ -16,7 +18,11 @@ class ElementLocator extends Selectors {
     if (parent.frame >= 0) {
       await this.driver.switchTo().frame(parent.frame)
     }
-    const elements = await parent.findElements(By.xpath(this.getSelectors(childData.id, childData.exact)[childData.type]))
+    const elements = await parent.findElements(
+      By.xpath(
+        this.getSelectors(childData.id, childData.exact)[childData.type],
+      ),
+    )
     if (elements.length > 0) {
       for (let j = 0; j < elements.length; j++) {
         elements[j].frame = parent.frame
@@ -43,62 +49,58 @@ class ElementLocator extends Selectors {
       switch (rel.located) {
         case 'above':
           if (rel.exactly === true) {
-            elements = item.matches.filter((element) => {
-              return (
+            elements = item.matches.filter(
+              (element) =>
                 relativeElement.rect.top >= element.rect.bottom &&
                 relativeElement.rect.left <= element.rect.midx &&
-                relativeElement.rect.right >= element.rect.midx
-              )
-            })
+                relativeElement.rect.right >= element.rect.midx,
+            )
           } else {
-            elements = item.matches.filter((element) => {
-              return relativeElement.rect.top >= element.rect.bottom
-            })
+            elements = item.matches.filter(
+              (element) => relativeElement.rect.top >= element.rect.bottom,
+            )
           }
           break
         case 'below':
           if (rel.exactly === true) {
-            elements = item.matches.filter((element) => {
-              return (
+            elements = item.matches.filter(
+              (element) =>
                 relativeElement.rect.bottom <= element.rect.top &&
                 relativeElement.rect.left <= element.rect.midx &&
-                relativeElement.rect.right >= element.rect.midx
-              )
-            })
+                relativeElement.rect.right >= element.rect.midx,
+            )
           } else {
-            elements = item.matches.filter((element) => {
-              return relativeElement.rect.bottom <= element.rect.top
-            })
+            elements = item.matches.filter(
+              (element) => relativeElement.rect.bottom <= element.rect.top,
+            )
           }
           break
         case 'toLeftOf':
           if (rel.exactly === true) {
-            elements = item.matches.filter((element) => {
-              return (
+            elements = item.matches.filter(
+              (element) =>
                 relativeElement.rect.left >= element.rect.right &&
                 relativeElement.rect.top <= element.rect.midy &&
-                relativeElement.rect.bottom >= element.rect.midy
-              )
-            })
+                relativeElement.rect.bottom >= element.rect.midy,
+            )
           } else {
-            elements = item.matches.filter((element) => {
-              return relativeElement.rect.left >= element.rect.right
-            })
+            elements = item.matches.filter(
+              (element) => relativeElement.rect.left >= element.rect.right,
+            )
           }
           break
         case 'toRightOf':
           if (rel.exactly === true) {
-            elements = item.matches.filter((element) => {
-              return (
+            elements = item.matches.filter(
+              (element) =>
                 relativeElement.rect.right <= element.rect.left &&
                 relativeElement.rect.top <= element.rect.midy &&
-                relativeElement.rect.bottom >= element.rect.midy
-              )
-            })
+                relativeElement.rect.bottom >= element.rect.midy,
+            )
           } else {
-            elements = item.matches.filter((element) => {
-              return relativeElement.rect.right <= element.rect.left
-            })
+            elements = item.matches.filter(
+              (element) => relativeElement.rect.right <= element.rect.left,
+            )
           }
           break
         case 'within':
@@ -109,14 +111,13 @@ class ElementLocator extends Selectors {
               item.matches = matches
             }
           }
-          elements = item.matches.filter((element) => {
-            return (
+          elements = item.matches.filter(
+            (element) =>
               relativeElement.rect.left <= element.rect.midx &&
               relativeElement.rect.right >= element.rect.midx &&
               relativeElement.rect.top <= element.rect.midy &&
-              relativeElement.rect.bottom >= element.rect.midy
-            )
-          })
+              relativeElement.rect.bottom >= element.rect.midy,
+          )
           break
         default:
           throw new ReferenceError(`Location '${rel.located}' is not supported`)
@@ -146,32 +147,27 @@ class ElementLocator extends Selectors {
     const elements = await element.findElements(By.xpath(this.selectors[type]))
     if (elements.length === 0) {
       return element
-    } else {
-      await Promise.all(
-        elements.map(async (e) => {
-          let ele = await this.addQualifiers(e)
-          ele.frame = element.frame
-          ele.distance = Math.sqrt(
-            (ele.rect.midx - element.rect.midx) ** 2 +
-            (ele.rect.y - element.rect.y) ** 2,
-          )
-          return ele
-        }),
-      )
-      elements.sort(function swap(a, b) {
-        return parseFloat(a.distance) - parseFloat(b.distance)
-      })
-      elements[0].distance = undefined
-      return elements[0]
     }
+    await Promise.all(
+      elements.map(async (e) => {
+        const ele = await this.addQualifiers(e)
+        ele.frame = element.frame
+        ele.distance = Math.sqrt(
+          (ele.rect.midx - element.rect.midx) ** 2 +
+            (ele.rect.y - element.rect.y) ** 2,
+        )
+        return ele
+      }),
+    )
+    elements.sort((a, b) => parseFloat(a.distance) - parseFloat(b.distance))
+    elements[0].distance = undefined
+    return elements[0]
   }
 
   async findElements(elementData) {
     const c = []
     await this.driver.switchTo().defaultContent()
-    const frames = await this.driver.findElements(
-      By.xpath('//iframe'),
-    )
+    const frames = await this.driver.findElements(By.xpath('//iframe'))
 
     /* eslint-disable no-await-in-loop */
     for (let i = -1; i < frames.length; i++) {
@@ -186,7 +182,13 @@ class ElementLocator extends Selectors {
         }
       }
 
-      const elements = await this.driver.findElements(By.xpath(this.getSelectors(elementData.id, elementData.exact)[elementData.type]))
+      const elements = await this.driver.findElements(
+        By.xpath(
+          this.getSelectors(elementData.id, elementData.exact)[
+            elementData.type
+          ],
+        ),
+      )
       if (elements.length > 0) {
         for (let j = 0; j < elements.length; j++) {
           elements[j].frame = i
@@ -195,23 +197,24 @@ class ElementLocator extends Selectors {
           elements.map(async (element) => this.addQualifiers(element)),
         )
         if (elementData.hidden) {
-          c.push(...elements.filter((e) => e.rect.height < 1 || e.rect.width < 1))
+          c.push(
+            ...elements.filter((e) => e.rect.height < 1 || e.rect.width < 1),
+          )
         } else {
-          c.push(...elements.filter((e) => e.rect.height > 0 && e.rect.width > 0))
+          c.push(
+            ...elements.filter((e) => e.rect.height > 0 && e.rect.width > 0),
+          )
         }
-
       }
     }
     /* eslint-enable no-await-in-loop */
 
     if (!(c.length > 0) && elementData.type !== 'element') {
       await this.driver.switchTo().defaultContent()
-      const frames = await this.driver.findElements(
-        By.xpath('//iframe'),
-      )
+      const frams = await this.driver.findElements(By.xpath('//iframe'))
 
       /* eslint-disable no-await-in-loop */
-      for (let i = -1; i < frames.length; i++) {
+      for (let i = -1; i < frams.length; i++) {
         await this.driver.switchTo().defaultContent()
         if (i > -1) {
           try {
@@ -223,7 +226,11 @@ class ElementLocator extends Selectors {
           }
         }
 
-        const elements = await this.driver.findElements(By.xpath(this.getSelectors(elementData.id, elementData.exact)['element']))
+        const elements = await this.driver.findElements(
+          By.xpath(
+            this.getSelectors(elementData.id, elementData.exact).element,
+          ),
+        )
         if (elements.length > 0) {
           for (let j = 0; j < elements.length; j++) {
             elements[j].frame = i
@@ -232,12 +239,18 @@ class ElementLocator extends Selectors {
             elements.map(async (element) => this.addQualifiers(element)),
           )
           const matches = await Promise.all(
-            elements.map(async (element) => this.nearestElement(element, elementData.type)),
+            elements.map(async (element) =>
+              this.nearestElement(element, elementData.type),
+            ),
           )
           if (elementData.hidden) {
-            c.push(...matches.filter((e) => e.rect.height < 1 || e.rect.width < 1))
+            c.push(
+              ...matches.filter((e) => e.rect.height < 1 || e.rect.width < 1),
+            )
           } else {
-            c.push(...matches.filter((e) => e.rect.height > 0 && e.rect.width > 0))
+            c.push(
+              ...matches.filter((e) => e.rect.height > 0 && e.rect.width > 0),
+            )
           }
         }
       }
@@ -323,7 +336,8 @@ class ElementLocator extends Selectors {
         }
         if ([undefined, null, ''].includes(element)) {
           throw new ReferenceError(
-            `'${data[i].id}' ${item.located} '${data[i + 2].id
+            `'${data[i].id}' ${item.located} '${
+              data[i + 2].id
             }' has no matching elements on page.`,
           )
         }
@@ -331,6 +345,16 @@ class ElementLocator extends Selectors {
     }
     /* eslint-enable no-await-in-loop */
     // await this.driver.executeScript("arguments[0].setAttribute('style', 'background: blue; border: 2px solid red;');", element);
+
+    if (action !== null) {
+      element = await this.nearestElement(element, action)
+    }
+    if (
+      ['textbox'].includes(stack[0].type) &&
+      !this.selectors.tagnames.textbox.includes(element.tagname)
+    ) {
+      element = await this.nearestElement(element, 'write')
+    }
 
     await this.driver.switchTo().defaultContent()
     if (element.frame >= 0) {
@@ -342,7 +366,7 @@ class ElementLocator extends Selectors {
   async findAll(stack) {
     const data = await this.resolveElements(stack)
 
-    let element = null
+    const element = null
     let elements = []
     /* eslint-disable no-await-in-loop */
     for (let i = data.length - 1; i > -1; i--) {
@@ -374,7 +398,8 @@ class ElementLocator extends Selectors {
         elements = await this.relativeSearch(data[i], item, element)
         if (elements.length < 1) {
           throw new ReferenceError(
-            `'${data[i].id}' ${item.located} '${data[i + 2].id
+            `'${data[i].id}' ${item.located} '${
+              data[i + 2].id
             }' has no matching elements on page.`,
           )
         }
