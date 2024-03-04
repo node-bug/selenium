@@ -96,5 +96,5 @@ class Selectors {
     }
   }
 }
-test1
+test
 module.exports = Selectors
