@@ -584,9 +584,9 @@ class Driver extends Browser {
     let checked = false
     try {
       const locator = await this.finder(null, 'check')
-      if(locator.tagName === 'input'){
+      if (locator.tagName === 'input') {
         checked = await locator.isSelected()
-      } else if(locator.tagName === 'md-checkbox'){
+      } else if (locator.tagName === 'md-checkbox') {
         checked = await locator.getAttribute('aria-checked')
       } else {
         checked = await locator.getAttribute('value')
@@ -624,8 +624,7 @@ class Driver extends Browser {
     const checked = await this.getCheckboxState()
     if (!checked) {
       log.info(`Error while ${this.message}\nCheckbox is not checked.`)
-      err.message = `Error while ${this.message}\nCheckbox is not checked.`
-      throw err
+      throw new Error(`Error while ${this.message}\nCheckbox is not checked.`)
     }
     this.stack = []
     return true
@@ -636,14 +635,13 @@ class Driver extends Browser {
     const checked = await this.getCheckboxState()
     if (checked) {
       log.info(`Error while ${this.message}\nCheckbox is checked.`)
-      err.message = `Error while ${this.message}\nCheckbox is checked.`
-      throw err
+      throw new Error(`Error while ${this.message}\nCheckbox is checked.`)
     }
     this.stack = []
     return true
   }
 
-  async isUnchecked(){
+  async isUnchecked() {
     await this.isNotChecked()
   }
 
@@ -942,23 +940,23 @@ class Driver extends Browser {
     return this.typefixer(data, 'file')
   }
 
-  // row(data) {
-  //   if (typeof data !== 'string') {
-  //     throw new TypeError(
-  //       `Expected parameter for row is string. Received ${typeof data} instead`,
-  //     )
-  //   }
-  //   return this.typefixer(data, 'row')
-  // }
+  row(data) {
+    if (typeof data !== 'string') {
+      throw new TypeError(
+        `Expected parameter for row is string. Received ${typeof data} instead`,
+      )
+    }
+    return this.typefixer(data, 'row')
+  }
 
-  // column(data) {
-  //   if (typeof data !== 'string') {
-  //     throw new TypeError(
-  //       `Expected parameter for column is string. Received ${typeof data} instead`,
-  //     )
-  //   }
-  //   return this.typefixer(data, 'column')
-  // }
+  column(data) {
+    if (typeof data !== 'string') {
+      throw new TypeError(
+        `Expected parameter for column is string. Received ${typeof data} instead`,
+      )
+    }
+    return this.typefixer(data, 'column')
+  }
 
   // table(data) {
   //   if (typeof data !== 'string') {
@@ -969,7 +967,7 @@ class Driver extends Browser {
 
   //   for (let i = this.stack.length - 1; i >= 0; i--) {
   //     if (this.stack[i].type === 'row' || this.stack[i].type === 'column')
-  //     this.stack[i].table = data
+  //       this.stack[i].table = data
   //   }
 
   //   const description = this.stack.pop()

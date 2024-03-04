@@ -185,6 +185,7 @@ class ElementLocator extends Selectors {
           }
         }
       }
+
       const elements = await this.driver.findElements(By.xpath(this.getSelectors(elementData.id, elementData.exact)[elementData.type]))
       if (elements.length > 0) {
         for (let j = 0; j < elements.length; j++) {
@@ -261,8 +262,8 @@ class ElementLocator extends Selectors {
           'textbox',
           'checkbox',
           'image',
-          // 'row',
-          // 'column',
+          'row',
+          'column',
           'toolbar',
           'link',
           'dialog',
@@ -293,8 +294,8 @@ class ElementLocator extends Selectors {
           'textbox',
           'checkbox',
           'image',
-          // 'row',
-          // 'column',
+          'row',
+          'column',
           'toolbar',
           'link',
           'dialog',
@@ -354,8 +355,8 @@ class ElementLocator extends Selectors {
           'textbox',
           'checkbox',
           'image',
-          // 'row',
-          // 'column',
+          'row',
+          'column',
           'toolbar',
           'link',
           'dialog',

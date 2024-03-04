@@ -1,6 +1,6 @@
 {
   "name": "@nodebug/selenium",
-  "version": "4.3.3",
+  "version": "4.3.4",
   "author": {
     "name": "Node Bug",
     "email": "nodebug@outlook.com"
@@ -46,7 +46,7 @@
     "eslint-config-prettier": "8.9.0",
     "eslint-plugin-import": "2.28.0",
     "eslint-plugin-prettier": "5.0.0",
-    "husky": "8.0.3",
+    "husky": "^9.0.11",
     "lint-staged": "13.2.3",
     "prettier": "3.0.0"
   },

@@ -73,12 +73,8 @@ class Selectors {
       image: `//*[(${str}) and self::img]`,
       dialog: `//*[(${str}) and @role='dialog']`,
       file: `//*[(${str}) and (@role='file' or @type='file')]`,
-      // row: `//*[(${str})]/ancestor-or-self::*[${Selectors.self(
-      //   this.tagnames.cell,
-      // )}]`,
-      // column: `//*[(${str})]/ancestor-or-self::*[${Selectors.self(
-      //   this.tagnames.menuitem,
-      // )}]`,
+      row: `//*[(${str})]/ancestor-or-self::tr/td`,
+      column: `//td[count(//*[(${str})]/ancestor-or-self::th/preceding-sibling::th) + 1]`,
       element: `//*[${str}]`,
     }
   }
@@ -94,73 +90,11 @@ class Selectors {
       image: `//*[self::img]`,
       dialog: `//*[@role='dialog']`,
       file: `//*[@role='file' or @type='file']`,
-      // row: `//*[(${str})]/ancestor-or-self::*[${Selectors.self(
-      //   this.tagnames.cell,
-      // )}]`,
-      // column: `//*[(${str})]/ancestor-or-self::*[${Selectors.self(
-      //   this.tagnames.menuitem,
-      // )}]`,
+      row: `//*[self::tr]`,
+      column: `//*[self::th]`,
       element: `//*`,
     }
   }
 }
-
+test
 module.exports = Selectors
-
-// function getSelectorForRow(obj) {
-//   let selector = ''
-//   let t = ''
-//   if (obj.exact) {
-//     attributes.forEach((attribute) => {
-//       selector += `@${attribute}=${transform(obj.id)} or `
-//     })
-//     selector += `normalize-space(.)=${transform(obj.id)} `
-//   } else {
-//     attributes.forEach((attribute) => {
-//       selector += `contains(@${attribute},${transform(obj.id)}) or `
-//     })
-//     selector += `contains(normalize-space(.),${transform(obj.id)}) `
-//   }
-
-//   selector = `//*[${selector}]`
-//   if (obj.table !== undefined) {
-//     attributes.forEach((attribute) => {
-//       t += `contains(@${attribute},${transform(obj.table)}) or `
-//     })
-//     t += `contains(normalize-space(.),${transform(obj.table)}) `
-//     selector = `//table[${t}]/tbody/tr[(.${selector})]` // additional for row
-//   } else {
-//     selector = `//tbody/tr[(.${selector})]` // additional for row
-//   }
-//   return By.xpath(selector)
-// }
-
-// function getSelectorForColumn(obj) {
-//   let selector = ''
-//   let t = ''
-//   if (obj.exact) {
-//     attributes.forEach((attribute) => {
-//       selector += `@${attribute}=${transform(obj.id)} or `
-//     })
-//     selector += `normalize-space(.)=${transform(obj.id)} `
-//   } else {
-//     attributes.forEach((attribute) => {
-//       selector += `contains(@${attribute},${transform(obj.id)}) or `
-//     })
-//     selector += `contains(normalize-space(.),${transform(obj.id)}) `
-//   }
-
-//   selector = `[${selector}]` // additional for column
-//   if (obj.table !== undefined) {
-//     attributes.forEach((attribute) => {
-//       t += `contains(@${attribute},${transform(obj.table)}) or `
-//     })
-//     t += `contains(normalize-space(.),${transform(obj.table)}) `
-//     selector = `//table[${t}]/tbody/tr/*[count(//table[${t}]/thead//th${selector}/preceding-sibling::th)+1]`
-//     // additional for column
-//   } else {
-//     selector = `//tbody/tr/*[count(//thead//th${selector}/preceding-sibling::th)+1]`
-//     // additional for column
-//   }
-//   return By.xpath(selector)
-// }
