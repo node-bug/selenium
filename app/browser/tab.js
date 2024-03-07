@@ -129,7 +129,7 @@ class Tab {
   }
 
   async switch(t = null) {
-    log.debug(`Switching to window with title '${this.tabTitle}'`)
+    log.debug(`Switching to tab with title '${this.tabTitle}'`)
     let timeout = config.timeout * 1000
     if (t !== null) {
       timeout = t

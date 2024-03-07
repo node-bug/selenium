@@ -28,12 +28,15 @@ function messenger(a) {
   } else if (a.action === 'overwrite') {
     message = `Overwriting with '${a.data}' in `
   } else if (a.action === 'select') {
-    message = `Selecting '${a.data}' from dropdown `
+    message = `Selecting `
   } else if (
     a.action === 'isVisible' ||
     a.action === 'isDisabled' ||
     a.action === 'isChecked' ||
-    a.action === 'isNotChecked'
+    a.action === 'isNotChecked' ||
+    a.action === 'isEnabled' ||
+    a.action === 'isSelected' ||
+    a.action === 'isNotSelected'
   ) {
     message = `Validating `
   } else if (a.action === 'waitVisibility' || a.action === 'waitInvisibility') {
@@ -62,6 +65,8 @@ function messenger(a) {
         'element',
         'radio',
         'checkbox',
+        'dropdown',
+        'option',
         'textbox',
         'button',
         'row',
@@ -95,15 +100,21 @@ function messenger(a) {
   if (a.action === 'isVisible') {
     message += `is visible`
   } else if (a.action === 'waitVisibility') {
-    message += `to be visible`
+    message += `to be displayed`
   } else if (a.action === 'waitInvisibility') {
-    message += `to not be visible`
+    message += `to not be displayed`
   } else if (a.action === 'isDisabled') {
     message += `is disabled`
+  } else if (a.action === 'isEnabled') {
+    message += `is enabled`
   } else if (a.action === 'isChecked') {
     message += `is checked`
   } else if (a.action === 'isNotChecked') {
     message += `is not checked`
+  } else if (a.action === 'isSelected') {
+    message += `is selected`
+  } else if (a.action === 'isNotSelected') {
+    message += `is not selected`
   } else if (a.action === 'click') {
     if (a.x !== null && a.y !== null) {
       message += `at location x:${a.x} y:${a.y}`

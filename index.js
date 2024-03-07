@@ -1,10 +1,11 @@
 const { log } = require('@nodebug/logger')
-const { By, Key } = require('selenium-webdriver')
+const { Key } = require('selenium-webdriver')
 const config = require('@nodebug/config')('selenium')
 const Browser = require('./app/browser')
 const ElementLocator = require('./app/browser/elements')
 const messenger = require('./app/messenger')
-// const Alert = require('./app/alerts')
+// const Alert = require('./app/browser/alerts')
+
 class Driver extends Browser {
   constructor() {
     super()
@@ -77,13 +78,12 @@ class Driver extends Browser {
     }
 
     const now = await Date.now()
+    /* eslint-disable no-await-in-loop */
     while (Date.now() < now + timeout && [null, undefined].includes(locator)) {
       try {
-        // eslint-disable-next-line no-await-in-loop
         for (let i = 0; i < stacks.length; i++) {
           const currentStack = stacks[i]
           try {
-            // eslint-disable-next-line no-await-in-loop
             locator = await this.elementlocator.find(currentStack, action)
             break
           } catch (err) {
@@ -97,6 +97,7 @@ class Driver extends Browser {
         continue
       }
     }
+    /* eslint-enable no-await-in-loop */
 
     if ([null, undefined].includes(locator)) {
       throw new Error(
@@ -330,6 +331,10 @@ class Driver extends Browser {
           await this.driver.executeScript('return arguments[0].click();', e)
         } else if (err.name === 'ElementClickInterceptedError') {
           // this is required for clicking on Froala edit boxes
+          await this.driver.executeScript(
+            'return arguments[0].scrollIntoView(true);',
+            e,
+          )
           await this.actions().move({ origin: e }).pause(1000).click().perform()
         } else {
           throw err
@@ -532,31 +537,44 @@ class Driver extends Browser {
     return true
   }
 
-  async select(value) {
-    this.message = messenger({
-      stack: this.stack,
-      action: 'select',
-      data: value,
-    })
+  async select() {
+    this.message = messenger({ stack: this.stack, action: 'select' })
     try {
-      const locator = await this.finder(null, 'select')
-      if (['select'].includes(locator.tagName)) {
-        const selected = await locator.findElements(
-          By.xpath(`.//option[.="${value}"][@selected]`),
-        )
-        if (selected.length > 0) {
-          log.debug(
-            `'${value}' is already selected in the dropdown. Skipping select.`,
-          )
-        } else if (await locator.isEnabled()) {
-          await locator.click()
-          await locator.findElement(By.xpath(`.//option[.="${value}"]`)).click()
-        } else {
-          throw new ReferenceError(`Select element is disabled.`)
-        }
-      } else {
-        throw new ReferenceError(`Element is not of type select`)
-      }
+      let indx = this.stack.findIndex((c) => c.type === 'option')
+      let dropdownStack = JSON.parse(
+        JSON.stringify(this.stack.splice(indx + 1)),
+      )
+      const optionStack = JSON.parse(JSON.stringify(this.stack))
+      indx = dropdownStack.findIndex((c) => c.type === 'dropdown')
+      dropdownStack = JSON.parse(JSON.stringify(dropdownStack.splice(indx)))
+
+      this.stack = dropdownStack
+      this.message = messenger({ stack: this.stack, action: 'click' })
+      const locator = await this.finder()
+      await this.clicker(locator)
+
+      this.stack = optionStack
+      this.message = messenger({ stack: this.stack, action: 'click' })
+      const option = await this.finder()
+      await this.clicker(option)
+
+      // if (['select'].includes(locator.tagName)) {
+      //   const selected = await locator.findElements(
+      //     By.xpath(`.//option[.="${value}"][@selected]`),
+      //   )
+      //   if (selected.length > 0) {
+      //     log.debug(
+      //       `'${value}' is already selected in the dropdown. Skipping select.`,
+      //     )
+      //   } else if (await locator.isEnabled()) {
+      //     await locator.click()
+      //     await locator.findElement(By.xpath(`.//option[.="${value}"]`)).click()
+      //   } else {
+      //     throw new ReferenceError(`Select element is disabled.`)
+      //   }
+      // } else {
+      //   throw new ReferenceError(`Element is not of type select`)
+      // }
     } catch (err) {
       log.error(
         `${this.message}\nError while selecting value in dropdown.\n${err.stack}`,
@@ -661,6 +679,57 @@ class Driver extends Browser {
     await this.isNotChecked()
   }
 
+  async getRadioState() {
+    let selected = false
+    try {
+      const locator = await this.finder(null, 'radio')
+      if (locator.tagName === 'input') {
+        selected = await locator.isSelected()
+      } else if (locator.tagName === 'md-radio') {
+        selected = await locator.getAttribute('aria-checked')
+      } else {
+        selected = await locator.getAttribute('value')
+      }
+      selected = JSON.parse(selected)
+    } catch (err) {
+      log.error(`${this.message}\n${err.stack}`)
+      this.stack = []
+      err.message = `Error while ${this.message}\n${err.message}`
+      throw err
+    }
+
+    if (selected) {
+      log.info('Radio button is selected.')
+    } else {
+      log.info('Radio button is not selected')
+    }
+    return selected
+  }
+
+  async isSelected() {
+    this.message = messenger({ stack: this.stack, action: 'isSelected' })
+    const selected = await this.getRadioState()
+    if (!selected) {
+      log.info(`Error while ${this.message}\nRadio button is not selected.`)
+      throw new Error(
+        `Error while ${this.message}\nRadio button is not selected.`,
+      )
+    }
+    this.stack = []
+    return true
+  }
+
+  async isNotSelected() {
+    this.message = messenger({ stack: this.stack, action: 'isNotSelected' })
+    const selected = await this.getRadioState()
+    if (selected) {
+      log.info(`Error while ${this.message}\nRadio button is selected.`)
+      throw new Error(`Error while ${this.message}\nRadio button is selected.`)
+    }
+    this.stack = []
+    return true
+  }
+
   async isDisabled() {
     this.message = messenger({ stack: this.stack, action: 'isDisabled' })
 
@@ -676,6 +745,23 @@ class Driver extends Browser {
     }
     this.stack = []
     return !result
+  }
+
+  async isEnabled() {
+    this.message = messenger({ stack: this.stack, action: 'isEnabled' })
+
+    let result
+    try {
+      const e = await this.finder()
+      result = await e.isEnabled()
+    } catch (err) {
+      this.stack = []
+      log.info(`Error while ${this.message}\n${err.message}`)
+      err.message = `Error while ${this.message}\n${err.message}`
+      throw err
+    }
+    this.stack = []
+    return result
   }
 
   async isVisible(t = null) {
@@ -949,6 +1035,14 @@ class Driver extends Browser {
     return this.typefixer(data, 'checkbox')
   }
 
+  dropdown(data) {
+    return this.typefixer(data, 'dropdown')
+  }
+
+  option(data) {
+    return this.typefixer(data, 'option')
+  }
+
   image(data) {
     return this.typefixer(data, 'image')
   }
@@ -1086,4 +1180,3 @@ class Driver extends Browser {
 }
 
 module.exports = Driver
-git

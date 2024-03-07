@@ -144,7 +144,9 @@ class ElementLocator extends Selectors {
   }
 
   async nearestElement(element, type = null) {
-    const elements = await element.findElements(By.xpath(this.selectors[type]))
+    const elements = await this.driver.findElements(
+      By.xpath(this.selectors[type]),
+    )
     if (elements.length === 0) {
       return element
     }
@@ -274,6 +276,8 @@ class ElementLocator extends Selectors {
           'radio',
           'textbox',
           'checkbox',
+          'dropdown',
+          'option',
           'image',
           'row',
           'column',
@@ -292,6 +296,7 @@ class ElementLocator extends Selectors {
     return items
   }
 
+  // eslint-disable-next-line no-unused-vars
   async find(stack, action = null) {
     const data = await this.resolveElements(stack)
 
@@ -306,6 +311,8 @@ class ElementLocator extends Selectors {
           'radio',
           'textbox',
           'checkbox',
+          'dropdown',
+          'option',
           'image',
           'row',
           'column',
@@ -344,17 +351,6 @@ class ElementLocator extends Selectors {
       }
     }
     /* eslint-enable no-await-in-loop */
-    // await this.driver.executeScript("arguments[0].setAttribute('style', 'background: blue; border: 2px solid red;');", element);
-
-    if (action !== null) {
-      element = await this.nearestElement(element, action)
-    }
-    if (
-      ['textbox'].includes(stack[0].type) &&
-      !this.selectors.tagnames.textbox.includes(element.tagname)
-    ) {
-      element = await this.nearestElement(element, 'write')
-    }
 
     await this.driver.switchTo().defaultContent()
     if (element.frame >= 0) {
@@ -378,6 +374,8 @@ class ElementLocator extends Selectors {
           'radio',
           'textbox',
           'checkbox',
+          'dropdown',
+          'option',
           'image',
           'row',
           'column',

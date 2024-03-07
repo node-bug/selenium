@@ -99,10 +99,7 @@ class Browser {
   async setSize(size) {
     await this.window.maximize()
     try {
-      if (
-        ![0, undefined, null].includes(size.height) &&
-        ![0, undefined, null].includes(size.width)
-      ) {
+      if (!Number.isNaN(size.width) && !Number.isNaN(size.height)) {
         log.info(`Resizing the browser to ${JSON.stringify(size)}.`)
         await this.driver.manage().window().setRect(size)
         await this.driver.switchTo().defaultContent()
