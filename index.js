@@ -732,7 +732,6 @@ class Driver extends Browser {
 
   async isDisabled() {
     this.message = messenger({ stack: this.stack, action: 'isDisabled' })
-
     let result
     try {
       const e = await this.finder()
@@ -743,13 +742,16 @@ class Driver extends Browser {
       err.message = `Error while ${this.message}\n${err.message}`
       throw err
     }
+    if (result) {
+      log.info(`Error while ${this.message}\nElement is enabled.`)
+      throw new Error(`Error while ${this.message}\nElement is enabled.`)
+    }
     this.stack = []
     return !result
   }
 
   async isEnabled() {
     this.message = messenger({ stack: this.stack, action: 'isEnabled' })
-
     let result
     try {
       const e = await this.finder()
@@ -759,6 +761,10 @@ class Driver extends Browser {
       log.info(`Error while ${this.message}\n${err.message}`)
       err.message = `Error while ${this.message}\n${err.message}`
       throw err
+    }
+    if (!result) {
+      log.info(`Error while ${this.message}\nElement is not enabled.`)
+      throw new Error(`Error while ${this.message}\nElement is not enabled.`)
     }
     this.stack = []
     return result
