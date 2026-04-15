@@ -1,49 +1,88 @@
 /**
- * Simple example showing how to launch and close a browser
+ * Example demonstrating window management features
  * using the repository's WebBrowser class
+ * This example showcases isDisplayed and switch functions
  */
 
-// Import the WebBrowser class
+/* eslint-disable */
 import WebBrowser from './index.js';
 
-async function launchAndCloseBrowser() {
-  console.log('Starting browser automation example...');
-  
-  // Create a new browser instance
+async function runWindowManagementExample() {
+  console.log('Starting window management example...\n');
+
   const browser = new WebBrowser();
-  
+
   try {
-    // Launch the browser
-    console.log('Launching browser...');
+    // Start the browser session
     await browser.start();
-    console.log('Browser launched successfully!');
-    
-    // Get browser information
     const browserName = await browser.name();
-    console.log(`Browser type: ${browserName}`);
-    
-    // Wait a bit to show the browser is running
-    console.log('Browser is running. Waiting 2 seconds...');
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // Close the browser
-    console.log('Closing browser...');
-    await browser.close();
-    console.log('Browser closed successfully!');
-    
-    console.log('Example completed successfully!');
-    
-  } catch (error) {
-    console.error('Error during browser automation:', error);
-    // Ensure browser is closed even if there's an error
+    const osName = await browser.os();
+    await browser.setSize({ width: 1280, height: 800 });
+    await browser.goto('https://www.google.com');
+    const currentUrl = await browser.window.get.url();
+    const pageTitle = await browser.window.get.title();
+    await browser.sleep(1000);
+
+    let isDisplayed = await browser.window.title('Google').isDisplayed();
+    console.log(`✓ Current window is displayed: ${isDisplayed}`);
+
+    isDisplayed = await browser.window.title('Wikipedia').isDisplayed();
+    console.log(`✓ Current window is displayed: ${isDisplayed}`);
+
     try {
-      await browser.close();
-    } catch (closeError) {
-      console.error('Error closing browser:', closeError);
+      await browser.window.title('Wikipedia').switch();
+    } catch (error) {
+      console.log(`✗ Error checking window display: ${error.message}`);
     }
+
+    try {
+      await browser.window.title('Google').switch();
+    } catch (error) {
+      console.log(`✗ Error switching window: ${error.message}`);
+    }
+
+    await browser.window.new();
+    await browser.goto('https://www.wikipedia.org');
+    const newWindowUrl = await browser.window.get.url();
+
+    isDisplayed = await browser.window.title('Wikipedia').isDisplayed();
+    console.log(`✓ Current window is displayed: ${isDisplayed}`);
+
+    isDisplayed = await browser.window.title('Google').isDisplayed();
+    console.log(`✓ Current window is displayed: ${isDisplayed}`);
+
+    try {
+      await browser.window.title('Google').switch();
+      await browser.sleep(1000);
+    } catch (error) {
+      console.log(`✗ Error switching window: ${error.message}`);
+    }
+
+    try {
+      await browser.window.title('Wikipedia').switch();
+      await browser.sleep(1000);
+    } catch (error) {
+      console.log(`✗ Error checking window display: ${error.message}`);
+    }
+
+    try {
+      await browser.window.title('Google').switch();
+      await browser.sleep(1000);
+    } catch (error) {
+      console.log(`✗ Error checking window display: ${error.message}`);
+    }
+
+    const wikipediaUrl = await browser.window.get.url();
+    await browser.window.close();
+    await browser.close();
+  } catch (error) {
+    console.error('\n✗ Error during window management example:', error.message);
+    console.error(error.stack);
     throw error;
   }
 }
 
 // Run the example
-launchAndCloseBrowser().catch(console.error);
+runWindowManagementExample().catch(console.error);
+
+/* eslint-enable */

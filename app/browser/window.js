@@ -94,142 +94,141 @@ class Window {
     return this
   }
 
-  /**
-   * Set window title
-   * @param {string} value - Window title
-   * @returns {Window} Window instance
-   */
+  //required to store the title to check for in isDisplayed and switch functions
   title(value) {
-    this.windowTitle = value
+    this._windowTitleToCheck = value
     return this
   }
 
-  /**
-   * Get window title
-   * @returns {string} Window title
-   */
-  get windowTitle() {
-    return this._title
+  // In JavaScript, if you define both a setter/method named title(value) and a getter named get title(), the getter often overwrites the method property depending on the environment
+  // so using desiredTitle as the property name for the getter to avoid conflicts with the title(value) method
+  get desiredTitle() {
+    return this._windowTitleToCheck
   }
 
-  /**
-   * Set window title
-   * @param {string} value - Window title
-   */
-  set windowTitle(value) {
-    this._title = value
+  set desiredTitle(value) {
+    this._windowTitleToCheck = value
   }
 
   async isDisplayed(t = null) {
-    log.debug(`Checking window with title '${this.windowTitle}' is displayed`)
+    log.debug(`Checking window with title '${this.desiredTitle}' is displayed`)
+    if (this.desiredTitle === undefined) {
+      log.warn(`Window title is not defined. Please set a title to check for using the 'title' function.`)
+    }
     let timeout = selenium.timeout * 1000
     if (t !== null) {
       timeout = t
     }
 
-    const now = Date.now()
-     
-    while (Date.now() < now + timeout) {
-      let og
-      try {
-        try {
-          og = await this.driver.getWindowHandle()
-        } catch (err) {
-          if (err.name === 'NoSuchWindowError') {
-            log.error(`The active window was closed. Is that expected?`)
-          } else {
-            log.error(`Unrecognized error while switching window. ${err}`)
-            throw err
-          }
-        }
+    let og
+    try {
+      og = await this.driver.getWindowHandle()
+    } catch (err) {
+      if (err.name === 'NoSuchWindowError') {
+        log.error(`The active window was closed. Is that expected?`)
+      } else {
+        log.error(`Unrecognized error while switching window. ${err}`)
+        throw err
+      }
+    }
 
+    const now = Date.now()
+
+    while (Date.now() < now + timeout) {
+      try {
         const handles = await this.driver.getAllWindowHandles()
-         
+
         for (const handle of handles) {
-          if (handle !== og) {
-            await this.driver.switchTo().window(handle)
-            if ((await this.get.title()).includes(this.windowTitle)) {
-              if (og !== undefined) {
-                await this.driver.switchTo().window(og)
-              }
-              log.debug(`Found window with title '${await this.get.title()}'`)
-              return true
+          await this.driver.switchTo().window(handle)
+          if ((await this.get.title()).includes(this.desiredTitle)) {
+            if (og !== undefined) {
+              await this.driver.switchTo().window(og)
             }
+            log.debug(`Found window with title '${await this.get.title()}'`)
+            await this.driver.switchTo().window(og)
+            this.desiredTitle = undefined
+            return true
           }
         }
-         
       } catch (err) {
         log.error(
           `Unrecognized error while checking window is displayed : ${err.message}`,
         )
+        this.desiredTitle = undefined
         throw err
       }
     }
-     
-
-    throw new Error(
-      `Window was not found on screen after ${timeout} ms timeout`,
+    log.info(
+      `Window was not found on screen after '${timeout} ms' timeout`,
     )
+    await this.driver.switchTo().window(og)
+    this.desiredTitle = undefined
+    return false
   }
 
   async switch(t = null) {
-    log.debug(`Switching to window with title '${this.windowTitle}'`)
+    log.debug(`Switching to window with title '${this.desiredTitle}'`)
+    if (this.desiredTitle === undefined) {
+      log.warn(`Window title is not defined. Please set a title to check for using the 'title' function.`)
+    }
     let timeout = selenium.timeout * 1000
     if (t !== null) {
       timeout = t
     }
 
-    const now = Date.now()
-     
-    while (Date.now() < now + timeout) {
-      let og
-      try {
-        try {
-          og = await this.driver.getWindowHandle()
-        } catch (err) {
-          if (err.name === 'NoSuchWindowError') {
-            log.error(`The active window was closed. Is that expected?`)
-          } else {
-            log.error(`Unrecognized error while switching window. ${err}`)
-            throw err
-          }
-        }
+    let og
+    try {
+      og = await this.driver.getWindowHandle()
+    } catch (err) {
+      if (err.name === 'NoSuchWindowError') {
+        log.error(`The active window was closed. Is that expected?`)
+      } else {
+        log.error(`Unrecognized error while switching window. ${err}`)
+        throw err
+      }
+    }
 
+    const now = Date.now()
+
+    while (Date.now() < now + timeout) {
+      try {
         const handles = await this.driver.getAllWindowHandles()
-         
+
         for (const handle of handles) {
-          if (handle !== og) {
-            await this.driver.switchTo().window(handle)
-            if ((await this.get.title()).includes(this.windowTitle)) {
-              log.debug(
-                `Successfully switched to window with title '${await this.get.title()}'`,
-              )
-              return true
-            }
+          await this.driver.switchTo().window(handle)
+          if ((await this.get.title()).includes(this.desiredTitle)) {
+            log.debug(
+              `Successfully switched to window with title '${await this.get.title()}'`,
+            )
+            this.desiredTitle = undefined
+            return true
           }
         }
-         
       } catch (err) {
         log.error(
           `Unrecognized error while switching to window with title : ${err.message}`,
         )
+        this.desiredTitle = undefined
         throw err
       }
+      await this.driver.switchTo().window(og)
+      this.desiredTitle = undefined
     }
-     
-
+    log.error(
+      `Window was not found on screen after '${timeout} ms' timeout`,
+    )
     throw new Error(
-      `Window was not found on screen after ${timeout} ms timeout`,
+      `Window was not found on screen after '${timeout} ms' timeout`,
     )
   }
 
   async new() {
-    log.info(`Opening new ${selenium.browser} browser window`)
+    log.info(`Opening new '${selenium.browser}' browser window`)
     return this.driver.switchTo().newWindow('window')
   }
 
   async close() {
-    log.info(`Closing window with title ${await this.get.title()}`)
+    log.info(`Closing window with title '${await this.get.title()}'`)
     await this.driver.close()
     const windows = await this.driver.getAllWindowHandles()
     if (windows.length <= 0) {
@@ -237,7 +236,7 @@ class Window {
     } else {
       await this.driver.switchTo().window(windows[0])
     }
-    log.info(`Currently active window is ${await this.get.title()}`)
+    log.info(`Currently active window is '${await this.get.title()}'`)
     return true
   }
 

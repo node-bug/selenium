@@ -128,6 +128,7 @@ class Browser {
    */
   async os() {
     const capabilities = await this.driver.getCapabilities()
+    log.info(`Running tests on platform: '${capabilities.get('platformName')}'`)
     return capabilities.get('platformName').replace(/\s/g, '')
   }
 
@@ -138,9 +139,8 @@ class Browser {
   async close() {
     try {
       const currentUrl = await this.window.get.url()
-      log.info(`Closing the browser. Current URL is ${currentUrl}.`)
+      log.info(`Closing the browser. Current URL is '${currentUrl}'.`)
       await this.driver.quit()
-      console.log('done')
     } catch (err) {
       log.error(`Error closing browser session: ${err.message}`)
       throw err
@@ -154,40 +154,45 @@ class Browser {
    * @returns {Promise<boolean>} True if successful
    */
   async setSize(size) {
+    const isValidSize = size && 
+                    typeof size === 'object' && 
+                    typeof size.width === 'number' && 
+                    !Number.isNaN(size.width) && 
+                    typeof size.height === 'number' && 
+                    !Number.isNaN(size.height);
+
+    // //maximize no matter what if this function is called
+    // await this.window.maximize()
     try {
-      // Validate input
-      if (!size || typeof size !== 'object' ||
-        Number.isNaN(size.width) || Number.isNaN(size.height)) {
-        throw new Error('Invalid size object. Must contain width and height properties.')
+      if (isValidSize) {
+        await this.driver.manage().window().setRect(size)
+        await this.driver.switchTo().defaultContent()
+
+        const deltaWidth = await this.driver.executeScript(
+          'return window.outerWidth - window.innerWidth'
+        )
+        const deltaHeight = await this.driver.executeScript(
+          'return window.outerHeight - window.innerHeight'
+        )
+
+        const lSize = { ...size }
+        lSize.width += deltaWidth
+        lSize.height += deltaHeight
+        lSize.x = 0
+        lSize.y = 0
+
+        await this.driver.manage().window().setRect(lSize)
+        log.info(`Resizing the browser to (${JSON.stringify(size)}).`)
+
+        return await this.driver.manage().window().setRect(size)
+      } else{
+        log.info(`Invalid size provided (${JSON.stringify(size)}). Browser will not be resized.`)
       }
-
-      await this.window.maximize()
-      log.info(`Resizing the browser to ${JSON.stringify(size)}.`)
-
-      await this.driver.manage().window().setRect(size)
-      await this.driver.switchTo().defaultContent()
-
-      const deltaWidth = await this.driver.executeScript(
-        'return window.outerWidth - window.innerWidth'
-      )
-      const deltaHeight = await this.driver.executeScript(
-        'return window.outerHeight - window.innerHeight'
-      )
-
-      const lSize = { ...size }
-      lSize.width += deltaWidth
-      lSize.height += deltaHeight
-      lSize.x = 0
-      lSize.y = 0
-
-      await this.driver.manage().window().setRect(lSize)
-      log.info(`Resizing the browser to ${JSON.stringify(size)}.`)
-
-      return await this.driver.manage().window().setRect(size)
     } catch (err) {
       log.error(`Error setting browser size: ${err.message}`)
       throw err
     }
+    return false
   }
 
   /**
@@ -199,6 +204,7 @@ class Browser {
       await this.driver.switchTo().defaultContent()
       const width = await this.driver.executeScript('return window.innerWidth')
       const height = await this.driver.executeScript('return window.innerHeight')
+      log.info(`Current browser size is '${width}x${height}'.`)
       return { width, height }
     } catch (err) {
       log.error(`Error getting browser size: ${err.message}`)
@@ -218,7 +224,7 @@ class Browser {
         throw new Error('Invalid URL provided')
       }
 
-      log.info(`Loading the url ${url} in the browser.`)
+      log.info(`Loading the url '${url}' in the browser.`)
 
       await this.setSize({
         width: parseInt(selenium.width, 10),
@@ -234,7 +240,7 @@ class Browser {
       await this.driver.get(url)
       return true
     } catch (err) {
-      log.error(`Unable to navigate to ${url}: ${err.message}`)
+      log.error(`Unable to navigate to '${url}': ${err.message}`)
       throw err
     }
   }
@@ -246,7 +252,7 @@ class Browser {
   async refresh() {
     try {
       const title = await this.window.get.title()
-      log.info(`Refreshing ${title}`)
+      log.info(`Refreshing window with title '${title}'.`)
       await this.driver.navigate().refresh()
     } catch (err) {
       log.error(`Error refreshing page: ${err.message}`)
@@ -261,11 +267,11 @@ class Browser {
   async goBack() {
     try {
       const currentTitle = await this.window.get.title()
-      log.info(`Current page is ${currentTitle}`)
+      log.info(`Current page is '${currentTitle}'`)
       log.info(`Performing browser back`)
       await this.driver.navigate().back()
       const newTitle = await this.window.get.title()
-      log.info(`Loaded page is ${newTitle}`)
+      log.info(`Loaded page is '${newTitle}'`)
       return true
     } catch (err) {
       log.error(`Error going back: ${err.message}`)
@@ -280,11 +286,11 @@ class Browser {
   async goForward() {
     try {
       const currentTitle = await this.window.get.title()
-      log.info(`Current page is ${currentTitle}`)
+      log.info(`Current page is '${currentTitle}'`)
       log.info(`Performing browser forward`)
       await this.driver.navigate().forward()
       const newTitle = await this.window.get.title()
-      log.info(`Loaded page is ${newTitle}`)
+      log.info(`Loaded page is '${newTitle}'`)
       return true
     } catch (err) {
       log.error(`Error going forward: ${err.message}`)
@@ -325,7 +331,7 @@ class Browser {
   async consoleErrors() {
     try {
       const title = await this.window.get.title()
-      log.info(`Getting console errors on page ${title}`)
+      log.info(`Getting console errors on page '${title}'`)
 
       const entries = []
       const logs = []
@@ -335,9 +341,8 @@ class Browser {
       })
 
       await Promise.all(promises)
-
       logs.push(...entries.filter((entry) => entry.level.name === 'SEVERE'))
-
+      log.info(`Found ${logs.length} console error(s) on page '${title}'`)
       return logs
     } catch (err) {
       log.error(`Error getting console errors: ${err.message}`)
