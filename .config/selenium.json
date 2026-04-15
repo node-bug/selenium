@@ -1,5 +1,5 @@
 {
-  "browser": "safari",
+  "browser": "chrome",
   "headless": false,
   "timeout": 10,
   "downloadsPath": "./reports/downloads",

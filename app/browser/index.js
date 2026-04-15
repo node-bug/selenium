@@ -28,7 +28,7 @@ class Browser {
    * @returns {Object} Browser capabilities
    */
   get capabilities() {
-    return JSON.parse(JSON.stringify(this._capabilities));
+    return this._capabilities
   }
 
   /**
@@ -61,7 +61,8 @@ class Browser {
    * @returns {Promise<void>}
    */
   async new() {
-    const builder = new Builder().withCapabilities(this.capabilities)
+    const builder = new Builder()
+    builder.withCapabilities(this.capabilities)
 
     if (this.hub !== undefined && this.hub !== null && this.hub !== '') {
       builder.usingServer(this.hub)
@@ -79,7 +80,13 @@ class Browser {
     }, 10000, 'Timeout waiting for initial window handle');
 
     const cleanup = async () => {
-      if (this.driver) await this.close();
+      if (this.driver) try {
+        await this.driver.quit();
+      } catch {
+        // Ignore errors if session was already closed
+      } finally {
+        this.driver = null; // CRITICAL: Nullify the reference
+      }
       process.exit(0);
     };
 
@@ -133,6 +140,7 @@ class Browser {
       const currentUrl = await this.window.get.url()
       log.info(`Closing the browser. Current URL is ${currentUrl}.`)
       await this.driver.quit()
+      console.log('done')
     } catch (err) {
       log.error(`Error closing browser session: ${err.message}`)
       throw err
