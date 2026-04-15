@@ -82,7 +82,9 @@ class Browser {
       process.exit(0)
     }
     
+    // Remove existing listeners to prevent duplicates
     ['SIGINT', 'SIGTERM', 'exit', 'uncaughtException'].forEach((signal) => {
+      // process.removeAllListeners(signal)
       process.on(signal, cleanup)
     })
   }

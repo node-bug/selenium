@@ -31,7 +31,7 @@ class WebBrowser extends Browser {
       if (
         ![
           "Cannot read properties of undefined (reading 'getSession')",
-          "Cannot read properties of un-defined (reading 'sessionId')",
+          "Cannot read properties of undefined (reading 'sessionId')",
           "Cannot destructure property 'sessionId' of 'this.driver' as it is undefined.",
         ].includes(err.message)
       ) {

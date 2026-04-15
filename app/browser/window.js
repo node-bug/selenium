@@ -127,7 +127,7 @@ class Window {
       timeout = t
     }
 
-    const now = await Date.now()
+    const now = Date.now()
      
     while (Date.now() < now + timeout) {
       let og
@@ -179,7 +179,7 @@ class Window {
       timeout = t
     }
 
-    const now = await Date.now()
+    const now = Date.now()
      
     while (Date.now() < now + timeout) {
       let og
@@ -232,7 +232,7 @@ class Window {
     log.info(`Closing window with title ${await this.get.title()}`)
     await this.driver.close()
     const windows = await this.driver.getAllWindowHandles()
-    if (windows.length < 0) {
+    if (windows.length <= 0) {
       log.error(`No browser windows are currenlty open. Is this expected?`)
     } else {
       await this.driver.switchTo().window(windows[0])
