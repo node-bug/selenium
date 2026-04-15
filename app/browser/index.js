@@ -28,7 +28,7 @@ class Browser {
    * @returns {Object} Browser capabilities
    */
   get capabilities() {
-    return this._capabilities
+    return JSON.parse(JSON.stringify(this._capabilities));
   }
 
   /**
@@ -61,32 +61,31 @@ class Browser {
    * @returns {Promise<void>}
    */
   async new() {
-    const builder = new Builder()
-    builder.withCapabilities(this.capabilities)
-    
+    const builder = new Builder().withCapabilities(this.capabilities)
+
     if (this.hub !== undefined && this.hub !== null && this.hub !== '') {
       builder.usingServer(this.hub)
     }
-    
-    this.driver = builder.build()
+
+    this.driver = await builder.build()
 
     if (this.hub && this.hub !== '' && this.hub !== null && this.hub !== undefined) {
       await this.driver.setFileDetector(new remote.FileDetector())
     }
 
-    await this.sleep(2000)
-    
-    // Setup cleanup handlers
+    await this.driver.wait(async (d) => {
+      const handles = await d.getAllWindowHandles();
+      return handles.length > 0;
+    }, 10000, 'Timeout waiting for initial window handle');
+
     const cleanup = async () => {
-      await this.close()
-      process.exit(0)
+      if (this.driver) await this.close();
+      process.exit(0);
+    };
+
+    if (process.listenerCount('SIGINT') === 0) {
+      ['SIGINT', 'SIGTERM', 'exit', 'uncaughtException'].forEach(signal => process.on(signal, cleanup));
     }
-    
-    // Remove existing listeners to prevent duplicates
-    ['SIGINT', 'SIGTERM', 'exit', 'uncaughtException'].forEach((signal) => {
-      // process.removeAllListeners(signal)
-      process.on(signal, cleanup)
-    })
   }
 
   /**
@@ -149,33 +148,33 @@ class Browser {
   async setSize(size) {
     try {
       // Validate input
-      if (!size || typeof size !== 'object' || 
-          Number.isNaN(size.width) || Number.isNaN(size.height)) {
+      if (!size || typeof size !== 'object' ||
+        Number.isNaN(size.width) || Number.isNaN(size.height)) {
         throw new Error('Invalid size object. Must contain width and height properties.')
       }
-      
+
       await this.window.maximize()
       log.info(`Resizing the browser to ${JSON.stringify(size)}.`)
-      
+
       await this.driver.manage().window().setRect(size)
       await this.driver.switchTo().defaultContent()
-      
+
       const deltaWidth = await this.driver.executeScript(
         'return window.outerWidth - window.innerWidth'
       )
       const deltaHeight = await this.driver.executeScript(
         'return window.outerHeight - window.innerHeight'
       )
-      
+
       const lSize = { ...size }
       lSize.width += deltaWidth
       lSize.height += deltaHeight
       lSize.x = 0
       lSize.y = 0
-      
+
       await this.driver.manage().window().setRect(lSize)
       log.info(`Resizing the browser to ${JSON.stringify(size)}.`)
-      
+
       return await this.driver.manage().window().setRect(size)
     } catch (err) {
       log.error(`Error setting browser size: ${err.message}`)
@@ -210,20 +209,20 @@ class Browser {
       if (!url || typeof url !== 'string') {
         throw new Error('Invalid URL provided')
       }
-      
+
       log.info(`Loading the url ${url} in the browser.`)
-      
+
       await this.setSize({
         width: parseInt(selenium.width, 10),
         height: parseInt(selenium.height, 10),
       })
-      
+
       await this.driver.manage().setTimeouts({
         implicit: 500,
         pageLoad: 6 * this.timeout,
         script: 6 * this.timeout,
       })
-      
+
       await this.driver.get(url)
       return true
     } catch (err) {
@@ -292,18 +291,19 @@ class Browser {
   async reset() {
     try {
       log.info(`Resetting the browser, cache and cookies`)
-      
-      const hs = await this.driver.getAllWindowHandles()
-      for (let i = 1; i < hs.length; i++) {
-        await this.driver.switchTo().window(hs[i])
+
+      const windowHandles = await this.driver.getAllWindowHandles()
+      for (let i = 1; i < windowHandles.length; i++) {
+        await this.driver.switchTo().window(windowHandles[i])
         await this.driver.close()
-        await this.driver.switchTo().window(hs[0])
+        await this.driver.switchTo().window(windowHandles[0])
       }
-      
+
       await this.driver.manage().deleteAllCookies()
       await this.driver.executeScript(
-        'window.sessionStorage.clear();window.localStorage.clear();'
+        'window.sessionStorage.clear(); window.localStorage.clear();'
       )
+      await this.driver.get('about:blank');
     } catch (err) {
       log.error(`Error resetting browser: ${err.message}`)
       throw err
@@ -321,15 +321,15 @@ class Browser {
 
       const entries = []
       const logs = []
-      
+
       const promises = ['browser'].map(async (type) => {
         entries.push(...(await this.driver.manage().logs().get(type)))
       })
-      
+
       await Promise.all(promises)
-      
+
       logs.push(...entries.filter((entry) => entry.level.name === 'SEVERE'))
-      
+
       return logs
     } catch (err) {
       log.error(`Error getting console errors: ${err.message}`)
