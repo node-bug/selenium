@@ -1,5 +1,5 @@
 /**
- * Example demonstrating window management features
+ * Example demonstrating tab management features
  * using the repository's WebBrowser class
  * This example showcases isDisplayed and switch functions
  */
@@ -7,8 +7,8 @@
 /* eslint-disable */
 import WebBrowser from './index.js';
 
-async function runWindowManagementExample() {
-  console.log('Starting window management example...\n');
+async function runTabManagementExample() {
+  console.log('Starting tab management example...\n');
 
   const browser = new WebBrowser();
 
@@ -19,70 +19,81 @@ async function runWindowManagementExample() {
     const osName = await browser.os();
     await browser.setSize({ width: 1280, height: 800 });
     await browser.goto('https://www.google.com');
-    const currentUrl = await browser.window.get.url();
-    const pageTitle = await browser.window.get.title();
+    const currentUrl = await browser.tab.get.url();
+    const pageTitle = await browser.tab.get.title();
     await browser.sleep(1000);
 
-    let isDisplayed = await browser.window.title('Google').isDisplayed();
-    console.log(`✓ Current window is displayed: ${isDisplayed}`);
+    let isDisplayed = await browser.tab.title('Google').isDisplayed();
+    console.log(`✓ Current tab is displayed: ${isDisplayed}`);
 
-    isDisplayed = await browser.window.title('Wikipedia').isDisplayed();
-    console.log(`✓ Current window is displayed: ${isDisplayed}`);
+    isDisplayed = await browser.tab.title('Wikipedia').isDisplayed();
+    console.log(`✓ Current tab is displayed: ${isDisplayed}`);
 
     try {
-      await browser.window.title('Wikipedia').switch();
+      await browser.tab.title('Wikipedia').switch();
     } catch (error) {
-      console.log(`✗ Error checking window display: ${error.message}`);
+      console.log(`✗ Error checking tab display: ${error.message}`);
     }
 
     try {
-      await browser.window.title('Google').switch();
+      await browser.tab.title('Google').switch();
     } catch (error) {
-      console.log(`✗ Error switching window: ${error.message}`);
+      console.log(`✗ Error switching tab: ${error.message}`);
     }
 
-    await browser.window.new();
+    await browser.tab.new();
     await browser.goto('https://www.wikipedia.org');
-    const newWindowUrl = await browser.window.get.url();
+    const newWindowUrl = await browser.tab.get.url();
 
-    isDisplayed = await browser.window.title('Wikipedia').isDisplayed();
-    console.log(`✓ Current window is displayed: ${isDisplayed}`);
+    isDisplayed = await browser.tab.title('Wikipedia').isDisplayed();
+    console.log(`✓ Current tab is displayed: ${isDisplayed}`);
 
-    isDisplayed = await browser.window.title('Google').isDisplayed();
-    console.log(`✓ Current window is displayed: ${isDisplayed}`);
+    isDisplayed = await browser.tab.title('Google').isDisplayed();
+    console.log(`✓ Current tab is displayed: ${isDisplayed}`);
 
     try {
-      await browser.window.title('Google').switch();
+      await browser.tab.title('Google').switch();
       await browser.sleep(1000);
     } catch (error) {
-      console.log(`✗ Error switching window: ${error.message}`);
+      console.log(`✗ Error switching tab: ${error.message}`);
     }
 
     try {
-      await browser.window.title('Wikipedia').switch();
+      await browser.tab.title('Wikipedia').switch();
       await browser.sleep(1000);
     } catch (error) {
-      console.log(`✗ Error checking window display: ${error.message}`);
+      console.log(`✗ Error checking tab display: ${error.message}`);
     }
 
     try {
-      await browser.window.title('Google').switch();
+      await browser.tab.title('Google').switch();
       await browser.sleep(1000);
     } catch (error) {
-      console.log(`✗ Error checking window display: ${error.message}`);
+      console.log(`✗ Error checking tab display: ${error.message}`);
     }
 
-    const wikipediaUrl = await browser.window.get.url();
-    await browser.window.close();
+    const wikipediaUrl = await browser.tab.get.url();
+    await browser.tab.close();
+
+    try {
+      await browser.tab.title('Google').switch();
+      await browser.sleep(1000);
+    } catch (error) {
+      console.log(`✗ Error checking tab display: ${error.message}`);
+    }
+
+    isDisplayed = await browser.tab.title('Google').isDisplayed();
+    console.log(`✓ Current tab is displayed: ${isDisplayed}`);
+
     await browser.close();
   } catch (error) {
-    console.error('\n✗ Error during window management example:', error.message);
+    console.error('\n✗ Error during tab management example:', error.message);
     console.error(error.stack);
     throw error;
   }
 }
 
 // Run the example
-runWindowManagementExample().catch(console.error);
+runTabManagementExample().catch(console.error);
 
 /* eslint-enable */

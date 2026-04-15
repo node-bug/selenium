@@ -4,6 +4,7 @@ import { Builder } from 'selenium-webdriver'
 import remote from 'selenium-webdriver/remote/index.js'
 import capabilities from '../capabilities/index.js'
 import Window from './window.js'
+import Tab from './tab.js'
 
 const selenium = config('selenium')
 
@@ -16,6 +17,7 @@ class Browser {
    */
   constructor() {
     this.window = new Window()
+    this.tab = new Tab()
     this.capabilities = capabilities()
 
     if (selenium.hub !== null) {
@@ -54,6 +56,7 @@ class Browser {
   set driver(value) {
     this._driver = value
     this.window.driver = value
+    this.tab.driver = value
   }
 
   /**
