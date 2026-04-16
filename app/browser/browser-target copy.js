@@ -65,7 +65,7 @@ export class BrowserTarget {
         if (typeof this._pendingTitle === 'number') {
             log.debug(`SmartSwitch: Ensuring focus on ${this._label} index ${this._pendingTitle}`);
             await this.title(this._pendingTitle).switch();
-        }
+        } 
         // NAME BASED SMART FOCUS
         else {
             const currentTitle = await this.driver.getTitle();
@@ -79,32 +79,22 @@ export class BrowserTarget {
 
     async _findTarget(shouldSwitch, customTimeout) {
         const timeout = customTimeout ?? this.timeout;
+        log.debug(`Checking ${this._label} with title '${this._targetTitle}' is displayed`);
 
         // 1. FAST PATH FOR INDEX-BASED SWITCHING
-        try {
-            if (typeof this._targetTitle === 'number') {
-                const handles = await this.driver.getAllWindowHandles();
-                if (this._targetTitle >= handles.length || this._targetTitle < 0) {
-                    log.info(`${this._label} with index ${this._targetTitle} was not found on screen after '${timeout} ms' timeout`);
-                    if (shouldSwitch) {
-                        log.error(`Failed to switch to ${this._label} with index ${this._targetTitle} after '${timeout} ms' timeout`);
-                        throw new Error(`Failed to switch to ${this._label} with index ${this._targetTitle} after '${timeout} ms' timeout`);
-                    }
-                    return false;
-                } else {
-                    log.info(`${this._label} with index '${this._targetTitle}' is displayed`);
-                    if (shouldSwitch) {
-                        await this.driver.switchTo().window(handles[this._targetTitle]);
-                        log.info(`Successfully switched to ${this._label} with index ${this._targetTitle}`);
-                    }
-                    return true
-                }
+        if (typeof this._targetTitle === 'number') {
+            const handles = await this.driver.getAllWindowHandles();
+            if (this._targetTitle >= handles.length || this._targetTitle < 0) {
+                throw new Error(`${this._label} index ${this._targetTitle} is out of bounds (Total: ${handles.length})`);
             }
-        } finally {
+            const handle = handles[this._targetTitle];
+            await this.driver.switchTo().window(handle);
             this._targetTitle = undefined;
+            return true;
         }
 
         // 2. NAME-BASED SEARCH LOOP
+        log.debug(`Checking ${this._label} with title '${this._targetTitle}' is displayed`);
         let og;
         try {
             og = await this.driver.getWindowHandle();
@@ -117,7 +107,6 @@ export class BrowserTarget {
             }
         }
 
-        log.debug(`Checking ${this._label} with title '${this._targetTitle}' is displayed`);
         const startTime = Date.now();
         try {
             while (Date.now() - startTime < timeout) {

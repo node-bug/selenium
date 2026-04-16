@@ -47,14 +47,14 @@ describe('WebBrowser Integration Tests', () => {
     })
 
     it('should get current URL', async () => {
-      const url = await browser.window.get.url()
+      const url = await browser.window().get.url()
       expect(url).toBeDefined()
       expect(typeof url).toBe('string')
       expect(url.length).toBeGreaterThan(0)
     })
 
     it('should get page title', async () => {
-      const title = await browser.window.get.title()
+      const title = await browser.window().get.title()
       expect(title).toBeDefined()
       expect(typeof title).toBe('string')
       // Title might be empty if page hasn't loaded yet
@@ -67,7 +67,7 @@ describe('WebBrowser Integration Tests', () => {
       const initialHandles = await browser.driver.getAllWindowHandles()
       const initialCount = initialHandles.length
 
-      await browser.window.new()
+      await browser.window().new()
 
       const newHandles = await browser.driver.getAllWindowHandles()
       expect(newHandles.length).toBe(initialCount + 1)
@@ -75,7 +75,7 @@ describe('WebBrowser Integration Tests', () => {
 
     it('should close a browser window', async () => {
       const handlesBefore = await browser.driver.getAllWindowHandles()
-      await browser.window.close()
+      await browser.window().close()
 
       const handlesAfter = await browser.driver.getAllWindowHandles()
       expect(handlesAfter.length).toBe(handlesBefore.length - 1)
@@ -86,7 +86,7 @@ describe('WebBrowser Integration Tests', () => {
       const initialWidth = currentRect.width
       const initialHeight = currentRect.height
 
-      await browser.window.maximize()
+      await browser.window().maximize()
 
       const maximizedRect = await browser.driver.manage().window().getRect()
       expect(maximizedRect.width).toBeGreaterThanOrEqual(initialWidth)
@@ -94,7 +94,7 @@ describe('WebBrowser Integration Tests', () => {
     })
 
     it('should minimize the browser window', async () => {
-      await browser.window.minimize()
+      await browser.window().minimize()
 
       // Wait a moment for minimize to take effect
       await new Promise(resolve => setTimeout(resolve, 1000))
@@ -115,19 +115,19 @@ describe('WebBrowser Integration Tests', () => {
 
     it('should switch between windows by title', async () => {
       // Open a new window
-      await browser.window.new()
+      await browser.window().new()
       // Navigate to Google in the new window
       await browser.goto('https://www.google.com')
-      const title = await browser.window.get.title()
+      const title = await browser.window().get.title()
       expect(title).toBeDefined()
 
-      await browser.window.new()
+      await browser.window().new()
       await browser.goto('https://www.wikipedia.com')
       
       // Switch to the window by title
-      const switched = await browser.window.title(title).switch()
+      const switched = await browser.window().title(title).switch()
       expect(switched).toBe(true)
-      const title2 = await browser.window.get.title()
+      const title2 = await browser.window().get.title()
       expect(title2).toBe(title)
     })
   })
@@ -155,9 +155,9 @@ describe('WebBrowser Integration Tests', () => {
       // Open multiple tabs
       await browser.tab.new()
       await browser.goto('https://www.google.com')
-      const title = await browser.window.get.title()
+      const title = await browser.window().get.title()
       expect(title).toBeDefined()
-      const currentUrl = await browser.window.get.url()
+      const currentUrl = await browser.window().get.url()
       expect(currentUrl).toBeDefined()
 
       await browser.tab.new()
@@ -168,16 +168,16 @@ describe('WebBrowser Integration Tests', () => {
 
       // Switch to the second tab (index 1)
       await browser.tab.switchTab(1)
-      const title2 = await browser.window.get.title()
+      const title2 = await browser.window().get.title()
       expect(title2).toBe(title)
-      const currentUrl2 = await browser.window.get.url()
+      const currentUrl2 = await browser.window().get.url()
       expect(currentUrl).toBe(currentUrl2)
     })
 
     it('should switch to a tab by title', async () => {
       // Navigate to GitHub
       await browser.goto('https://www.github.com')
-      const title = await browser.window.get.title()
+      const title = await browser.window().get.title()
       expect(title).toBeDefined()
 
       await browser.tab.new()
@@ -187,7 +187,7 @@ describe('WebBrowser Integration Tests', () => {
       // Switch to the tab by title
       const switched = await browser.tab.title(title).switch()
       expect(switched).toBe(true)
-      const title2 = await browser.window.get.title()
+      const title2 = await browser.window().get.title()
       expect(title2).toBe(title)
     })
   })
@@ -197,14 +197,14 @@ describe('WebBrowser Integration Tests', () => {
       const url = testUrls[0]
       await browser.goto(url)
 
-      const currentUrl = await browser.window.get.url()
+      const currentUrl = await browser.window().get.url()
       expect(currentUrl).toContain('google.com')
     })
 
     it('should navigate to multiple URLs', async () => {
       for (const url of testUrls) {
         await browser.goto(url)
-        const currentUrl = await browser.window.get.url()
+        const currentUrl = await browser.window().get.url()
         expect(currentUrl).toBeDefined()
       }
     })
@@ -213,11 +213,11 @@ describe('WebBrowser Integration Tests', () => {
       const url = testUrls[0]
       await browser.goto(url)
 
-      const titleBefore = await browser.window.get.title()
+      const titleBefore = await browser.window().get.title()
       await browser.refresh()
 
       await new Promise(resolve => setTimeout(resolve, 1000))
-      const titleAfter = await browser.window.get.title()
+      const titleAfter = await browser.window().get.title()
 
       expect(titleBefore).toBeDefined()
       expect(titleAfter).toBeDefined()
@@ -232,7 +232,7 @@ describe('WebBrowser Integration Tests', () => {
 
       await browser.goBack()
 
-      const currentUrl = await browser.window.get.url()
+      const currentUrl = await browser.window().get.url()
       expect(currentUrl).toContain('google.com')
     })
 
@@ -248,7 +248,7 @@ describe('WebBrowser Integration Tests', () => {
 
       await browser.goForward()
 
-      const currentUrl = await browser.window.get.url()
+      const currentUrl = await browser.window().get.url()
       expect(currentUrl).toContain('github.com')
     })
   })
@@ -256,38 +256,38 @@ describe('WebBrowser Integration Tests', () => {
   describe('Window and Tab Management', () => {
     it('should manage multiple windows and tabs', async () => {
       // Open multiple windows
-      await browser.window.new()
-      await browser.window.new()
+      await browser.window().new()
+      await browser.window().new()
 
       // Open multiple tabs
-      await browser.tab.new()
-      await browser.tab.new()
+      await browser.tab().new()
+      await browser.tab().new()
 
       const handles = await browser.driver.getAllWindowHandles()
       expect(handles.length).toBeGreaterThanOrEqual(4)
 
       // Switch between tabs
-      await browser.tab.switchTab(0)
-      const currentUrl = await browser.window.get.url()
+      await browser.tab().switchTab(0)
+      const currentUrl = await browser.window().get.url()
       expect(currentUrl).toBeDefined()
     })
 
     it('should handle window switching correctly', async () => {
       // Open a new window
-      await browser.window.new()
+      await browser.window().new()
 
       // Navigate to Google in the new window
       await browser.goto('https://www.google.com')
       await new Promise(resolve => setTimeout(resolve, 3000))
 
-      const googleUrl = await browser.window.get.url()
+      const googleUrl = await browser.window().get.url()
       expect(googleUrl).toContain('google.com')
 
       // Switch back to main window
       const handles = await browser.driver.getAllWindowHandles()
       await browser.driver.switchTo().window(handles[0])
 
-      const mainUrl = await browser.window.get.url()
+      const mainUrl = await browser.window().get.url()
       expect(mainUrl).toBeDefined()
     })
   })
@@ -321,14 +321,14 @@ describe('WebBrowser Integration Tests', () => {
         expect(error.message).toContain(`Unable to navigate to '${invalidUrl}'`)
       }
 
-      const currentUrl = await browser.window.get.url()
+      const currentUrl = await browser.window().get.url()
       // The browser might handle this differently, so we just check it doesn't crash
       expect(currentUrl).toBeDefined()
     })
 
     it('should handle closing already closed window', async () => {
       // This should not throw an error
-      await browser.window.close()
+      await browser.window().close()
       expect(true).toBe(true)
     })
   })

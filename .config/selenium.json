@@ -1,6 +1,6 @@
 {
   "browser": "chrome",
-  "headless": true,
+  "headless": false,
   "timeout": 10,
   "downloadsPath": "./reports/downloads",
   "incognito": false,

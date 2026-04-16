@@ -16,8 +16,18 @@ class Browser {
    * Create a new Browser instance
    */
   constructor() {
-    this.window = new Window()
-    this.tab = new Tab()
+    this._windowInstance = new Window();
+    this._tabInstance = new Tab();
+    this.window = (title) => {
+      this._windowInstance.title(title);
+      return this._windowInstance;
+    };
+
+    this.tab = (title) => {
+      this._tabInstance.title(title);
+      return this._tabInstance;
+    };
+
     this.capabilities = capabilities()
 
     if (selenium.hub !== null) {
@@ -55,8 +65,8 @@ class Browser {
    */
   set driver(value) {
     this._driver = value
-    this.window.driver = value
-    this.tab.driver = value
+    this._windowInstance.driver = value;
+    this._tabInstance.driver = value;
   }
 
   /**
@@ -141,7 +151,7 @@ class Browser {
    */
   async close() {
     try {
-      const currentUrl = await this.window.get.url()
+      const currentUrl = await this.window().get.url()
       log.info(`Closing the browser. Current URL is '${currentUrl}'.`)
       await this.driver.quit()
     } catch (err) {
@@ -157,12 +167,12 @@ class Browser {
    * @returns {Promise<boolean>} True if successful
    */
   async setSize(size) {
-    const isValidSize = size && 
-                    typeof size === 'object' && 
-                    typeof size.width === 'number' && 
-                    !Number.isNaN(size.width) && 
-                    typeof size.height === 'number' && 
-                    !Number.isNaN(size.height);
+    const isValidSize = size &&
+      typeof size === 'object' &&
+      typeof size.width === 'number' &&
+      !Number.isNaN(size.width) &&
+      typeof size.height === 'number' &&
+      !Number.isNaN(size.height);
 
     // //maximize no matter what if this function is called
     // await this.window.maximize()
@@ -188,7 +198,7 @@ class Browser {
         log.info(`Resizing the browser to (${JSON.stringify(size)}).`)
 
         return await this.driver.manage().window().setRect(size)
-      } else{
+      } else {
         log.info(`Invalid size provided (${JSON.stringify(size)}). Browser will not be resized.`)
       }
     } catch (err) {
@@ -254,7 +264,7 @@ class Browser {
    */
   async refresh() {
     try {
-      const title = await this.window.get.title()
+      const title = await this.window().get.title()
       log.info(`Refreshing window with title '${title}'.`)
       await this.driver.navigate().refresh()
     } catch (err) {
@@ -269,11 +279,11 @@ class Browser {
    */
   async goBack() {
     try {
-      const currentTitle = await this.window.get.title()
+      const currentTitle = await this.window().get.title()
       log.info(`Current page is '${currentTitle}'`)
       log.info(`Performing browser back`)
       await this.driver.navigate().back()
-      const newTitle = await this.window.get.title()
+      const newTitle = await this.window().get.title()
       log.info(`Loaded page is '${newTitle}'`)
       return true
     } catch (err) {
@@ -288,11 +298,11 @@ class Browser {
    */
   async goForward() {
     try {
-      const currentTitle = await this.window.get.title()
+      const currentTitle = await this.window().get.title()
       log.info(`Current page is '${currentTitle}'`)
       log.info(`Performing browser forward`)
       await this.driver.navigate().forward()
-      const newTitle = await this.window.get.title()
+      const newTitle = await this.window().get.title()
       log.info(`Loaded page is '${newTitle}'`)
       return true
     } catch (err) {
@@ -333,7 +343,7 @@ class Browser {
    */
   async consoleErrors() {
     try {
-      const title = await this.window.get.title()
+      const title = await this.window().get.title()
       log.info(`Getting console errors on page '${title}'`)
 
       const entries = []
