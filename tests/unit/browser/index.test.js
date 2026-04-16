@@ -45,14 +45,14 @@ describe('WebBrowser', () => {
   describe('name method', () => {
     it('should return browser name', async () => {
       // This test would require a real browser session
-      expect(typeof browser.name).toBe('function')
+      expect(typeof browser.get.name).toBe('function')
     })
   })
 
   describe('os method', () => {
     it('should return operating system', async () => {
       // This test would require a real browser session
-      expect(typeof browser.os).toBe('function')
+      expect(typeof browser.get.os).toBe('function')
     })
   })
 
@@ -77,10 +77,10 @@ describe('WebBrowser', () => {
     })
   })
 
-  describe('getSize method', () => {
+  describe('get size method', () => {
     it('should get browser window size', async () => {
       // This test would require a real browser session
-      expect(typeof browser.getSize).toBe('function')
+      expect(typeof browser.get.size).toBe('function')
     })
   })
 

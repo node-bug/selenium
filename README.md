@@ -38,6 +38,8 @@ module.exports = {
     timeout: 30, // Default timeout in seconds
     width: 1280, // Default browser width
     height: 800, // Default browser height
+    headless: false, // Run in headless mode (true/false)
+    incognito: false, // Run in incognito mode (true/false)
   },
 }
 ```
@@ -58,8 +60,8 @@ async function runExample() {
     console.log('Browser started')
 
     // Get browser information
-    const browserName = await browser.name()
-    const osName = await browser.os()
+    const browserName = await browser.get.name()
+    const osName = await browser.get.os()
     console.log(`Browser: ${browserName}, OS: ${osName}`)
 
     // Set window size
@@ -125,13 +127,13 @@ This example demonstrates basic window management operations:
 await browser.setSize({ width: 1280, height: 800 })
 
 // Maximize window
-await browser.window.maximize()
+await browser.window().maximize()
 
 // Minimize window
-await browser.window.minimize()
+await browser.window().minimize()
 
 // Switch to fullscreen
-await browser.window.fullscreen()
+await browser.window().fullscreen()
 
 // Restore window size
 await browser.setSize({ width: 1280, height: 800 })
@@ -143,11 +145,11 @@ This example demonstrates advanced window management features:
 
 ```javascript
 // Check if a window is displayed
-const isDisplayed = await browser.window.title('some title').isDisplayed()
+const isDisplayed = await browser.window('some title').isDisplayed()
 console.log(`Window is displayed: ${isDisplayed}`)
 
 // Switch to a window with a specific title
-await browser.window.title('some other title').switch()
+await browser.window('some other title').switch()
 
 // Open a new window
 await browser.window.new()
@@ -164,10 +166,10 @@ Checks if a window with a specific title is displayed and visible.
 
 ```javascript
 // Check if current window is displayed
-const isDisplayed = await browser.window.title('some title').isDisplayed()
+const isDisplayed = await browser.window('some title').isDisplayed()
 
 // Check with custom timeout
-const isDisplayed = await browser.window.title('some title').isDisplayed(5000)
+const isDisplayed = await browser.window('some title').isDisplayed(5000)
 ```
 
 **switch()**
@@ -175,45 +177,189 @@ Switches to a window with a specific title.
 
 ```javascript
 // Switch to window with title "Google"
-await browser.window.title('some title').switch()
+await browser.window('some title').switch()
 
 // Switch with custom timeout
-await browser.window.title('some other title').switch(5000)
+await browser.window('some other title').switch(5000)
 ```
 
 **new()**
 Opens a new browser window.
 
 ```javascript
-await browser.window.new()
+await browser.window().new()
 ```
 
 **close()**
 Closes the current window.
 
 ```javascript
-await browser.window.close()
+await browser.window().close()
 ```
 
 **maximize()**
 Maximizes the browser window.
 
 ```javascript
-await browser.window.maximize()
+await browser.window().maximize()
 ```
 
 **minimize()**
 Minimizes the browser window.
 
 ```javascript
-await browser.window.minimize()
+await browser.window('some window title').minimize()
 ```
 
 **fullscreen()**
 Switches the browser to fullscreen mode.
 
 ```javascript
-await browser.window.fullscreen()
+await browser.window(index).fullscreen()
+await browser.window('some window title').fullscreen()
+await browser.window().fullscreen()
+```
+
+### Tab Management Examples
+
+The library provides tab management capabilities through the `Tab` class.
+
+**tab.new()**
+Opens a new browser tab.
+
+```javascript
+await browser.tab().new()
+```
+
+**tab.close()**
+Closes the current tab.
+
+```javascript
+await browser.tab('some tab title').close()
+await browser.tab(3).close()
+```
+
+**tab.isDisplayed()**
+Checks if a tab with a specific index is displayed and visible.
+
+```javascript
+// Check if tab at index 0 is displayed
+const isDisplayed = await browser.tab(0).isDisplayed()
+
+// Check with custom timeout
+const isDisplayed = await browser.tab(0).isDisplayed(5000)
+```
+
+**tab.switch()**
+Switches to a tab with a specific index.
+
+```javascript
+// Switch to tab at index 0
+await browser.tab(0).switch()
+
+// Switch with custom timeout
+await browser.tab(0).switch(5000)
+```
+
+**tab.get.url()**
+Gets the current tab or another tab URL.
+
+```javascript
+const url = await browser.tab().get.url()
+const url2 = await browser.tab('some other tab').get.url()
+```
+
+**tab.get.title()**
+Gets the current tab or by index title.
+
+```javascript
+const title = await browser.tab().get.title()
+const title2 = await browser.tab(5).get.title()
+```
+
+### Alert Management Examples
+
+The library provides alert management capabilities through the `Alert` class.
+
+**alert.text()**
+Sets the text for an alert to be handled.
+
+```javascript
+await browser.alert().get.text()
+```
+
+**alert.isVisible()**
+Accepts an alert.
+
+```javascript
+await browser.alert('Some alert text').isVisible()
+```
+
+**alert.accept()**
+Accepts an alert.
+
+```javascript
+await browser.alert().accept()
+await browser.alert('some text').accept()
+```
+
+**alert.dismiss()**
+Dismisses an alert.
+
+```javascript
+await browser.alert().dismiss()
+await browser.alert('some text').dismiss()
+```
+
+## Browser Support
+
+- Chrome
+- Firefox
+- Safari
+- Edge
+
+## Testing
+
+Run the test suite:
+
+```bash
+npm test
+```
+
+Run linting:
+
+```bash
+npm run lint
+```
+
+## License
+
+MPL-2.0
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## Support
+
+For issues and questions, please visit the [GitHub repository](https://github.com/node-bug/selenium/issues).
+
+```javascript
+await browser.window().maximize()
+```
+
+**minimize()**
+Minimizes the browser window.
+
+```javascript
+await browser.window().minimize()
+```
+
+**fullscreen()**
+Switches the browser to fullscreen mode.
+
+```javascript
+await browser.window().fullscreen()
 ```
 
 ### API Reference
@@ -248,14 +394,14 @@ await browser.close()
 Gets the browser name.
 
 ```javascript
-const browserName = await browser.name()
+const browserName = await browser.get.name()
 ```
 
 **os()**
 Gets the operating system name.
 
 ```javascript
-const osName = await browser.os()
+const osName = await browser.get.os()
 ```
 
 **setSize(size)**
@@ -265,11 +411,11 @@ Sets the browser window size.
 await browser.setSize({ width: 1280, height: 800 })
 ```
 
-**getSize()**
+**get.size()**
 Gets the current browser window size.
 
 ```javascript
-const size = await browser.getSize()
+const size = await browser.get.size()
 // Returns: { width: number, height: number }
 ```
 
@@ -338,49 +484,53 @@ The `browser.window` object provides access to window management methods.
 Gets the current URL.
 
 ```javascript
-const url = await browser.window.get.url()
+const url = await browser.window().get.url()
 ```
 
 **window.get.title()**
 Gets the page title.
 
 ```javascript
-const title = await browser.window.get.title()
+const title = await browser.window().get.title()
 ```
 
 **window.maximize()**
 Maximizes the browser window.
 
 ```javascript
-await browser.window.maximize()
+await browser.window().maximize()
 ```
 
 **window.minimize()**
 Minimizes the browser window.
 
 ```javascript
-await browser.window.minimize()
+await browser.window('some window title').minimize()
 ```
 
 **window.fullscreen()**
 Switches the browser to fullscreen mode.
 
 ```javascript
-await browser.window.fullscreen()
+await browser.window(index).fullscreen()
+await browser.window('some window title').fullscreen()
+await browser.window().fullscreen()
 ```
 
 **window.new()**
 Opens a new browser window.
 
 ```javascript
-await browser.window.new()
+await browser.window().new()
 ```
 
 **window.close()**
 Closes the current window.
 
 ```javascript
-await browser.window.close()
+await browser.window(index).close()
+await browser.window('title').close()
+await browser.window().close()
 ```
 
 **window.isDisplayed()**
@@ -388,21 +538,78 @@ Checks if a window with a specific title is displayed and visible.
 
 ```javascript
 // Check current window
-const isDisplayed = await browser.window.title('some title').isDisplayed()
+const isDisplayed = await browser.window('some title').isDisplayed()
 
 // Check with custom timeout
-const isDisplayed = await browser.window.title('some title').isDisplayed(5000)
+const isDisplayed = await browser.window('some title').isDisplayed(5000)
 ```
 
 **window.switch()**
 Switches to a window with a specific title.
 
 ```javascript
-// Switch to window with title "Google"
-await browser.window.title('some title').switch()
+// Switch to window with title
+await browser.window('some title').switch()
 
 // Switch with custom timeout
-await browser.window.title('some title').switch(5000)
+await browser.window('some title').switch(5000)
+```
+
+#### Tab Object
+
+The `browser.tab` object provides access to tab management methods.
+
+**tab.new()**
+Opens a new browser tab.
+
+```javascript
+await browser.tab().new()
+```
+
+**tab.close()**
+Closes the current tab.
+
+```javascript
+await browser.tab('some tab title').close()
+await browser.tab(3).close()
+```
+
+**tab.isDisplayed()**
+Checks if a tab with a specific index is displayed and visible.
+
+```javascript
+// Check if tab at index 0 is displayed
+const isDisplayed = await browser.tab(0).isDisplayed()
+
+// Check with custom timeout
+const isDisplayed = await browser.tab(0).isDisplayed(5000)
+```
+
+**tab.switch()**
+Switches to a tab with a specific index.
+
+```javascript
+// Switch to tab at index 0
+await browser.tab(0).switch()
+
+// Switch with custom timeout
+await browser.tab(0).switch(5000)
+```
+
+**tab.get.url()**
+Gets the current tab or another tab URL.
+
+```javascript
+const url = await browser.tab().get.url()
+const url2 = await browser.tab('some other tab').get.url()
+```
+
+**tab.get.title()**
+Gets the current tab or by index title.
+
+```javascript
+const title = await browser.tab().get.title()
+const title2 = await browser.tab(5).get.title()
 ```
 
 ## Browser Support

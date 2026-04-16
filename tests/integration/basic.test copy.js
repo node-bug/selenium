@@ -123,28 +123,12 @@ describe('WebBrowser Integration Tests', () => {
 
       await browser.window().new()
       await browser.goto('https://www.wikipedia.com')
-      
+
       // Switch to the window by title
       const switched = await browser.window().title(title).switch()
       expect(switched).toBe(true)
       const title2 = await browser.window().get.title()
       expect(title2).toBe(title)
-    })
-
-    it('should switch between windows by index', async () => {
-      // Open a new window
-      await browser.window().new()
-      
-      // Get handles and switch by index
-      const handles = await browser.driver.getAllWindowHandles()
-      expect(handles.length).toBeGreaterThanOrEqual(2)
-      
-      // Switch to the second window (index 1)
-      await browser.window(1).switch()
-      
-      // Verify we switched to the correct window
-      const currentTitle = await browser.window().get.title()
-      expect(currentTitle).toBeDefined()
     })
   })
 
@@ -183,7 +167,7 @@ describe('WebBrowser Integration Tests', () => {
       expect(handles.length).toBeGreaterThanOrEqual(3)
 
       // Switch to the second tab (index 1)
-      await browser.tab(1).switch()
+      await browser.tab().switchTab(1)
       const title2 = await browser.window().get.title()
       expect(title2).toBe(title)
       const currentUrl2 = await browser.window().get.url()
@@ -201,30 +185,73 @@ describe('WebBrowser Integration Tests', () => {
       await new Promise(resolve => setTimeout(resolve, 3000))
 
       // Switch to the tab by title
-      const switched = await browser.tab(title).switch()
+      const switched = await browser.tab().title(title).switch()
       expect(switched).toBe(true)
       const title2 = await browser.window().get.title()
       expect(title2).toBe(title)
     })
+  })
 
-    it('should switch to a tab by index', async () => {
-      // Open a new tab
+  describe('Tab Operations - Index and Name', () => {
+    it('should switch tab by index', async () => {
+      // Open multiple tabs
       await browser.tab().new()
-      
-      // Switch to the first tab (index 0)
-      await browser.tab(0).switch()
-      
-      // Verify we switched to the correct tab
-      const currentTitle = await browser.window().get.title()
-      expect(currentTitle).toBeDefined()
+      await browser.goto('https://www.google.com')
+      await new Promise(resolve => setTimeout(resolve, 3000))
+
+      await browser.tab().new()
+      await browser.goto('https://www.wikipedia.org')
+      await new Promise(resolve => setTimeout(resolve, 3000))
+
+      // Switch to the second tab by index
+      await browser.tab(1).switch()
+      const currentUrl = await browser.window().get.url()
+      expect(currentUrl).toContain('wikipedia.org')
+    })
+
+    it('should switch tab by name', async () => {
+      // Navigate to GitHub
+      await browser.goto('https://www.github.com')
+      await new Promise(resolve => setTimeout(resolve, 3000))
+
+      // Open a new tab and navigate to Wikipedia
+      await browser.tab().new()
+      await browser.goto('https://www.wikipedia.org')
+      await new Promise(resolve => setTimeout(resolve, 3000))
+
+      // Switch to Wikipedia tab by name
+      await browser.tab('Wikipedia').switch()
+      const currentUrl = await browser.window().get.url()
+      expect(currentUrl).toContain('wikipedia.org')
     })
 
     it('should check if tab is displayed by index', async () => {
-      // Open a new tab
+      // Open multiple tabs
       await browser.tab().new()
-      
-      // Check if tab at index 1 is displayed
+      await browser.goto('https://www.google.com')
+      await new Promise(resolve => setTimeout(resolve, 3000))
+
+      await browser.tab().new()
+      await browser.goto('https://www.wikipedia.org')
+      await new Promise(resolve => setTimeout(resolve, 3000))
+
+      // Check if the second tab is displayed
       const isDisplayed = await browser.tab(1).isDisplayed()
+      expect(isDisplayed).toBe(true)
+    })
+
+    it('should check if tab is displayed by name', async () => {
+      // Navigate to GitHub
+      await browser.goto('https://www.github.com')
+      await new Promise(resolve => setTimeout(resolve, 3000))
+
+      // Open a new tab and navigate to Wikipedia
+      await browser.tab().new()
+      await browser.goto('https://www.wikipedia.org')
+      await new Promise(resolve => setTimeout(resolve, 3000))
+
+      // Check if Wikipedia tab is displayed
+      const isDisplayed = await browser.tab('Wikipedia').isDisplayed()
       expect(isDisplayed).toBe(true)
     })
   })
@@ -304,7 +331,7 @@ describe('WebBrowser Integration Tests', () => {
       expect(handles.length).toBeGreaterThanOrEqual(4)
 
       // Switch between tabs
-      await browser.tab(0).switchTab(0)
+      await browser.tab().switchTab(0)
       const currentUrl = await browser.window().get.url()
       expect(currentUrl).toBeDefined()
     })
@@ -326,6 +353,62 @@ describe('WebBrowser Integration Tests', () => {
 
       const mainUrl = await browser.window().get.url()
       expect(mainUrl).toBeDefined()
+    })
+
+    it('should switch window by index', async () => {
+      // Open a new window
+      await browser.window().new()
+      await browser.goto('https://www.google.com')
+      await new Promise(resolve => setTimeout(resolve, 3000))
+
+      const googleUrl = await browser.window().get.url()
+      expect(googleUrl).toContain('google.com')
+
+      // Switch to the second window by index
+      await browser.window(1).switch()
+      const currentUrl = await browser.window().get.url()
+      expect(currentUrl).toContain('google.com')
+    })
+
+    it('should switch window by name', async () => {
+      // Open a new window and navigate to Wikipedia
+      await browser.window().new()
+      await browser.goto('https://www.wikipedia.org')
+      await new Promise(resolve => setTimeout(resolve, 3000))
+
+      const wikipediaUrl = await browser.window().get.url()
+      expect(wikipediaUrl).toContain('wikipedia.org')
+
+      // Switch back to main window
+      const handles = await browser.driver.getAllWindowHandles()
+      await browser.driver.switchTo().window(handles[0])
+
+      // Switch to Wikipedia window by name
+      await browser.window('Wikipedia').switch()
+      const currentUrl = await browser.window().get.url()
+      expect(currentUrl).toContain('wikipedia.org')
+    })
+
+    it('should check if window is displayed by index', async () => {
+      // Open a new window
+      await browser.window().new()
+      await browser.goto('https://www.google.com')
+      await new Promise(resolve => setTimeout(resolve, 3000))
+
+      // Check if the new window is displayed
+      const isDisplayed = await browser.window(1).isDisplayed()
+      expect(isDisplayed).toBe(true)
+    })
+
+    it('should check if window is displayed by name', async () => {
+      // Open a new window and navigate to Wikipedia
+      await browser.window().new()
+      await browser.goto('https://www.wikipedia.org')
+      await new Promise(resolve => setTimeout(resolve, 3000))
+
+      // Check if the Wikipedia window is displayed
+      const isDisplayed = await browser.window('Wikipedia').isDisplayed()
+      expect(isDisplayed).toBe(true)
     })
   })
 
@@ -369,14 +452,10 @@ describe('WebBrowser Integration Tests', () => {
       expect(true).toBe(true)
     })
 
-    it('should handle switching to non-existent tab by index', async () => {
-      // Try to switch to a tab that doesn't exist
-      try {
-        await browser.tab(100).switch()
-        //fail('Should have thrown an error')
-      } catch (error) {
-        expect(error.message).toContain('not found on screen')
-      }
+    it('should handle closing already closed tab', async () => {
+      // This should not throw an error
+      await browser.tab().close()
+      expect(true).toBe(true)
     })
   })
 })

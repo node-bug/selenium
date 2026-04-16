@@ -1,9 +1,26 @@
+/**
+ * Chrome capabilities configuration class
+ * 
+ * This class provides Chrome-specific browser capabilities for Selenium WebDriver.
+ * It configures Chrome options including headless mode, incognito mode, and various
+ * performance and security settings.
+ * 
+ * @class Chrome
+ */
 import { Capabilities } from 'selenium-webdriver'
 import config from '@nodebug/config'
 import prefs from './preferences.js' // Note: ESM requires the .js extension
 
 const selenium = config('selenium')
 
+/**
+ * Get Chrome browser capabilities
+ * 
+ * @returns {Object} Chrome browser capabilities configuration
+ * @example
+ * const chromeCaps = new Chrome().capabilities;
+ * console.log(chromeCaps);
+ */
 class Chrome {
   get capabilities() {
     const options = {

@@ -1,9 +1,26 @@
+/**
+ * Firefox capabilities configuration class
+ * 
+ * This class provides Firefox-specific browser capabilities for Selenium WebDriver.
+ * It configures Firefox options including headless mode, incognito mode, and various
+ * preferences for download handling and security.
+ * 
+ * @class Firefox
+ */
 import { Capabilities } from 'selenium-webdriver'
 import config from '@nodebug/config'
 import prefs from './preferences.js'
 
 const seleniumConfig = config('selenium')
 
+/**
+ * Get Firefox browser capabilities
+ * 
+ * @returns {Object} Firefox browser capabilities configuration
+ * @example
+ * const firefoxCaps = new Firefox().capabilities;
+ * console.log(firefoxCaps);
+ */
 class Firefox {
   get capabilities() {
     const options = {

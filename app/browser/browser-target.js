@@ -3,18 +3,55 @@ import config from '@nodebug/config';
 
 const selenium = config('selenium');
 
+/**
+ * Base class for browser targets (Window and Tab)
+ * 
+ * This is an abstract base class that provides common functionality
+ * for managing browser windows and tabs.
+ * 
+ * @class BrowserTarget
+ * @property {Object} driver - Selenium WebDriver instance
+ * @property {string} _label - Label for the target type (Window/Tab)
+ * @property {string} _targetTitle - Target title for switching
+ * @property {string} _pendingTitle - Title that needs to be active before next command
+ */
 export class BrowserTarget {
+    /**
+     * Create a BrowserTarget instance
+     * 
+     * @constructor
+     * @param {Object} [driver] - Selenium WebDriver instance (optional)
+     * @param {string} [label='Target'] - Label for the target type
+     */
     constructor(driver, label = 'Target') {
         this._label = label;
         if (driver) this.initialize(driver);
     }
 
+    /**
+     * Initialize the BrowserTarget with a WebDriver instance
+     * 
+     * @param {Object} driver - Selenium WebDriver instance
+     * @private
+     */
     initialize(driver) {
         this._driver = driver;
     }
 
+    /**
+     * Getters for target properties
+     * 
+     * @returns {Object} Object with getter methods for title and URL
+     */
     get get() {
         return {
+            /**
+             * Get the title of the current target
+             * 
+             * @returns {Promise<string>} Title of the current target
+             * @example
+             * const title = await browser.window.get.title();
+             */
             title: async () => {
                 try {
                     await this._ensureFocus(); // 'this' correctly points to the Window/Tab
@@ -24,6 +61,13 @@ export class BrowserTarget {
                     throw err;
                 }
             },
+            /**
+             * Get the URL of the current target
+             * 
+             * @returns {Promise<string>} URL of the current target
+             * @example
+             * const url = await browser.window.get.url();
+             */
             url: async () => {
                 try {
                     await this._ensureFocus(); // Ensuring focus before fetching URL
@@ -36,12 +80,40 @@ export class BrowserTarget {
         };
     }
 
+    /**
+     * Get the default timeout value
+     * 
+     * @returns {number} Timeout value in milliseconds
+     */
     get timeout() { return (selenium.timeout || 10) * 1000; }
+    
+    /**
+     * Set the WebDriver instance
+     * 
+     * @param {Object} value - Selenium WebDriver instance
+     */
     set driver(value) { this.initialize(value); }
+    
+    /**
+     * Get the WebDriver instance
+     * 
+     * @returns {Object} Selenium WebDriver instance
+     */
     get driver() { return this._driver; }
 
+    /**
+     * Chain method for fluent interface
+     * 
+     * @returns {this} Returns the BrowserTarget instance for chaining
+     */
     with() { return this; }
 
+    /**
+     * Set the target title for switching operations
+     * 
+     * @param {string|number} value - Target title or index
+     * @returns {this} Returns the BrowserTarget instance for chaining
+     */
     title(value) {
         this._targetTitle = value;
         return this;
@@ -49,6 +121,11 @@ export class BrowserTarget {
 
     /**
      * Stores a title that MUST be active before the next command.
+     * 
+     * @param {string} title - Title that needs to be active
+     * @example
+     * browser.window.smartPrepare('Google');
+     * await browser.window.get.title(); // Will ensure focus on Google window
      */
     smartPrepare(title) {
         this._pendingTitle = title;
@@ -57,6 +134,9 @@ export class BrowserTarget {
     /**
      * Internal helper to ensure we are on the right target 
      * before executing get.url(), maximize(), etc.
+     * 
+     * @private
+     * @returns {Promise<void>} Resolves when focus is ensured
      */
     async _ensureFocus() {
         if (!this._pendingTitle) return;
@@ -77,6 +157,14 @@ export class BrowserTarget {
         this._pendingTitle = undefined;
     }
 
+    /**
+     * Find and optionally switch to a target (window or tab)
+     * 
+     * @private
+     * @param {boolean} shouldSwitch - Whether to switch to the target
+     * @param {number} [customTimeout] - Custom timeout value
+     * @returns {Promise<boolean>} True if target was found
+     */
     async _findTarget(shouldSwitch, customTimeout) {
         const timeout = customTimeout ?? this.timeout;
 
@@ -100,26 +188,24 @@ export class BrowserTarget {
                     return true
                 }
             }
-        } finally {
-            this._targetTitle = undefined;
-        }
 
-        // 2. NAME-BASED SEARCH LOOP
-        let og;
-        try {
-            og = await this.driver.getWindowHandle();
-        } catch (err) {
-            if (err.name === 'NoSuchWindowError') {
-                log.error(`The active ${this._label} was closed. Is that expected?`);
-            } else {
-                log.error(`Unrecognized error while switching ${this._label}. ${err}`);
-                throw err;
+
+            // 2. NAME-BASED SEARCH LOOP
+            let og;
+            try {
+                og = await this.driver.getWindowHandle();
+            } catch (err) {
+                if (err.name === 'NoSuchWindowError') {
+                    log.error(`The active ${this._label} was closed. Is that expected?`);
+                } else {
+                    log.error(`Unrecognized error while switching ${this._label}. ${err}`);
+                    throw err;
+                }
             }
-        }
 
-        log.debug(`Checking ${this._label} with title '${this._targetTitle}' is displayed`);
-        const startTime = Date.now();
-        try {
+            log.debug(`Checking ${this._label} with title '${this._targetTitle}' is displayed`);
+            const startTime = Date.now();
+
             while (Date.now() - startTime < timeout) {
                 try {
                     const handles = await this.driver.getAllWindowHandles();
@@ -157,6 +243,13 @@ export class BrowserTarget {
         }
     }
 
+    /**
+     * Close the current target (window or tab)
+     * 
+     * @returns {Promise<boolean>} True if successful
+     * @example
+     * await browser.window().close();
+     */
     async close() {
         log.info(`Closing ${this._label} with title '${await this.get.title()}'`);
         await this.driver.close();
@@ -170,7 +263,24 @@ export class BrowserTarget {
         return true;
     }
 
+    /**
+     * Check if a target is displayed
+     * 
+     * @param {string|number} [t] - Target title or index (optional)
+     * @returns {Promise<boolean>} True if target is displayed
+     * @example
+     * const isDisplayed = await browser.window('Google').isDisplayed();
+     */
     async isDisplayed(t) { return await this._findTarget(false, t); }
+    
+    /**
+     * Switch to a target
+     * 
+     * @param {string|number} [t] - Target title or index (optional)
+     * @returns {Promise<boolean>} True if switch was successful
+     * @example
+     * await browser.window('Google').switch();
+     */
     async switch(t) {
         const found = await this._findTarget(true, t);
         if (!found) throw new Error(`Target "${this._targetTitle}" not found`);

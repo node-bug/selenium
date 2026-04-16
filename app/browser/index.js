@@ -5,31 +5,53 @@ import remote from 'selenium-webdriver/remote/index.js'
 import capabilities from '../capabilities/index.js'
 import Window from './window.js'
 import Tab from './tab.js'
+import Alert from './alerts.js'
 
 const selenium = config('selenium')
 
 /**
  * Base Browser class for Selenium WebDriver operations
+ * 
+ * This class provides a high-level API for automating web browsers using Selenium WebDriver.
+ * It supports multiple browsers (Chrome, Firefox, Safari) and provides convenient methods
+ * for window management, navigation, and browser state control.
+ * 
+ * @class Browser
+ * @property {Window} window - Window management instance
+ * @property {Tab} tab - Tab management instance
+ * @property {Object} capabilities - Browser capabilities configuration
+ * @property {Object} driver - Selenium WebDriver instance
  */
 class Browser {
   /**
    * Create a new Browser instance
+   * 
+   * @constructor
+   * @param {Object} [options] - Browser configuration options
+   * @param {string} [options.hub] - Selenium Grid hub URL (optional)
+   * @param {number} [options.timeout] - Default timeout in seconds
+   * @param {number} [options.width] - Default browser width
+   * @param {number} [options.height] - Default browser height
    */
   constructor() {
     this._windowInstance = new Window();
     this._tabInstance = new Tab();
+    this._alertInstance = new Alert();
+
     this.window = (title) => {
       this._windowInstance.title(title);
       return this._windowInstance;
     };
-
     this.tab = (title) => {
       this._tabInstance.title(title);
       return this._tabInstance;
     };
+    this.alert = (alertText) => {
+      this._alertInstance.text(alertText);
+      return this._alertInstance;
+    }
 
     this.capabilities = capabilities()
-
     if (selenium.hub !== null) {
       this.hub = selenium.hub
     }
@@ -37,7 +59,11 @@ class Browser {
 
   /**
    * Get browser capabilities
-   * @returns {Object} Browser capabilities
+   * 
+   * @returns {Object} Browser capabilities configuration object
+   * @example
+   * const capabilities = browser.capabilities;
+   * console.log(capabilities);
    */
   get capabilities() {
     return this._capabilities
@@ -45,7 +71,10 @@ class Browser {
 
   /**
    * Set browser capabilities
-   * @param {Object} value - Browser capabilities
+   * 
+   * @param {Object} value - Browser capabilities configuration object
+   * @example
+   * browser.capabilities = { browserName: 'chrome' };
    */
   set capabilities(value) {
     this._capabilities = value
@@ -53,7 +82,11 @@ class Browser {
 
   /**
    * Get the WebDriver instance
-   * @returns {Object} WebDriver instance
+   * 
+   * @returns {Object} Selenium WebDriver instance
+   * @example
+   * const driver = browser.driver;
+   * console.log(driver);
    */
   get driver() {
     return this._driver
@@ -61,7 +94,10 @@ class Browser {
 
   /**
    * Set the WebDriver instance
-   * @param {Object} value - WebDriver instance
+   * 
+   * @param {Object} value - Selenium WebDriver instance
+   * @example
+   * browser.driver = driver;
    */
   set driver(value) {
     this._driver = value
@@ -70,8 +106,14 @@ class Browser {
   }
 
   /**
-   * Initialize a new browser session
-   * @returns {Promise<void>}
+   * Initialize a new browser session with specified capabilities
+   * 
+   * This method creates a new browser session using the configured capabilities.
+   * If a Selenium Grid hub is configured, it will connect to that hub.
+   * 
+   * @returns {Promise<void>} Resolves when the browser session is initialized
+   * @example
+   * await browser.new();
    */
   async new() {
     const builder = new Builder()
@@ -109,8 +151,12 @@ class Browser {
   }
 
   /**
-   * Get the default timeout value
-   * @returns {number} Timeout in milliseconds
+   * Get the default timeout value in milliseconds
+   * 
+   * @returns {number} Timeout value in milliseconds
+   * @example
+   * const timeout = browser.timeout;
+   * console.log(timeout); // e.g., 30000
    */
   get timeout() {
     return parseInt(selenium.timeout, 10) * 1000
@@ -118,8 +164,13 @@ class Browser {
 
   /**
    * Sleep for specified milliseconds
+   * 
+   * Pauses execution for the specified number of milliseconds.
+   * 
    * @param {number} ms - Milliseconds to sleep
-   * @returns {Promise<void>}
+   * @returns {Promise<void>} Resolves after the specified time
+   * @example
+   * await browser.sleep(1000); // Sleep for 1 second
    */
   async sleep(ms) {
     log.info(`Sleeping for ${ms} ms`)
@@ -127,27 +178,13 @@ class Browser {
   }
 
   /**
-   * Get browser name
-   * @returns {Promise<string>} Browser name
-   */
-  async name() {
-    const capabilities = await this.driver.getCapabilities()
-    return capabilities.get('browserName').replace(/\s/g, '')
-  }
-
-  /**
-   * Get operating system
-   * @returns {Promise<string>} Operating system name
-   */
-  async os() {
-    const capabilities = await this.driver.getCapabilities()
-    log.info(`Running tests on platform: '${capabilities.get('platformName')}'`)
-    return capabilities.get('platformName').replace(/\s/g, '')
-  }
-
-  /**
    * Close the browser session
+   * 
+   * Closes the current browser session and cleans up resources.
+   * 
    * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.close();
    */
   async close() {
     try {
@@ -163,8 +200,15 @@ class Browser {
 
   /**
    * Set browser window size
+   * 
+   * Resizes the browser window to the specified dimensions.
+   * 
    * @param {Object} size - Window size object with width and height
+   * @param {number} size.width - Width in pixels
+   * @param {number} size.height - Height in pixels
    * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.setSize({ width: 1280, height: 800 });
    */
   async setSize(size) {
     const isValidSize = size &&
@@ -209,26 +253,14 @@ class Browser {
   }
 
   /**
-   * Get browser window size
-   * @returns {Promise<Object>} Window size with width and height
-   */
-  async getSize() {
-    try {
-      await this.driver.switchTo().defaultContent()
-      const width = await this.driver.executeScript('return window.innerWidth')
-      const height = await this.driver.executeScript('return window.innerHeight')
-      log.info(`Current browser size is '${width}x${height}'.`)
-      return { width, height }
-    } catch (err) {
-      log.error(`Error getting browser size: ${err.message}`)
-      throw err
-    }
-  }
-
-  /**
    * Navigate to a URL
+   * 
+   * Loads the specified URL in the browser.
+   * 
    * @param {string} url - URL to navigate to
    * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.goto('https://www.google.com');
    */
   async goto(url) {
     try {
@@ -260,7 +292,12 @@ class Browser {
 
   /**
    * Refresh the current page
-   * @returns {Promise<void>}
+   * 
+   * Reloads the current page.
+   * 
+   * @returns {Promise<void>} Resolves when the page is refreshed
+   * @example
+   * await browser.refresh();
    */
   async refresh() {
     try {
@@ -275,7 +312,12 @@ class Browser {
 
   /**
    * Go back in browser history
+   * 
+   * Navigates to the previous page in the browser history.
+   * 
    * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.goBack();
    */
   async goBack() {
     try {
@@ -294,7 +336,12 @@ class Browser {
 
   /**
    * Go forward in browser history
+   * 
+   * Navigates to the next page in the browser history.
+   * 
    * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.goForward();
    */
   async goForward() {
     try {
@@ -313,7 +360,13 @@ class Browser {
 
   /**
    * Reset browser state (close all windows, delete cookies, clear storage)
-   * @returns {Promise<void>}
+   * 
+   * Resets the browser to a clean state by closing all windows, deleting cookies,
+   * and clearing local storage and session storage.
+   * 
+   * @returns {Promise<void>} Resolves when the browser is reset
+   * @example
+   * await browser.reset();
    */
   async reset() {
     try {
@@ -369,6 +422,32 @@ class Browser {
    */
   actions() {
     return this.driver.actions({ async: true })
+  }
+
+  get get() {
+    return {
+      name: async () => {
+        const capabilities = await this.driver.getCapabilities()
+        return capabilities.get('browserName').replace(/\s/g, '')
+      },
+      os: async () => {
+        const capabilities = await this.driver.getCapabilities()
+        log.info(`Running tests on platform: '${capabilities.get('platformName')}'`)
+        return capabilities.get('platformName').replace(/\s/g, '')
+      },
+      size: async () => {
+        try {
+          await this.driver.switchTo().defaultContent()
+          const width = await this.driver.executeScript('return window.innerWidth')
+          const height = await this.driver.executeScript('return window.innerHeight')
+          log.info(`Current browser size is '${width}x${height}'.`)
+          return { width, height }
+        } catch (err) {
+          log.error(`Error getting browser size: ${err.message}`)
+          throw err
+        }
+      },
+    };
   }
 }
 

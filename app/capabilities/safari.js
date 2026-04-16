@@ -1,7 +1,24 @@
+/**
+ * Safari capabilities configuration class
+ * 
+ * This class provides Safari-specific browser capabilities for Selenium WebDriver.
+ * It configures Safari options including browser name and page load strategy.
+ * Note: Safari has limited support for headless mode compared to Chrome and Firefox.
+ * 
+ * @class Safari
+ */
 import { Capabilities } from 'selenium-webdriver'
 import config from '@nodebug/config'
 const selenium = config('selenium')
 
+/**
+ * Get Safari browser capabilities
+ * 
+ * @returns {Object} Safari browser capabilities configuration
+ * @example
+ * const safariCaps = new Safari().capabilities;
+ * console.log(safariCaps);
+ */
 class Safari {
   get capabilities() {
     const options = {}
