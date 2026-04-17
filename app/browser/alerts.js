@@ -13,34 +13,10 @@ import { until } from 'selenium-webdriver'
  * @property {Object} alert - Current alert instance
  */
 class Alert {
-    /**
-     * Create an Alert instance
-     * 
-     * @constructor
-     * @param {Object} [driver] - Selenium WebDriver instance (optional)
-     */
-    constructor(driver) {
-        if (driver) this.initialize(driver);
-    }
-
-    /**
-     * Initialize the Alert with a WebDriver instance
-     * 
-     * @param {Object} driver - Selenium WebDriver instance
-     * @private
-     */
-    initialize(driver) {
-        this._driver = driver;
-    }
-
-    /**
-     * Get the WebDriver instance
-     * 
-     * @returns {Object} Selenium WebDriver instance
-     */
-    get driver() {
-        return this._driver;
-    }
+    constructor(driver) { if (driver) this.initialize(driver); }
+    initialize(driver) { this._driver = driver; }
+    get driver() { return this._driver; }
+    set driver(value) { this.initialize(value); }
 
     /**
      * Chain method for fluent interface
@@ -64,14 +40,18 @@ class Alert {
      * Check if an alert is visible and matches expected text
      * 
      * @returns {Promise<boolean>} True if alert is visible and text matches
+     * @example
+     * await browser.alert().isVisible();
+     * await browser.alert('Expected Text').isVisible();
      */
     async isVisible() {
         try {
-            await this._driver.wait(until.alertIsPresent(), 10000)
-            const alert = await this._driver.switchTo().alert()
+            await this.driver.wait(until.alertIsPresent(), 10000)
+            await this.driver.sleep(1000) // Small delay to ensure alert is fully loaded
+            const alert = await this.driver.switchTo().alert()
             const actualText = await alert.getText()
 
-            if (this._targetText && actualText !== this._targetText) {
+            if (this._targetText && !actualText.includes(this._targetText)) {
                 log.info(`Alert found, but text '${actualText}' did not match expected text '${this._targetText}'`)
                 return false
             }
@@ -79,8 +59,8 @@ class Alert {
             this.alert = alert
             log.info(`Alert with text '${actualText}' is present`)
             return true
-        } catch {
-            log.info('Alert not found or timed out')
+        } catch (err) {
+            log.info(`Alert not found or timed out. Error: ${err.message}`)
             return false
         }
     }
@@ -91,7 +71,7 @@ class Alert {
      * @returns {Promise<void>} Resolves when the alert is accepted
      * @throws {Error} If no alert is present
      * @example
-     * await browser.window().accept();
+     * await browser.alert().accept();
      */
     async accept() {
         log.info('Accepting Alert');
@@ -107,7 +87,7 @@ class Alert {
      * @returns {Promise<void>} Resolves when the alert is dismissed
      * @throws {Error} If no alert is present
      * @example
-     * await browser.window().dismiss();
+     * await browser.alert().dismiss();
      */
     async dismiss() {
         log.info('Dismissing Alert');
@@ -123,12 +103,14 @@ class Alert {
      * @param {string} text - Text to send to the alert
      * @returns {Promise<void>} Resolves when text is sent
      * @example
-     * await browser.window().sendKeys('Hello World');
+     * await browser.alert().write('Hello World');
+     * chrome has a bug where the text type into alert is not visible on screen, but it actually works
+     * (just a display issues that chrome developers wont fix)
      */
-    async sendKeys(text) {
+    async write(text) {
         log.info(`Sending keys to alert: ${text}`);
         await this.isVisible();
-        return this.alert.sendKeys(text);
+        await this.alert.sendKeys(text);
     }
 
     /**

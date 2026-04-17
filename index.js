@@ -59,6 +59,7 @@ class WebBrowser extends Browser {
     }
 
     await super.new();
+    this.elementlocator.driver = this.driver;
   }
 
   /**
@@ -101,6 +102,18 @@ class WebBrowser extends Browser {
     throw new Error(`Element not found after ${timeout}ms timeout`);
   }
 
+  /**
+   * Enter text into an input field or content-editable element
+   * 
+   * Writes text to an input field, textarea, or content-editable element.
+   * Handles both standard form fields and custom content-editable elements.
+   * 
+   * @param {string} value - Text to enter
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.element('username').write('myusername');
+   * await browser.textbox('search').write('query');
+   */
   async write(value) {
     this.message = messenger({ stack: this.stack, action: 'write', data: value });
     try {
@@ -130,6 +143,10 @@ class WebBrowser extends Browser {
   /**
    * Finds a single element based on the current stack.
    * Resets the stack after execution.
+   * 
+   * @returns {Promise<Object>} WebElement instance
+   * @example
+   * const element = await browser.element('submit').find();
    */
   async find() {
     this.message = messenger({ stack: this.stack, action: 'find' });
@@ -147,6 +164,13 @@ class WebBrowser extends Browser {
   /**
    * Finds all matching elements for the current stack.
    * Resets the stack after execution.
+   * 
+   * @param {number} [t] - Custom timeout in milliseconds
+   * @returns {Promise<Array>} Array of WebElement instances
+   * @throws {Error} If no elements are found within the timeout
+   * @example
+   * const elements = await browser.element('item').findAll();
+   * const links = await browser.link('nav-link').findAll(5000);
    */
   async findAll(t = null) {
     this.message = messenger({ stack: this.stack, action: 'find' });
@@ -185,6 +209,11 @@ class WebBrowser extends Browser {
   /**
    * Retrieves the text content of an element.
    * Automatically handles <input> and <textarea> by fetching the 'value' attribute.
+   * 
+   * @returns {Promise<string>} Text content of the element
+   * @example
+   * const text = await browser.element('welcome').text();
+   * const value = await browser.textbox('username').text();
    */
   async text() {
     this.message = messenger({ stack: this.stack, action: 'getText' });
@@ -211,6 +240,12 @@ class WebBrowser extends Browser {
 
   /**
    * Retrieves a specific attribute from an element.
+   * 
+   * @param {string} name - Attribute name to retrieve
+   * @returns {Promise<string>} Attribute value
+   * @example
+   * const href = await browser.link('home').attribute('href');
+   * const value = await browser.textbox('username').attribute('value');
    */
   async attribute(name) {
     this.message = messenger({ stack: this.stack, action: 'getAttribute', data: name });
@@ -226,6 +261,13 @@ class WebBrowser extends Browser {
 
   /**
    * Hovers the mouse over an element.
+   * 
+   * Moves the mouse cursor to the center of the element to trigger hover states.
+   * 
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.element('menu').hover();
+   * await browser.button('dropdown').hover();
    */
   async hover() {
     this.message = messenger({ stack: this.stack, action: 'hover' });
@@ -243,7 +285,12 @@ class WebBrowser extends Browser {
 
   /**
    * Scrolls an element into the viewport.
-   * @param {boolean} alignToTop - If true, top of element aligns to top of viewport.
+   * 
+   * @param {boolean} [alignToTop=true] - If true, top of element aligns to top of viewport.
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.element('submit').scroll();
+   * await browser.element('footer').scroll(false); // Align to bottom
    */
   async scroll(alignToTop = true) {
     this.message = messenger({ stack: this.stack, action: 'scroll' });
@@ -277,6 +324,19 @@ class WebBrowser extends Browser {
     throw err;
   }
 
+  /**
+   * Performs a click on an element.
+   * 
+   * Clicks on an element at its center or at specified coordinates.
+   * Falls back to JavaScript click if Selenium click fails.
+   * 
+   * @param {number} [x] - X coordinate for click (optional)
+   * @param {number} [y] - Y coordinate for click (optional)
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.button('submit').click();
+   * await browser.element('menu').click(10, 20); // Click at coordinates
+   */
   async click(x = null, y = null) {
     this.message = messenger({ stack: this.stack, action: 'click', x, y });
     try {
@@ -292,6 +352,11 @@ class WebBrowser extends Browser {
 
   /**
    * Sets focus on an element using JavaScript.
+   * 
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.textbox('username').focus();
+   * await browser.element('input').focus();
    */
   async focus() {
     this.message = messenger({ stack: this.stack, action: 'focus' });
@@ -308,6 +373,13 @@ class WebBrowser extends Browser {
 
   /**
    * Performs a double-click on the element.
+   * 
+   * Uses Selenium WebDriver Actions API to simulate a double-click.
+   * 
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.element('text').doubleClick();
+   * await browser.button('edit').doubleClick();
    */
   async doubleClick() {
     this.message = messenger({ stack: this.stack, action: 'doubleclick' });
@@ -325,6 +397,13 @@ class WebBrowser extends Browser {
 
   /**
    * Performs a right-click (context click) on the element.
+   * 
+   * Uses Selenium WebDriver Actions API to simulate a right-click.
+   * 
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.element('context-menu').rightClick();
+   * await browser.button('options').rightClick();
    */
   async rightClick() {
     this.message = messenger({ stack: this.stack, action: 'rightclick' });
@@ -340,16 +419,28 @@ class WebBrowser extends Browser {
     return true;
   }
 
+  /**
+   * Internal click handler for elements.
+   * 
+   * Handles both standard clicks and coordinate-based clicks.
+   * Falls back to JavaScript click if Selenium click fails.
+   * 
+   * @private
+   * @param {Object} e - WebElement to click
+   * @param {number} [x] - X coordinate (optional)
+   * @param {number} [y] - Y coordinate (optional)
+   * @returns {Promise<void>}
+   */
   async clicker(e, x, y) {
-    const hasCoordinates = x !== null && y !== null;
+    const hasCoordinates = (x !== null && x !== undefined) && (y !== null && y !== undefined);
 
     if (hasCoordinates) {
       const rect = await e.getRect();
       if (x >= rect.width || y >= rect.height) {
         throw new Error(`Click out of bounds: target x:${x} y:${y}, element size ${rect.width}x${rect.height}`);
       }
-      const ex = rect.x + parseInt(x, 10);
-      const ey = rect.y + parseInt(y, 10);
+      const ex = rect.x + isNaN(parseInt(x, 10)) ? 0 : parseInt(x, 10);
+      const ey = rect.y + isNaN(parseInt(y, 10)) ? 0 : parseInt(y, 10);
 
       await this.actions()
         .move({ x: Math.ceil(ex), y: Math.ceil(ey) })
@@ -370,6 +461,17 @@ class WebBrowser extends Browser {
     }
   }
 
+  /**
+   * Clears text from an input field or content-editable element.
+   * 
+   * Clears text from input fields, textareas, or content-editable elements.
+   * Uses keyboard shortcuts as fallback for complex cases.
+   * 
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.textbox('username').clear();
+   * await browser.element('search').clear();
+   */
   async clear() {
     this.message = messenger({ stack: this.stack, action: 'clear' });
     try {
@@ -396,6 +498,17 @@ class WebBrowser extends Browser {
     return true;
   }
 
+  /**
+   * Overwrites text in an input field.
+   * 
+   * Clears existing text and enters new text. Useful for form fields that
+   * may have default values or validation that prevents direct entry.
+   * 
+   * @param {string} value - Text to overwrite with
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.textbox('username').overwrite('newvalue');
+   */
   async overwrite(value) {
     this.message = messenger({ stack: this.stack, action: 'overwrite', data: value });
     try {
@@ -417,7 +530,10 @@ class WebBrowser extends Browser {
 
   /**
    * Internal helper to set checkbox state
+   * 
+   * @private
    * @param {string} targetState - 'check' or 'uncheck'
+   * @returns {Promise<boolean>} True if successful
    */
   async #toggleCheckbox(targetState) {
     try {
@@ -452,11 +568,31 @@ class WebBrowser extends Browser {
     return true;
   }
 
+  /**
+   * Checks a checkbox element.
+   * 
+   * Clicks the checkbox if it's not already checked. Falls back to JavaScript
+   * click if Selenium click fails.
+   * 
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.checkbox('agree').check();
+   */
   async check() {
     this.message = messenger({ stack: this.stack, action: 'check' });
     return await this.#toggleCheckbox('check');
   }
 
+  /**
+   * Unchecks a checkbox element.
+   * 
+   * Clicks the checkbox if it's not already unchecked. Falls back to JavaScript
+   * click if Selenium click fails.
+   * 
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.checkbox('agree').uncheck();
+   */
   async uncheck() {
     this.message = messenger({ stack: this.stack, action: 'uncheck' });
     return await this.#toggleCheckbox('uncheck');
@@ -465,6 +601,14 @@ class WebBrowser extends Browser {
   /**
    * Checks if an element is currently in the DOM and visible.
    * Does not throw an error if not found; returns boolean.
+   * 
+   * @param {number} [t] - Custom timeout in milliseconds
+   * @returns {Promise<boolean>} True if element is visible
+   * @example
+   * const visible = await browser.element('submit').isVisible();
+   * if (visible) {
+   *   await browser.element('submit').click();
+   * }
    */
   async isVisible(t = null) {
     this.message = messenger({ stack: this.stack, action: 'isVisible' });
@@ -484,6 +628,13 @@ class WebBrowser extends Browser {
   /**
    * Waits for an element to be visible.
    * Throws an error if the element does not appear within the timeout.
+   * 
+   * @param {number} [t] - Custom timeout in milliseconds
+   * @returns {Promise<boolean>} True if element becomes visible
+   * @throws {Error} If element doesn't become visible within timeout
+   * @example
+   * await browser.element('loading-indicator').isDisplayed();
+   * await browser.button('submit').isDisplayed(10000); // 10 second timeout
    */
   async isDisplayed(t = null) {
     this.message = messenger({ stack: this.stack, action: 'waitVisibility' });
@@ -500,6 +651,13 @@ class WebBrowser extends Browser {
 
   /**
    * Waits for an element to disappear or become hidden.
+   * 
+   * @param {number} [t] - Custom timeout in milliseconds
+   * @returns {Promise<boolean>} True if element becomes invisible
+   * @throws {Error} If element doesn't become invisible within timeout
+   * @example
+   * await browser.element('loading-spinner').isNotDisplayed();
+   * await browser.element('modal').isNotDisplayed(10000); // 10 second timeout
    */
   async isNotDisplayed(t = null) {
     this.message = messenger({ stack: this.stack, action: 'waitInvisibility' });
@@ -528,6 +686,13 @@ class WebBrowser extends Browser {
 
   /**
    * Checks if an element is disabled (has the 'disabled' attribute or property).
+   * 
+   * @returns {Promise<boolean>} True if element is disabled
+   * @example
+   * const disabled = await browser.button('submit').isDisabled();
+   * if (!disabled) {
+   *   await browser.button('submit').click();
+   * }
    */
   async isDisabled() {
     this.message = messenger({ stack: this.stack, action: 'isDisabled' });
@@ -550,6 +715,11 @@ class WebBrowser extends Browser {
   /**
    * Captures a screenshot of a specific element or the entire page.
    * Returns a Base64 encoded string.
+   * 
+   * @returns {Promise<string>} Base64 encoded screenshot
+   * @example
+   * const screenshot = await browser.element('form').screenshot();
+   * const fullPage = await browser.screenshot();
    */
   async screenshot() {
     let dataUrl = null;
@@ -575,6 +745,13 @@ class WebBrowser extends Browser {
     return dataUrl;
   }
 
+  /**
+   * Internal helper to switch to element context (frame).
+   * 
+   * @private
+   * @param {number} frame - Frame index to switch to
+   * @returns {Promise<void>}
+   */
   async #switchToElementContext(frame) {
     await this.driver.switchTo().defaultContent();
     if (frame >= 0) {
@@ -589,6 +766,16 @@ class WebBrowser extends Browser {
 
   /**
    * Hides all elements matching the current stack by setting opacity to 0.
+   */
+  /**
+   * Hides all elements matching the current stack by setting opacity to 0.
+   * 
+   * Useful for testing visibility changes or hiding elements during testing.
+   * 
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.element('ad').hide();
+   * await browser.element('popup').hide();
    */
   async hide() {
     this.message = messenger({ stack: this.stack, action: 'hide' });
@@ -613,6 +800,16 @@ class WebBrowser extends Browser {
   /**
    * Restores visibility to all elements matching the stack.
    */
+  /**
+   * Restores visibility to all elements matching the stack.
+   * 
+   * Reverts the opacity changes made by the hide() method.
+   * 
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.element('ad').unhide();
+   * await browser.element('popup').unhide();
+   */
   async unhide() {
     this.message = messenger({ stack: this.stack, action: 'unhide' });
     try {
@@ -632,7 +829,12 @@ class WebBrowser extends Browser {
 
   /**
    * Uploads a file to a file input element.
-   * @param {string} filePath - Absolute path to the file.
+   * 
+   * @param {string} filePath - Absolute path to the file
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.file('upload').upload('/path/to/file.txt');
+   * await browser.element('avatar').upload('/path/to/image.png');
    */
   async upload(filePath) {
     this.message = messenger({ stack: this.stack, action: 'upload', data: filePath });
@@ -654,6 +856,15 @@ class WebBrowser extends Browser {
     return obj && typeof obj.exact === 'boolean' && typeof obj.hidden === 'boolean';
   }
 
+  /**
+   * Creates an element selector for the specified data.
+   * 
+   * @param {string} data - Element identifier (text, ID, etc.)
+   * @returns {this} Returns the WebBrowser instance for chaining
+   * @example
+   * browser.element('submit').click();
+   * browser.element('username').write('test');
+   */
   element(data) {
     const member = { type: 'element', id: data.toString(), exact: false, hidden: false, matches: [], index: false };
     const og = this.stack.pop();
@@ -669,6 +880,13 @@ class WebBrowser extends Browser {
     return this;
   }
 
+  /**
+   * Forces exact text matching for the next element in the stack.
+   * 
+   * @returns {this} Returns the WebBrowser instance for chaining
+   * @example
+   * browser.exact().element('exact text').click();
+   */
   exact() {
     const og = this.stack.pop();
     if (this.#isFlagObject(og)) {
@@ -716,26 +934,46 @@ class WebBrowser extends Browser {
 
   /**
    * Targets an element above the currently referenced element.
+   * 
+   * @returns {this} Returns the WebBrowser instance for chaining
+   * @example
+   * browser.element('target').above().element('other').click();
    */
   above() { return this.relativePositioner('above'); }
 
   /**
    * Targets an element below the currently referenced element.
+   * 
+   * @returns {this} Returns the WebBrowser instance for chaining
+   * @example
+   * browser.element('target').below().element('other').click();
    */
   below() { return this.relativePositioner('below'); }
 
   /**
    * Targets an element to the left of the currently referenced element.
+   * 
+   * @returns {this} Returns the WebBrowser instance for chaining
+   * @example
+   * browser.element('target').toLeftOf().element('other').click();
    */
   toLeftOf() { return this.relativePositioner('toLeftOf'); }
 
   /**
    * Targets an element to the right of the currently referenced element.
+   * 
+   * @returns {this} Returns the WebBrowser instance for chaining
+   * @example
+   * browser.element('target').toRightOf().element('other').click();
    */
   toRightOf() { return this.relativePositioner('toRightOf'); }
 
   /**
    * Targets an element located inside another element.
+   * 
+   * @returns {this} Returns the WebBrowser instance for chaining
+   * @example
+   * browser.element('menu').within().element('item').click();
    */
   within() {
     this.stack.push({ type: 'location', located: 'within' });
@@ -744,6 +982,10 @@ class WebBrowser extends Browser {
 
   /**
    * Targets an element based on proximity.
+   * 
+   * @returns {this} Returns the WebBrowser instance for chaining
+   * @example
+   * browser.element('target').near().element('other').click();
    */
   near() {
     this.stack.push({ type: 'location', located: 'near' });
@@ -753,7 +995,11 @@ class WebBrowser extends Browser {
   // --- Logic & Filter Modifiers ---
 
   /**
-   * forces a strict text match for the next element in the stack.
+   * Forces a strict text match for the next element in the stack.
+   * 
+   * @returns {this} Returns the WebBrowser instance for chaining
+   * @example
+   * browser.element('text').exactly().toLeftOf().element('other').click();
    */
   exactly() {
     this.stack.push({ exactly: true });
@@ -762,6 +1008,10 @@ class WebBrowser extends Browser {
 
   /**
    * Allows searching for hidden elements (opacity: 0 or height/width: 0).
+   * 
+   * @returns {this} Returns the WebBrowser instance for chaining
+   * @example
+   * browser.hidden().element('hidden-item').click();
    */
   hidden() {
     // Reuses the flag logic from previous methods
@@ -778,6 +1028,10 @@ class WebBrowser extends Browser {
 
   /**
    * Combines multiple search criteria using logical OR.
+   * 
+   * @returns {this} Returns the WebBrowser instance for chaining
+   * @example
+   * browser.element('text1').or().element('text2').click();
    */
   or() {
     this.stack.push({ type: 'condition', operator: 'or' });
@@ -786,6 +1040,12 @@ class WebBrowser extends Browser {
 
   /**
    * Selects a specific occurrence from a list of matching elements (1-based index).
+   * 
+   * @param {number} index - 1-based index of element to select
+   * @returns {this} Returns the WebBrowser instance for chaining
+   * @throws {TypeError} If index is not a number
+   * @example
+   * browser.element('item').atIndex(2).click(); // Selects 2nd matching element
    */
   atIndex(index) {
     if (typeof index !== 'number') throw new TypeError('index must be a number');
@@ -850,11 +1110,29 @@ class WebBrowser extends Browser {
 
   // --- Stack Builder Methods ---
 
+  /**
+   * Initiates a drag operation on an element.
+   * 
+   * Must be followed by onto() to complete the drag-and-drop.
+   * 
+   * @returns {this} Returns the WebBrowser instance for chaining
+   * @example
+   * browser.element('drag-item').drag().onto().element('drop-target').drop();
+   */
   drag() {
     this.stack.push({ type: 'action', perform: 'drag' });
     return this;
   }
 
+  /**
+   * Specifies the target element for a drag-and-drop operation.
+   * 
+   * Must be used after drag() and before drop().
+   * 
+   * @returns {this} Returns the WebBrowser instance for chaining
+   * @example
+   * browser.element('drag-item').drag().onto().element('drop-target').drop();
+   */
   onto() {
     this.stack.push({ type: 'action', perform: 'onto' });
     return this;

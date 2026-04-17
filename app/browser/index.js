@@ -103,6 +103,7 @@ class Browser {
     this._driver = value
     this._windowInstance.driver = value;
     this._tabInstance.driver = value;
+    this._alertInstance.driver = value;
   }
 
   /**

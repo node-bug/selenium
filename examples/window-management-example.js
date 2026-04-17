@@ -25,7 +25,7 @@ async function runExample() {
     console.log('Navigated to Google')
 
     // Get current window size
-    const currentSize = await browser.get.size()
+    const currentSize = await browser.window().get.size()
     console.log(`Current window size: ${currentSize.width}x${currentSize.height}`)
 
     // Set window size
@@ -33,7 +33,7 @@ async function runExample() {
     console.log('Window size set to 1200x800')
 
     // Get new window size
-    const newSize = await browser.get.size()
+    const newSize = await browser.window().get.size()
     console.log(`New window size: ${newSize.width}x${newSize.height}`)
 
     // Maximize window

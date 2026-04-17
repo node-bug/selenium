@@ -23,7 +23,7 @@ async function runExample() {
     // Navigate to the JavaScript alerts page
     await browser.goto('http://the-internet.herokuapp.com/javascript_alerts')
     console.log('Navigated to JavaScript alerts page')
-
+    
     // Get page title to verify we're on the right page
     const title = await browser.window().get.title()
     console.log(`Page title: ${title}`)
@@ -32,16 +32,9 @@ async function runExample() {
     console.log('\n--- Testing JS Alert ---')
     await browser.window().get.url()
     await browser.sleep(1000)
-    
     // Click the JS Alert button
-    const jsAlertButton = await browser.driver.findElement(
-      browser.driver.By.xpath("//button[text()='Click for JS Alert']")
-    )
-    await jsAlertButton.click()
-    
-    // Wait for alert to appear
-    await browser.sleep(1000)
-    
+    await browser.element('Click for JS Alert').click()
+    await browser.sleep(1000) 
     // Accept the alert
     await browser.alert().accept()
     console.log('JS Alert accepted')
@@ -49,36 +42,38 @@ async function runExample() {
     // Test JS Confirm
     console.log('\n--- Testing JS Confirm ---')
     await browser.sleep(1000)
-    
     // Click the JS Confirm button
-    const jsConfirmButton = await browser.driver.findElement(
-      browser.driver.By.xpath("//button[text()='Click for JS Confirm']")
-    )
-    await jsConfirmButton.click()
-    
-    // Wait for confirm dialog to appear
+    await browser.element('Click for JS Confirm').click()
     await browser.sleep(1000)
-    
     // Accept the confirm dialog
-    await browser.alert().accept()
-    console.log('JS Confirm accepted')
+    await browser.alert().dismiss()
+    console.log('JS Confirm dismissed')
 
-    // Test JS Prompt
-    console.log('\n--- Testing JS Prompt ---')
-    await browser.sleep(1000)
-    
     // Click the JS Prompt button
-    const jsPromptButton = await browser.driver.findElement(
-      browser.driver.By.xpath("//button[text()='Click for JS Prompt']")
-    )
-    await jsPromptButton.click()
-    
-    // Wait for prompt dialog to appear
+    await browser.element('Click for JS Prompt').click()
     await browser.sleep(1000)
-    
     // Send text to the prompt and accept
-    await browser.alert('Test prompt message').text()
+    await browser.alert().write('Hello World')
+    await browser.alert().dismiss()
+    await browser.element('You entered: Hello World').isNotDisplayed()
+    console.log('JS Prompt dismissed without message')
+
+        // Click the JS Prompt button
+    await browser.element('Click for JS Prompt').click()
+    await browser.sleep(1000)
+    // Send text to the prompt and accept
+    await browser.alert().write('Hello World')
     await browser.alert().accept()
+    await browser.element('You entered: Hello World').isDisplayed()
+    console.log('JS Prompt accepted with message')
+
+
+    await browser.element('Click for JS Prompt').click()
+    await browser.sleep(1000)
+    // Send text to the prompt and accept
+    await browser.alert().write('Hello Again')
+    await browser.alert().accept()
+    await browser.element('You entered: Hello Again').isDisplayed()
     console.log('JS Prompt accepted with message')
 
     // Get console errors
@@ -87,7 +82,7 @@ async function runExample() {
 
     // Close the browser
     await browser.close()
-    console.log('\nExample completed successfully!')
+    console.log('\nJavaScript Alerts example completed successfully!')
     
   } catch (error) {
     console.error('Error:', error.message)

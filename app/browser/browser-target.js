@@ -39,6 +39,20 @@ export class BrowserTarget {
     }
 
     /**
+     * Set the WebDriver instance
+     * 
+     * @param {Object} value - Selenium WebDriver instance
+     */
+    set driver(value) { this.initialize(value); }
+    
+    /**
+     * Get the WebDriver instance
+     * 
+     * @returns {Object} Selenium WebDriver instance
+     */
+    get driver() { return this._driver; }
+
+    /**
      * Getters for target properties
      * 
      * @returns {Object} Object with getter methods for title and URL
@@ -87,20 +101,6 @@ export class BrowserTarget {
      */
     get timeout() { return (selenium.timeout || 10) * 1000; }
     
-    /**
-     * Set the WebDriver instance
-     * 
-     * @param {Object} value - Selenium WebDriver instance
-     */
-    set driver(value) { this.initialize(value); }
-    
-    /**
-     * Get the WebDriver instance
-     * 
-     * @returns {Object} Selenium WebDriver instance
-     */
-    get driver() { return this._driver; }
-
     /**
      * Chain method for fluent interface
      * 
