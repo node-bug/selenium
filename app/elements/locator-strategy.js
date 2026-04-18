@@ -1,7 +1,7 @@
 import { By } from 'selenium-webdriver';
-import { Selectors } from './selectors.js';
+import { ElementTypes } from './element-types.js';
 
-export class ElementLocator extends Selectors {
+export class LocatorStrategy extends ElementTypes {
   set driver(value) { this._driver = value; }
   get driver() { return this._driver; }
 

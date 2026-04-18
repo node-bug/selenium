@@ -2,7 +2,7 @@ import { log } from '@nodebug/logger';
 import { Key } from 'selenium-webdriver';
 import config from '@nodebug/config';
 import Browser from './app/browser/index.js';
-import { ElementLocator } from './app/elements/index.js';
+import { LocatorStrategy } from './app/elements/locator-strategy.js';
 import messenger from './app/messenger.js';
 
 const selenium = config('selenium');
@@ -26,7 +26,13 @@ class WebBrowser extends Browser {
   constructor() {
     super()
     this.stack = []
-    this.elementlocator = new ElementLocator()
+    this.locatorStrategy = new LocatorStrategy()
+
+    Object.keys(this.locatorStrategy.definitions).forEach(type => {
+      this[type] = (data) => {
+        return this.#typefixer(data, type);
+      };
+    });
   }
 
   get message() { return this.#message; }
@@ -59,7 +65,7 @@ class WebBrowser extends Browser {
     }
 
     await super.new();
-    this.elementlocator.driver = this.driver;
+    this.locatorStrategy.driver = this.driver;
   }
 
   /**
@@ -89,7 +95,7 @@ class WebBrowser extends Browser {
     while (Date.now() < endTime) {
       for (const currentStack of stacks) {
         try {
-          locator = await this.elementlocator.find(currentStack, action);
+          locator = await this.locatorStrategy.find(currentStack, action);
           if (locator) return locator;
         } catch {
           continue; // Try next stack in the OR condition
@@ -184,7 +190,7 @@ class WebBrowser extends Browser {
       try {
         for (const currentStack of stacks) {
           // Call the specialized findAll on the locator
-          const results = await this.elementlocator.findAll(currentStack);
+          const results = await this.locatorStrategy.findAll(currentStack);
           if (results.length > 0) {
             locators = results;
             break;
@@ -831,78 +837,60 @@ class WebBrowser extends Browser {
   }
 
   /**
-   * Creates an element selector for the specified data.
-   * 
-   * @param {string} data - Element identifier (text, ID, etc.)
-   * @returns {this} Returns the WebBrowser instance for chaining
-   * @example
-   * browser.element('submit').click();
-   * browser.element('username').write('test');
-   */
-  element(data) {
-    const member = { type: 'element', id: data.toString(), exact: false, hidden: false, matches: [], index: false };
+   * Internal helper to set flags on the stack.
+   * If the top of the stack is already a flag object, it updates it.
+   * Otherwise, it pushes a new flag object.
+  **/
+  #setFlag(key, value) {
+    const top = this.stack[this.stack.length - 1];
+
+    if (this.#isFlagObject(top)) {
+      top[key] = value;
+    } else {
+      // Default flags if none exist
+      this.stack.push({ exact: false, hidden: false, [key]: value });
+    }
+    return this;
+  }
+
+  exact() {
+    return this.#setFlag('exact', true);
+  }
+
+  hidden() {
+    return this.#setFlag('hidden', true);
+  }
+
+  #element(data) {
+    // Pop the potential flag object
     const og = this.stack.pop();
+    let flags = { exact: false, hidden: false };
 
     if (this.#isFlagObject(og)) {
-      member.exact = og.exact;
-      member.hidden = og.hidden;
+      flags = og;
     } else if (og) {
+      // If it wasn't a flag, put it back
       this.stack.push(og);
     }
+
+    const member = {
+      type: 'element',
+      id: data.toString(),
+      exact: flags.exact,
+      hidden: flags.hidden,
+      matches: [],
+      index: false
+    };
 
     this.stack.push(member);
     return this;
   }
 
-  /**
-   * Forces exact text matching for the next element in the stack.
-   * 
-   * @returns {this} Returns the WebBrowser instance for chaining
-   * @example
-   * browser.exact().element('exact text').click();
-   */
-  exact() {
-    const og = this.stack.pop();
-    if (this.#isFlagObject(og)) {
-      og.exact = true;
-      this.stack.push(og);
-    } else {
-      if (og) this.stack.push(og);
-      this.stack.push({ exact: true, hidden: false });
-    }
-    return this;
-  }
-
-  // hidden() {
-  //   const og = this.stack.pop();
-  //   if (this.#isFlagObject(og)) {
-  //     og.hidden = true;
-  //     this.stack.push(og);
-  //   } else {
-  //     if (og) this.stack.push(og);
-  //     this.stack.push({ exact: false, hidden: true });
-  //   }
-  //   return this;
-  // }
-
-  typefixer(data, type) {
-    this.element(data);
+  #typefixer(data, type) {
+    this.#element(data);
     this.stack[this.stack.length - 1].type = type;
     return this;
   }
-
-  // --- Core Element Types ---
-
-  button(data) { return this.typefixer(data, 'button'); }
-  radio(data) { return this.typefixer(data, 'radio'); }
-  textbox(data) { return this.typefixer(data, 'textbox'); }
-  checkbox(data) { return this.typefixer(data, 'checkbox'); }
-  image(data) { return this.typefixer(data, 'image'); }
-  toolbar(data) { return this.typefixer(data, 'toolbar'); }
-  tab(data) { return this.typefixer(data, 'tab'); }
-  link(data) { return this.typefixer(data, 'link'); }
-  dialog(data) { return this.typefixer(data, 'dialog'); }
-  file(data) { return this.typefixer(data, 'file'); }
 
   // --- Spatial / Relative Positioners ---
 
@@ -981,26 +969,6 @@ class WebBrowser extends Browser {
   }
 
   /**
-   * Allows searching for hidden elements (opacity: 0 or height/width: 0).
-   * 
-   * @returns {this} Returns the WebBrowser instance for chaining
-   * @example
-   * browser.hidden().element('hidden-item').click();
-   */
-  hidden() {
-    // Reuses the flag logic from previous methods
-    const og = this.stack.pop();
-    if (this.#isFlagObject(og)) {
-      og.hidden = true;
-      this.stack.push(og);
-    } else {
-      if (og) this.stack.push(og);
-      this.stack.push({ exact: false, hidden: true });
-    }
-    return this;
-  }
-
-  /**
    * Combines multiple search criteria using logical OR.
    * 
    * @returns {this} Returns the WebBrowser instance for chaining
@@ -1053,11 +1021,11 @@ class WebBrowser extends Browser {
     try {
       // 1. Find source element
       this.message = messenger({ stack: dragStack, action: 'drag' });
-      const dragLocator = await this.elementlocator.find(dragStack);
+      const dragLocator = await this.locatorStrategy.find(dragStack);
 
       // 2. Find target element
       this.message = messenger({ stack: dropStack, action: 'drop' });
-      const dropLocator = await this.elementlocator.find(dropStack);
+      const dropLocator = await this.locatorStrategy.find(dropStack);
 
       // 3. Execute precise Action sequence
       const actions = this.driver.actions({ async: true });

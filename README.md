@@ -112,6 +112,8 @@ When locating elements, the library prioritizes visible text and attributes in t
 
 For inputs, edits, dropdowns, selects, and other form elements, the library will also search for corresponding labels to improve element identification accuracy.
 
+For detailed information about how elements are located and prioritized in this library, please see the [locator strategy documentation](docs/locator-strategy.md).
+
 #### Examples
 
 ```javascript
@@ -190,7 +192,6 @@ The project includes several examples demonstrating various features:
 - `examples/javascript-alerts-example.js` - JavaScript alert handling
 - `examples/tab-management-example.js` - Tab management
 - `examples/window-management-example.js` - Window management
-- `examples/comprehensive-demo.js` - Comprehensive demo showing various features
 - `examples/comprehensive-demo.js` - Comprehensive demo showing various features interacting with the SeleniumBase demo page
 
 To run any example:
@@ -269,54 +270,25 @@ Run any example:
 node example.js
 ```
 
-### Window Management Examples
+### Window Management
 
-The library provides advanced window management capabilities through the `Window` class. The following examples demonstrate these features:
+The library provides advanced window management capabilities through the `Window` class.
 
-#### Window Features Example ([window-features-example.js](window-features-example.js))
-
-This example demonstrates basic window management operations:
-
-```javascript
-// Set window size
-await browser.setSize({ width: 1280, height: 800 })
-
-// Maximize window
-await browser.window().maximize()
-
-// Minimize window
-await browser.window().minimize()
-
-// Switch to fullscreen
-await browser.window().fullscreen()
-
-// Restore window size
-await browser.setSize({ width: 1280, height: 800 })
-```
-
-#### Window Management Example ([window-management-example.js](window-management-example.js))
-
-This example demonstrates advanced window management features:
+**window.new()**
+Opens a new browser window.
 
 ```javascript
-// Check if a window is displayed
-const isDisplayed = await browser.window('some title').isDisplayed()
-console.log(`Window is displayed: ${isDisplayed}`)
-
-// Switch to a window with a specific title
-await browser.window('some other title').switch()
-
-// Open a new window
-await browser.window.new()
-await browser.goto('https://www.wikipedia.com')
-
-// Close a specific window
-await browser.window.close()
+await browser.window().new()
 ```
 
-#### Key Window Management Features
+**window.close()**
+Closes the current window.
 
-**isDisplayed()**
+```javascript
+await browser.window().close()
+```
+
+**window.isDisplayed()**
 Checks if a window with a specific title is displayed and visible.
 
 ```javascript
@@ -327,46 +299,46 @@ const isDisplayed = await browser.window('some title').isDisplayed()
 const isDisplayed = await browser.window('some title').isDisplayed(5000)
 ```
 
-**switch()**
+**window.switch()**
 Switches to a window with a specific title.
 
 ```javascript
-// Switch to window with title "Google"
+// Switch to window with title
 await browser.window('some title').switch()
 
 // Switch with custom timeout
-await browser.window('some other title').switch(5000)
+await browser.window('some title').switch(5000)
 ```
 
-**new()**
-Opens a new browser window.
+**window.get.url()**
+Gets the current URL.
 
 ```javascript
-await browser.window().new()
+const url = await browser.window().get.url()
 ```
 
-**close()**
-Closes the current window.
+**window.get.title()**
+Gets the page title.
 
 ```javascript
-await browser.window().close()
+const title = await browser.window().get.title()
 ```
 
-**maximize()**
+**window.maximize()**
 Maximizes the browser window.
 
 ```javascript
 await browser.window().maximize()
 ```
 
-**minimize()**
+**window.minimize()**
 Minimizes the browser window.
 
 ```javascript
 await browser.window('some window title').minimize()
 ```
 
-**fullscreen()**
+**window.fullscreen()**
 Switches the browser to fullscreen mode.
 
 ```javascript
@@ -375,7 +347,7 @@ await browser.window('some window title').fullscreen()
 await browser.window().fullscreen()
 ```
 
-### Tab Management Examples
+### Tab Management
 
 The library provides tab management capabilities through the `Tab` class.
 
@@ -432,23 +404,9 @@ const title = await browser.tab().get.title()
 const title2 = await browser.tab(5).get.title()
 ```
 
-### Alert Management Examples
+### Alert Management
 
 The library provides alert management capabilities through the `Alert` class.
-
-**alert.text()**
-Sets the text for an alert to be handled.
-
-```javascript
-await browser.alert().get.text()
-```
-
-**alert.isVisible()**
-Accepts an alert.
-
-```javascript
-await browser.alert('Some alert text').isVisible()
-```
 
 **alert.accept()**
 Accepts an alert.
@@ -499,25 +457,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 For issues and questions, please visit the [GitHub repository](https://github.com/node-bug/selenium/issues).
 
-```javascript
-await browser.window().maximize()
-```
-
-**minimize()**
-Minimizes the browser window.
-
-```javascript
-await browser.window().minimize()
-```
-
-**fullscreen()**
-Switches the browser to fullscreen mode.
-
-```javascript
-await browser.window().fullscreen()
-```
-
-### API Reference
+## API Reference
 
 #### Browser Class ([app/browser/index.js](app/browser/index.js))
 
@@ -788,69 +728,10 @@ Run linting:
 npm run lint
 ```
 
-## License
+## Locator Strategy
 
-MPL-2.0
+For detailed information about how elements are located and prioritized in this library, please see the [locator strategy documentation](docs/locator-strategy.md).
 
-## Contributing
+For detailed information about what elements are supported in this library, please see the [element types documentation](docs/element-types.md).
 
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## Support
-
-For issues and questions, please visit the [GitHub repository](https://github.com/node-bug/selenium/issues).
-
-## Get Methods
-
-The library also provides `.get` methods for retrieving element information:
-
-### Element Get Methods
-
-#### get.text()
-
-Gets text content of an element using the `.get` method.
-
-```javascript
-const text = await browser.element('welcome').get.text()
-```
-
-#### get.attribute(name)
-
-Gets attribute value of an element using the `.get` method.
-
-```javascript
-const href = await browser.link('home').get.attribute('href')
-```
-
-#### get.screenshot()
-
-Captures screenshot of element using the `.get` method.
-
-```javascript
-const screenshot = await browser.element('form').get.screenshot()
-```
-
-## Project Structure
-
-```
-test2/
-├── app/
-│   ├── browser/
-│   │   ├── index.js          # Main Browser class
-│   │   └── window.js         # Window management class
-│   └── capabilities/
-│       ├── chrome.js
-│       ├── firefox.js
-│       ├── safari.js
-│       ├── index.js
-│       └── preferences.js
-├── example.js                 # Basic example
-├── window-features-example.js # Window management examples
-├── advanced-actions-example.js # Advanced actions examples
-├── browser-info-example.js    # Browser info examples
-├── index.js                   # WebBrowser class (extends Browser)
-├── package.json
-├── jest.config.js
-├── eslint.config.js
-└── README.md
-```
+This library uses a human-like approach to element identification, prioritizing visible text and attributes in a specific order to make browser automation more intuitive and reliable.

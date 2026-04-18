@@ -28,7 +28,7 @@ describe('WebBrowser start method tests', () => {
     // Create instance of WebBrowser
     webBrowser = new WebBrowser();
     webBrowser.driver = mockDriver;
-    webBrowser.elementlocator = { driver: null };
+    webBrowser.locatorStrategy = { driver: null };
     
     // Mock the super.new() method (assuming it exists from parent class)
     webBrowser.new = jest.fn().mockResolvedValue(undefined);
@@ -44,7 +44,7 @@ describe('WebBrowser start method tests', () => {
     // Assert
     expect(webBrowser.driver?.deleteSession).not.toHaveBeenCalled();
     expect(webBrowser.new).toHaveBeenCalled();
-    expect(webBrowser.elementlocator.driver).toBe(null);
+    expect(webBrowser.locatorStrategy.driver).toBe(null);
     expect(log.info).not.toHaveBeenCalled();
   });
 
@@ -59,7 +59,7 @@ describe('WebBrowser start method tests', () => {
     expect(webBrowser.close).toHaveBeenCalled();
     expect(log.info).toHaveBeenCalledWith(`Deleted existing session: test-session-123`);
     expect(webBrowser.new).toHaveBeenCalled();
-    expect(webBrowser.elementlocator.driver).toBe(mockDriver);
+    expect(webBrowser.locatorStrategy.driver).toBe(mockDriver);
   });
 
   test('should handle case when driver exists but sessionId is undefined', async () => {
@@ -172,7 +172,7 @@ describe('WebBrowser start method tests', () => {
     // Assert
     expect(webBrowser.driver?.sessionId).toBeUndefined();
     expect(webBrowser.new).toHaveBeenCalled();
-    expect(webBrowser.elementlocator.driver).toBeUndefined();
+    expect(webBrowser.locatorStrategy.driver).toBeUndefined();
   });
 
   test('should handle case where driver is null', async () => {
@@ -184,10 +184,10 @@ describe('WebBrowser start method tests', () => {
     
     // Assert
     expect(webBrowser.new).toHaveBeenCalled();
-    expect(webBrowser.elementlocator.driver).toBe(null);
+    expect(webBrowser.locatorStrategy.driver).toBe(null);
   });
 
-  test('should set elementlocator.driver after super.new()', async () => {
+  test('should set locatorStrategy.driver after super.new()', async () => {
     // Arrange
     const newMockDriver = { sessionId: 'new-session-456' };
     webBrowser.driver = null;
@@ -200,7 +200,7 @@ describe('WebBrowser start method tests', () => {
     await webBrowser.start();
     
     // Assert
-    expect(webBrowser.elementlocator.driver).toBe(newMockDriver);
+    expect(webBrowser.locatorStrategy.driver).toBe(newMockDriver);
   });
 
   test('should handle super.new() throwing an error', async () => {
@@ -211,7 +211,7 @@ describe('WebBrowser start method tests', () => {
     
     // Act & Assert
     await expect(webBrowser.start()).rejects.toThrow('Failed to create session');
-    expect(webBrowser.elementlocator.driver).toBe(null);
+    expect(webBrowser.locatorStrategy.driver).toBe(null);
   });
 
   test('should preserve driver reference when close fails with ignorable error', async () => {
@@ -229,7 +229,7 @@ describe('WebBrowser start method tests', () => {
     
     // Assert
     expect(webBrowser.driver).not.toBe(originalDriver);
-    expect(webBrowser.elementlocator.driver).toBe(webBrowser.driver);
+    expect(webBrowser.locatorStrategy.driver).toBe(webBrowser.driver);
   });
 
   test('should handle close method not being defined', async () => {
@@ -327,7 +327,7 @@ describe('WebBrowser start method integration scenarios', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     webBrowser = new WebBrowser();
-    webBrowser.elementlocator = { driver: null };
+    webBrowser.locatorStrategy = { driver: null };
     webBrowser.new = jest.fn().mockResolvedValue(undefined);
   });
 
@@ -345,7 +345,7 @@ describe('WebBrowser start method integration scenarios', () => {
     expect(webBrowser.new).toHaveBeenCalledTimes(2);
   });
 
-  test('should maintain elementlocator reference after multiple starts', async () => {
+  test('should maintain locatorStrategy reference after multiple starts', async () => {
     const mockDriver1 = { sessionId: 'session-1' };
     const mockDriver2 = { sessionId: 'session-2' };
     
@@ -356,7 +356,7 @@ describe('WebBrowser start method integration scenarios', () => {
     });
     
     await webBrowser.start();
-    expect(webBrowser.elementlocator.driver).toBe(mockDriver1);
+    expect(webBrowser.locatorStrategy.driver).toBe(mockDriver1);
     
     webBrowser.close = jest.fn().mockResolvedValue(undefined);
     webBrowser.new = jest.fn().mockImplementation(() => {
@@ -365,6 +365,6 @@ describe('WebBrowser start method integration scenarios', () => {
     });
     
     await webBrowser.start();
-    expect(webBrowser.elementlocator.driver).toBe(mockDriver2);
+    expect(webBrowser.locatorStrategy.driver).toBe(mockDriver2);
   });
 });

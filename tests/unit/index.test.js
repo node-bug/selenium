@@ -68,9 +68,9 @@ describe('WebBrowser Unit Tests', () => {
   });
 
   describe('constructor', () => {
-    it('should initialize with empty stack and elementlocator', () => {
+    it('should initialize with empty stack and locatorStrategy', () => {
       expect(browser.stack).toEqual([]);
-      expect(browser.elementlocator).toBeDefined();
+      expect(browser.locatorStrategy).toBeDefined();
     });
 
     it('should set message property', () => {
@@ -115,14 +115,14 @@ describe('WebBrowser Unit Tests', () => {
   describe('finder', () => {
     it('should use default timeout from config', async () => {
       const finderStub = sandbox.stub().resolves(mockElement);
-      browser.elementlocator.find = finderStub;
+      browser.locatorStrategy.find = finderStub;
       await browser.finder();
       expect(finderStub.calledOnce).toBe(true);
     });
 
     it('should use custom timeout if provided', async () => {
       const finderStub = sandbox.stub().resolves(mockElement);
-      browser.elementlocator.find = finderStub;
+      browser.locatorStrategy.find = finderStub;
       await browser.finder(5000);
       expect(finderStub.calledOnce).toBe(true);
     });
@@ -131,7 +131,7 @@ describe('WebBrowser Unit Tests', () => {
       const finderStub = sandbox.stub()
         .onFirstCall().rejects(new Error('Not found'))
         .onSecondCall().resolves(mockElement);
-      browser.elementlocator.find = finderStub;
+      browser.locatorStrategy.find = finderStub;
       const result = await browser.finder();
       expect(result).toBe(mockElement);
     });
@@ -222,21 +222,21 @@ describe('WebBrowser Unit Tests', () => {
 
   describe('write method', () => {
     it('should write text to input field', async () => {
-      browser.elementlocator.find = sandbox.stub().resolves(mockElement);
+      browser.locatorStrategy.find = sandbox.stub().resolves(mockElement);
       await browser.element('username').write('testuser');
       expect(mockElement.sendKeys.calledWith('testuser')).toBe(true);
     });
 
     it('should write text to textarea', async () => {
       mockElement.tagName = 'textarea';
-      browser.elementlocator.find = sandbox.stub().resolves(mockElement);
+      browser.locatorStrategy.find = sandbox.stub().resolves(mockElement);
       await browser.textbox('description').write('test description');
       expect(mockElement.sendKeys.calledWith('test description')).toBe(true);
     });
 
     it('should handle content-editable elements', async () => {
       mockElement.tagName = 'div';
-      browser.elementlocator.find = sandbox.stub().resolves(mockElement);
+      browser.locatorStrategy.find = sandbox.stub().resolves(mockElement);
       await browser.element('content').write('test');
       expect(mockElement.sendKeys.calledWith('test')).toBe(true);
     });
@@ -244,7 +244,7 @@ describe('WebBrowser Unit Tests', () => {
 
   describe('find method', () => {
     it('should find element and reset stack', async () => {
-      browser.elementlocator.find = sandbox.stub().resolves(mockElement);
+      browser.locatorStrategy.find = sandbox.stub().resolves(mockElement);
       await browser.element('submit').find();
       expect(browser.stack).toEqual([]);
     });
@@ -253,21 +253,21 @@ describe('WebBrowser Unit Tests', () => {
   describe('findAll method', () => {
     it('should find all matching elements', async () => {
       const mockElements = [mockElement, mockElement];
-      browser.elementlocator.findAll = sandbox.stub().resolves(mockElements);
+      browser.locatorStrategy.findAll = sandbox.stub().resolves(mockElements);
       const result = await browser.element('item').findAll();
       expect(result).toEqual(mockElements);
       expect(browser.stack).toEqual([]);
     });
 
     it('should throw error if no elements found', async () => {
-      browser.elementlocator.findAll = sandbox.stub().resolves([]);
+      browser.locatorStrategy.findAll = sandbox.stub().resolves([]);
       await expect(browser.element('nonexistent').findAll()).rejects.toThrow('No elements matching the criteria were found');
     });
   });
 
   describe('text method', () => {
     it('should get text content', async () => {
-      browser.elementlocator.find = sandbox.stub().resolves(mockElement);
+      browser.locatorStrategy.find = sandbox.stub().resolves(mockElement);
       const result = await browser.element('welcome').text();
       expect(result).toBe('test text');
       expect(browser.stack).toEqual([]);
@@ -276,7 +276,7 @@ describe('WebBrowser Unit Tests', () => {
     it('should get value attribute for input fields', async () => {
       mockElement.getAttribute = sandbox.stub().withArgs('textContent').resolves(null);
       mockElement.getAttribute = sandbox.stub().withArgs('value').resolves('input value');
-      browser.elementlocator.find = sandbox.stub().resolves(mockElement);
+      browser.locatorStrategy.find = sandbox.stub().resolves(mockElement);
       const result = await browser.textbox('username').text();
       expect(result).toBe('input value');
     });
@@ -284,7 +284,7 @@ describe('WebBrowser Unit Tests', () => {
 
   describe('attribute method', () => {
     it('should get attribute value', async () => {
-      browser.elementlocator.find = sandbox.stub().resolves(mockElement);
+      browser.locatorStrategy.find = sandbox.stub().resolves(mockElement);
       const result = await browser.element('link').attribute('href');
       expect(result).toBe('test value');
       expect(browser.stack).toEqual([]);
@@ -293,14 +293,14 @@ describe('WebBrowser Unit Tests', () => {
 
   describe('click method', () => {
     it('should click element', async () => {
-      browser.elementlocator.find = sandbox.stub().resolves(mockElement);
+      browser.locatorStrategy.find = sandbox.stub().resolves(mockElement);
       await browser.element('button').click();
       expect(mockElement.click.calledOnce).toBe(true);
       expect(browser.stack).toEqual([]);
     });
 
     it('should click at coordinates', async () => {
-      browser.elementlocator.find = sandbox.stub().resolves(mockElement);
+      browser.locatorStrategy.find = sandbox.stub().resolves(mockElement);
       await browser.element('button').click(10, 20);
       expect(mockElement.click.calledOnce).toBe(false);
       expect(mockDriver.actions().move().pause().click().perform.calledOnce).toBe(true);
@@ -310,7 +310,7 @@ describe('WebBrowser Unit Tests', () => {
 
   describe('doubleClick method', () => {
     it('should double click element', async () => {
-      browser.elementlocator.find = sandbox.stub().resolves(mockElement);
+      browser.locatorStrategy.find = sandbox.stub().resolves(mockElement);
       await browser.element('text').doubleClick();
       expect(mockDriver.actions().doubleClick().perform.calledOnce).toBe(true);
       expect(browser.stack).toEqual([]);
@@ -319,7 +319,7 @@ describe('WebBrowser Unit Tests', () => {
 
   describe('rightClick method', () => {
     it('should right click element', async () => {
-      browser.elementlocator.find = sandbox.stub().resolves(mockElement);
+      browser.locatorStrategy.find = sandbox.stub().resolves(mockElement);
       await browser.element('context-menu').rightClick();
       expect(mockDriver.actions().contextClick().perform.calledOnce).toBe(true);
       expect(browser.stack).toEqual([]);
@@ -328,7 +328,7 @@ describe('WebBrowser Unit Tests', () => {
 
   describe('focus method', () => {
     it('should focus element', async () => {
-      browser.elementlocator.find = sandbox.stub().resolves(mockElement);
+      browser.locatorStrategy.find = sandbox.stub().resolves(mockElement);
       await browser.element('input').focus();
       expect(mockDriver.executeScript.calledWith('arguments[0].focus();', mockElement)).toBe(true);
       expect(browser.stack).toEqual([]);
@@ -337,7 +337,7 @@ describe('WebBrowser Unit Tests', () => {
 
   describe('clear method', () => {
     it('should clear input field', async () => {
-      browser.elementlocator.find = sandbox.stub().resolves(mockElement);
+      browser.locatorStrategy.find = sandbox.stub().resolves(mockElement);
       await browser.textbox('username').clear();
       expect(mockElement.clear.calledOnce).toBe(true);
       expect(browser.stack).toEqual([]);
@@ -345,7 +345,7 @@ describe('WebBrowser Unit Tests', () => {
 
     it('should clear textarea', async () => {
       mockElement.tagName = 'textarea';
-      browser.elementlocator.find = sandbox.stub().resolves(mockElement);
+      browser.locatorStrategy.find = sandbox.stub().resolves(mockElement);
       await browser.textarea('description').clear();
       expect(mockElement.clear.calledOnce).toBe(true);
     });
@@ -354,21 +354,21 @@ describe('WebBrowser Unit Tests', () => {
   describe('check and uncheck methods', () => {
     it('should check checkbox', async () => {
       mockElement.isSelected = sandbox.stub().resolves(false);
-      browser.elementlocator.find = sandbox.stub().resolves(mockElement);
+      browser.locatorStrategy.find = sandbox.stub().resolves(mockElement);
       await browser.checkbox('agree').check();
       expect(mockElement.click.calledOnce).toBe(true);
     });
 
     it('should uncheck checkbox', async () => {
       mockElement.isSelected = sandbox.stub().resolves(true);
-      browser.elementlocator.find = sandbox.stub().resolves(mockElement);
+      browser.locatorStrategy.find = sandbox.stub().resolves(mockElement);
       await browser.checkbox('agree').uncheck();
       expect(mockElement.click.calledOnce).toBe(true);
     });
 
     it('should skip if already checked', async () => {
       mockElement.isSelected = sandbox.stub().resolves(true);
-      browser.elementlocator.find = sandbox.stub().resolves(mockElement);
+      browser.locatorStrategy.find = sandbox.stub().resolves(mockElement);
       await browser.checkbox('agree').check();
       expect(mockElement.click.calledOnce).toBe(false);
     });
@@ -376,14 +376,14 @@ describe('WebBrowser Unit Tests', () => {
 
   describe('isVisible method', () => {
     it('should return true if element found', async () => {
-      browser.elementlocator.find = sandbox.stub().resolves(mockElement);
+      browser.locatorStrategy.find = sandbox.stub().resolves(mockElement);
       const result = await browser.element('submit').isVisible();
       expect(result).toBe(true);
       expect(browser.stack).toEqual([]);
     });
 
     it('should return false if element not found', async () => {
-      browser.elementlocator.find = sandbox.stub().rejects(new Error('Not found'));
+      browser.locatorStrategy.find = sandbox.stub().rejects(new Error('Not found'));
       const result = await browser.element('nonexistent').isVisible();
       expect(result).toBe(false);
       expect(browser.stack).toEqual([]);
@@ -392,28 +392,28 @@ describe('WebBrowser Unit Tests', () => {
 
   describe('isDisplayed method', () => {
     it('should return true if element found', async () => {
-      browser.elementlocator.find = sandbox.stub().resolves(mockElement);
+      browser.locatorStrategy.find = sandbox.stub().resolves(mockElement);
       const result = await browser.element('loading').isDisplayed();
       expect(result).toBe(true);
       expect(browser.stack).toEqual([]);
     });
 
     it('should throw error if element not found', async () => {
-      browser.elementlocator.find = sandbox.stub().rejects(new Error('Not found'));
+      browser.locatorStrategy.find = sandbox.stub().rejects(new Error('Not found'));
       await expect(browser.element('nonexistent').isDisplayed()).rejects.toThrow();
     });
   });
 
   describe('isNotDisplayed method', () => {
     it('should return true if element not found', async () => {
-      browser.elementlocator.find = sandbox.stub().rejects(new Error('Not found'));
+      browser.locatorStrategy.find = sandbox.stub().rejects(new Error('Not found'));
       const result = await browser.element('loading').isNotDisplayed();
       expect(result).toBe(true);
       expect(browser.stack).toEqual([]);
     });
 
     it('should throw error if element still visible', async () => {
-      browser.elementlocator.find = sandbox.stub().resolves(mockElement);
+      browser.locatorStrategy.find = sandbox.stub().resolves(mockElement);
       await expect(browser.element('visible').isNotDisplayed()).rejects.toThrow();
     });
   });
@@ -422,7 +422,7 @@ describe('WebBrowser Unit Tests', () => {
     it('should return true if element is disabled', async () => {
       mockElement.isEnabled = sandbox.stub().resolves(false);
       mockElement.getAttribute = sandbox.stub().resolves('disabled');
-      browser.elementlocator.find = sandbox.stub().resolves(mockElement);
+      browser.locatorStrategy.find = sandbox.stub().resolves(mockElement);
       const result = await browser.button('submit').isDisabled();
       expect(result).toBe(true);
     });
@@ -430,7 +430,7 @@ describe('WebBrowser Unit Tests', () => {
     it('should return false if element is enabled', async () => {
       mockElement.isEnabled = sandbox.stub().resolves(true);
       mockElement.getAttribute = sandbox.stub().resolves(null);
-      browser.elementlocator.find = sandbox.stub().resolves(mockElement);
+      browser.locatorStrategy.find = sandbox.stub().resolves(mockElement);
       const result = await browser.button('submit').isDisabled();
       expect(result).toBe(false);
     });
@@ -438,7 +438,7 @@ describe('WebBrowser Unit Tests', () => {
 
   describe('screenshot method', () => {
     it('should take element screenshot', async () => {
-      browser.elementlocator.find = sandbox.stub().resolves(mockElement);
+      browser.locatorStrategy.find = sandbox.stub().resolves(mockElement);
       const result = await browser.element('form').screenshot();
       expect(result).toBe('base64-screenshot');
     });
@@ -452,14 +452,14 @@ describe('WebBrowser Unit Tests', () => {
   describe('hide and unhide methods', () => {
     it('should hide elements', async () => {
       const mockElements = [mockElement];
-      browser.elementlocator.findAll = sandbox.stub().resolves(mockElements);
+      browser.locatorStrategy.findAll = sandbox.stub().resolves(mockElements);
       await browser.element('ad').hide();
       expect(mockDriver.executeScript.calledWith('arguments[0].style.opacity="0";', mockElement)).toBe(true);
     });
 
     it('should unhide elements', async () => {
       const mockElements = [mockElement];
-      browser.elementlocator.findAll = sandbox.stub().resolves(mockElements);
+      browser.locatorStrategy.findAll = sandbox.stub().resolves(mockElements);
       await browser.element('ad').unhide();
       expect(mockDriver.executeScript.calledWith('arguments[0].style.opacity="1";', mockElement)).toBe(true);
     });
@@ -467,7 +467,7 @@ describe('WebBrowser Unit Tests', () => {
 
   describe('upload method', () => {
     it('should upload file', async () => {
-      browser.elementlocator.find = sandbox.stub().resolves(mockElement);
+      browser.locatorStrategy.find = sandbox.stub().resolves(mockElement);
       await browser.file('upload').upload('/path/to/file.txt');
       expect(mockElement.sendKeys.calledWith('/path/to/file.txt')).toBe(true);
     });
@@ -475,13 +475,13 @@ describe('WebBrowser Unit Tests', () => {
 
   describe('scroll method', () => {
     it('should scroll element into view', async () => {
-      browser.elementlocator.find = sandbox.stub().resolves(mockElement);
+      browser.locatorStrategy.find = sandbox.stub().resolves(mockElement);
       await browser.element('footer').scroll();
       expect(mockDriver.executeScript.calledOnce).toBe(true);
     });
 
     it('should scroll with alignToTop=false', async () => {
-      browser.elementlocator.find = sandbox.stub().resolves(mockElement);
+      browser.locatorStrategy.find = sandbox.stub().resolves(mockElement);
       await browser.element('footer').scroll(false);
       expect(mockDriver.executeScript.calledOnce).toBe(true);
     });
@@ -489,7 +489,7 @@ describe('WebBrowser Unit Tests', () => {
 
   describe('hover method', () => {
     it('should hover over element', async () => {
-      browser.elementlocator.find = sandbox.stub().resolves(mockElement);
+      browser.locatorStrategy.find = sandbox.stub().resolves(mockElement);
       await browser.element('menu').hover();
       expect(mockDriver.actions().move().perform.calledOnce).toBe(true);
     });

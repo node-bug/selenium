@@ -1,7 +1,7 @@
-import { ElementLocator } from '../../../../app/elements/index.js';
+import { LocatorStrategy } from '../../../../app/elements/locator-strategy.js';
 import sinon from 'sinon';
 
-describe('ElementLocator', () => {
+describe('LocatorStrategy', () => {
   let locator;
   let mockDriver;
   let sandbox;
@@ -17,7 +17,7 @@ describe('ElementLocator', () => {
       executeScript: sandbox.stub().resolves([])
     };
 
-    locator = new ElementLocator();
+    locator = new LocatorStrategy();
     locator.driver = mockDriver;
   });
 

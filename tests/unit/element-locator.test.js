@@ -1,7 +1,7 @@
-import { ElementLocator } from '../../app/elements/index.js';
+import { LocatorStrategy } from '../../app/elements/locator-strategy.js';
 import sinon from 'sinon';
 
-describe('ElementLocator Unit Tests', () => {
+describe('LocatorStrategy Unit Tests', () => {
   let locator;
   let mockDriver;
   let sandbox;
@@ -17,7 +17,7 @@ describe('ElementLocator Unit Tests', () => {
       executeScript: sandbox.stub().resolves([])
     };
 
-    locator = new ElementLocator();
+    locator = new LocatorStrategy();
     locator.driver = mockDriver;
   });
 
@@ -31,7 +31,7 @@ describe('ElementLocator Unit Tests', () => {
     });
 
     it('should initialize without driver', () => {
-      const newLocator = new ElementLocator();
+      const newLocator = new LocatorStrategy();
       expect(newLocator.driver).toBeUndefined();
     });
 
