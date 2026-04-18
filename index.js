@@ -207,59 +207,6 @@ class WebBrowser extends Browser {
   }
 
   /**
-   * Retrieves the text content of an element.
-   * Automatically handles <input> and <textarea> by fetching the 'value' attribute.
-   * 
-   * @returns {Promise<string>} Text content of the element
-   * @example
-   * const text = await browser.element('welcome').text();
-   * const value = await browser.textbox('username').text();
-   */
-  async text() {
-    this.message = messenger({ stack: this.stack, action: 'getText' });
-
-    try {
-      const locator = await this.finder();
-
-      // 1. Try standard text content first
-      let value = await locator.getAttribute('textContent');
-
-      // 2. Fallback for form fields if textContent is empty
-      if ((value === null || value.trim() === '') &&
-        ['input', 'textarea'].includes(locator.tagName)) {
-        value = await locator.getAttribute('value');
-      }
-
-      return value?.trim() ?? '';
-    } catch (err) {
-      this.#handleError(err, 'getting text');
-    } finally {
-      this.stack = [];
-    }
-  }
-
-  /**
-   * Retrieves a specific attribute from an element.
-   * 
-   * @param {string} name - Attribute name to retrieve
-   * @returns {Promise<string>} Attribute value
-   * @example
-   * const href = await browser.link('home').attribute('href');
-   * const value = await browser.textbox('username').attribute('value');
-   */
-  async attribute(name) {
-    this.message = messenger({ stack: this.stack, action: 'getAttribute', data: name });
-    try {
-      const locator = await this.finder();
-      return await locator.getAttribute(name);
-    } catch (err) {
-      this.#handleError(err, `getting attribute '${name}'`);
-    } finally {
-      this.stack = [];
-    }
-  }
-
-  /**
    * Hovers the mouse over an element.
    * 
    * Moves the mouse cursor to the center of the element to trigger hover states.
@@ -529,6 +476,66 @@ class WebBrowser extends Browser {
   }
 
   /**
+   * "Namespace" or "Sub-resource" pattern for organized access to retrieval operations.
+   * Accessor for retrieval operations.
+   * Usage: await browser.element('id').get.text()
+   */
+  get get() {
+    return {
+      text: async () => {
+        this.message = messenger({ stack: this.stack, action: 'getText' });
+        try {
+          const locator = await this.finder();
+          let value = await locator.getAttribute('textContent');
+
+          if ((value === null || value.trim() === '') &&
+            ['input', 'textarea'].includes(locator.tagName)) {
+            value = await locator.getAttribute('value');
+          }
+          return value?.trim() ?? '';
+        } catch (err) {
+          this.#handleError(err, 'getting text');
+        } finally {
+          this.stack = [];
+        }
+      },
+
+      attribute: async (name) => {
+        this.message = messenger({ stack: this.stack, action: 'getAttribute', data: name });
+        try {
+          const locator = await this.finder();
+          return await locator.getAttribute(name);
+        } catch (err) {
+          this.#handleError(err, `getting attribute '${name}'`);
+        } finally {
+          this.stack = [];
+        }
+      },
+
+      screenshot: async () => {
+        let dataUrl = null;
+        if (this.stack.length > 0) {
+          try {
+            this.message = messenger({ stack: this.stack, action: 'screenshot' });
+            const locator = await this.finder();
+            dataUrl = await locator.takeScreenshot(true);
+          } catch (err) {
+            log.error(`Failed to capture element screenshot: ${err.message}`);
+          }
+        }
+
+        if (!dataUrl) {
+          log.info('Capturing screenshot of the full page');
+          dataUrl = await this.driver.takeScreenshot();
+        }
+
+        this.stack = [];
+        return dataUrl;
+      }
+    };
+  }
+
+  /**
    * Internal helper to set checkbox state
    * 
    * @private
@@ -710,39 +717,6 @@ class WebBrowser extends Browser {
     } finally {
       this.stack = [];
     }
-  }
-
-  /**
-   * Captures a screenshot of a specific element or the entire page.
-   * Returns a Base64 encoded string.
-   * 
-   * @returns {Promise<string>} Base64 encoded screenshot
-   * @example
-   * const screenshot = await browser.element('form').screenshot();
-   * const fullPage = await browser.screenshot();
-   */
-  async screenshot() {
-    let dataUrl = null;
-
-    // 1. If stack has items, take a screenshot of a specific element
-    if (this.stack.length > 0) {
-      try {
-        this.message = messenger({ stack: this.stack, action: 'screenshot' });
-        const locator = await this.finder();
-        dataUrl = await locator.takeScreenshot(true);
-      } catch (err) {
-        log.error(`Failed to capture element screenshot: ${err.message}`);
-      }
-    }
-
-    // 2. Fallback to full page screenshot
-    if (!dataUrl) {
-      log.info('Capturing screenshot of the full page');
-      dataUrl = await this.driver.takeScreenshot();
-    }
-
-    this.stack = [];
-    return dataUrl;
   }
 
   /**

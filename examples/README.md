@@ -74,6 +74,16 @@ Demonstrates spatial/relative element positioning features like finding elements
 node examples/spatial-positioning-example.js
 ```
 
+### 8. Comprehensive Demo Example
+
+**File:** `comprehensive-demo.js`
+
+Demonstrates comprehensive browser automation features including interaction with the SeleniumBase demo page. This example shows how to work with various element types, form controls, and browser navigation features.
+
+```bash
+node examples/comprehensive-demo.js
+```
+
 ## Running Examples
 
 All examples follow the same pattern:

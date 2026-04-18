@@ -1,19 +1,18 @@
-# @nodebug/selenium
+# WebBrowser
 
-A comprehensive browser automation library built on top of Selenium WebDriver for Node.js. This library provides a high-level API for automating web browsers with support for multiple browsers and operating systems.
+A JavaScript library for browser automation with a fluent API, built on top of Selenium WebDriver.
 
 ## Features
 
-- **Multi-browser Support**: Chrome, Firefox, Safari, and Edge
-- **Cross-platform**: Works on Windows, macOS, and Linux
-- **Easy API**: Simple and intuitive interface for common browser automation tasks
-- **Window Management**: Resize, maximize, and manage browser windows
-- **Navigation**: Navigate between URLs, go back/forward, and refresh pages
-- **Page Information**: Get URL, title, and other page metadata
-- **Console Monitoring**: Detect and log console errors
-- **State Management**: Reset browser state including cookies and storage
-- **Actions API**: Advanced interactions using Selenium WebDriver actions
-- **Error Handling**: Comprehensive error handling and logging
+- Fluent API for browser automation
+- Support for various element types (buttons, textboxes, checkboxes, etc.)
+- Element location and manipulation
+- Navigation and browser control
+- Drag and drop operations
+- File upload capabilities
+- Visibility and state checks
+- Method chaining support
+- Human-like element prioritization for text and attributes
 
 ## Installation
 
@@ -21,32 +20,188 @@ A comprehensive browser automation library built on top of Selenium WebDriver fo
 npm install @nodebug/selenium
 ```
 
-## Requirements
-
-- Node.js >= 24.x
-- Selenium WebDriver 4.43.0+
-- Appropriate browser drivers installed
-
-## Configuration
-
-The library uses `@nodebug/config` for configuration. Create a configuration file (e.g., `.nodebugrc` or `config.js`) with the following options:
-
-```javascript
-module.exports = {
-  selenium: {
-    hub: 'http://localhost:4444', // Selenium Grid hub URL (optional)
-    timeout: 30, // Default timeout in seconds
-    width: 1280, // Default browser width
-    height: 800, // Default browser height
-    headless: false, // Run in headless mode (true/false)
-    incognito: false, // Run in incognito mode (true/false)
-  },
-}
-```
-
 ## Usage
 
-### Basic Example
+```javascript
+import WebBrowser from '@nodebug/selenium'
+
+const browser = new WebBrowser()
+
+// Navigate to a page
+await browser.goto('https://example.com')
+
+// Find and interact with elements
+await browser.element('input').write('Hello World')
+await browser.button('submit').click()
+
+// Check element visibility
+const isVisible = await browser.element('div').isVisible()
+
+// Element Selection Priority Examples
+// Find a button by its text content
+await browser.button('Submit').click()
+
+// Find a textbox by its placeholder
+await browser.textbox('Enter your email').write('user@example.com')
+
+// Find a checkbox by its data-testid attribute
+await browser.checkbox('remember-me').check()
+
+// Find a dropdown by its name attribute
+await browser.element('country').click()
+
+// Find a link by its aria-label
+await browser.link('Go to home page').click()
+
+// Find an image by its alt text
+await browser.image('Company Logo').click()
+
+// Find a textbox by its value
+await browser.textbox('john.doe@example.com').write('new.email@example.com')
+
+// Find a button by its data-id
+await browser.button('save-button').click()
+
+// Find a radio button by its name
+await browser.radio('male gender').check()
+
+// Find a file input by its title attribute
+await browser.file('Upload your resume').upload('/path/to/resume.pdf')
+```
+
+## API Reference
+
+### Core Methods
+
+- `start()` - Start a new browser session
+- `goto(url)` - Navigate to a URL
+- `element(selector)` - Find an element by selector
+- `button(selector)` - Find a button element
+- `textbox(selector)` - Find a textbox element
+- `checkbox(selector)` - Find a checkbox element
+- `write(text)` - Write text to an element
+- `click()` - Click on an element
+- `find()` - Find an element
+- `clear()` - Clear text from an element
+- `check()` - Check a checkbox
+- `uncheck()` - Uncheck a checkbox
+- `isVisible()` - Check if element is visible
+- `isDisplayed()` - Check if element is displayed
+- `isNotDisplayed()` - Check if element is not displayed
+- `isDisabled()` - Check if element is disabled
+- `hide()` - Hide an element
+- `unhide()` - Unhide an element
+- `upload(filePath)` - Upload a file
+- `drag()` - Start drag operation
+- `onto()` - Specify drop target
+- `drop()` - Complete drag and drop operation
+
+### Element Selection Priority
+
+When locating elements, the library prioritizes visible text and attributes in the following order, processing elements as a human would:
+
+1. **Text** - Text content of the element
+2. **Placeholder** - Placeholder attribute
+3. **Value** - Value attribute
+4. **data-tid/data-testid/data-test-id/Id/resource-id/data-id** - Test identifiers
+5. **Name** - Name attribute
+6. **aria-label** - ARIA label attribute
+7. **CSS Class** - CSS class attribute
+8. **Hint/Title/Tooltip** - Title or tooltip attributes
+9. **Alt/Src** - Alt or src attributes for images
+
+For inputs, edits, dropdowns, selects, and other form elements, the library will also search for corresponding labels to improve element identification accuracy.
+
+#### Examples
+
+```javascript
+// Find a button by its text content
+await browser.button('Submit').click()
+
+// Find a textbox by its placeholder
+await browser.textbox('Enter your email').write('user@example.com')
+
+// Find a checkbox by its data-testid attribute
+await browser.checkbox('remember-me').check()
+
+// Find a dropdown by its name attribute
+await browser.element('country').click()
+
+// Find a link by its aria-label
+await browser.link('Go to home page').click()
+
+// Find an image by its alt text
+await browser.image('Company Logo').click()
+
+// Find a textbox by its value
+await browser.textbox('john.doe@example.com').write('new.email@example.com')
+
+// Find a button by its data-id
+await browser.button('save-button').click()
+
+// Find a radio button by its name
+await browser.radio('gender male').check()
+
+// Find a file input by its title attribute
+await browser.file('Upload your resume').upload('/path/to/resume.pdf')
+```
+
+### Navigation Methods
+
+- `refresh()` - Refresh the current page
+- `goBack()` - Go back in browser history
+- `goForward()` - Go forward in browser history
+- `window()` - Switch to a different window
+
+### Element Type Methods
+
+- `element()` - Generic element selector
+- `button()` - Button element selector
+- `radio()` - Radio button element selector
+- `textbox()` - Textbox element selector
+- `checkbox()` - Checkbox element selector
+- `image()` - Image element selector
+- `toolbar()` - Toolbar element selector
+- `tab()` - Tab element selector
+- `link()` - Link element selector
+- `dialog()` - Dialog element selector
+- `file()` - File input element selector
+
+## Testing
+
+The project includes both unit and integration tests:
+
+```bash
+# Run unit tests
+npm test -- tests/unit/webbrowser.test.js
+
+# Run integration tests
+npm test -- tests/integration/webbrowser.test.js
+
+# Run all tests
+npm test
+```
+
+## Examples
+
+The project includes several examples demonstrating various features:
+
+- `examples/form-interaction-example.js` - Basic form interaction
+- `examples/javascript-alerts-example.js` - JavaScript alert handling
+- `examples/tab-management-example.js` - Tab management
+- `examples/window-management-example.js` - Window management
+- `examples/comprehensive-demo.js` - Comprehensive demo showing various features
+- `examples/comprehensive-demo.js` - Comprehensive demo showing various features interacting with the SeleniumBase demo page
+
+To run any example:
+
+```bash
+node examples/[example-name].js
+```
+
+## License
+
+MIT
 
 ```javascript
 import WebBrowser from '@nodebug/selenium'
@@ -644,6 +799,36 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ## Support
 
 For issues and questions, please visit the [GitHub repository](https://github.com/node-bug/selenium/issues).
+
+## Get Methods
+
+The library also provides `.get` methods for retrieving element information:
+
+### Element Get Methods
+
+#### get.text()
+
+Gets text content of an element using the `.get` method.
+
+```javascript
+const text = await browser.element('welcome').get.text()
+```
+
+#### get.attribute(name)
+
+Gets attribute value of an element using the `.get` method.
+
+```javascript
+const href = await browser.link('home').get.attribute('href')
+```
+
+#### get.screenshot()
+
+Captures screenshot of element using the `.get` method.
+
+```javascript
+const screenshot = await browser.element('form').get.screenshot()
+```
 
 ## Project Structure
 
