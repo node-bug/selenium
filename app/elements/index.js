@@ -67,17 +67,6 @@ export class ElementLocator extends Selectors {
     return results;
   }
 
-  // async addQualifiers(element) {
-  //   const rect = await this.driver.executeScript('return arguments[0].getBoundingClientRect();', element);
-  //   element.rect = {
-  //     ...rect,
-  //     midx: rect.x + rect.width / 2,
-  //     midy: rect.y + rect.height / 2
-  //   };
-  //   element.tagName = (await element.getTagName()).toLowerCase();
-  //   return element;
-  // }
-
   async addQualifiers(elements) {
     const targets = Array.isArray(elements) ? elements : [elements];
     if (targets.length === 0) return [];

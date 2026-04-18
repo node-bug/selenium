@@ -12,6 +12,11 @@ export class Selectors {
    * Logic: If it contains a single quote, wrap in concat() and escape.
    */
   transform(value) {
+    // Handle null/undefined values
+    if (value === null || value === undefined) {
+      return "''";
+    }
+    
     if (!value.includes("'")) return `'${value}'`;
     
     const parts = value.split("'");

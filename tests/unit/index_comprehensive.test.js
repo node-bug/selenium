@@ -1,7 +1,7 @@
 import WebBrowser from '../../index.js';
 import sinon from 'sinon';
 
-describe('WebBrowser Unit Tests', () => {
+describe('WebBrowser Comprehensive Unit Tests', () => {
   let browser;
   let mockDriver;
   let mockElement;
@@ -79,7 +79,7 @@ describe('WebBrowser Unit Tests', () => {
     });
   });
 
-  describe('getDescriptions', () => {
+  describe('getDescriptions method', () => {
     it('should split stack by OR conditions', () => {
       browser.stack = [
         { type: 'element', id: 'test1' },
@@ -112,7 +112,7 @@ describe('WebBrowser Unit Tests', () => {
     });
   });
 
-  describe('finder', () => {
+  describe('finder method', () => {
     it('should use default timeout from config', async () => {
       const finderStub = sandbox.stub().resolves(mockElement);
       browser.elementlocator.find = finderStub;
@@ -135,9 +135,15 @@ describe('WebBrowser Unit Tests', () => {
       const result = await browser.finder();
       expect(result).toBe(mockElement);
     });
+
+    it('should throw error after timeout', async () => {
+      const finderStub = sandbox.stub().rejects(new Error('Not found'));
+      browser.elementlocator.find = finderStub;
+      await expect(browser.finder(100)).rejects.toThrow('Element not found after');
+    });
   });
 
-  describe('element builder', () => {
+  describe('element builder methods', () => {
     it('should add element to stack', () => {
       const result = browser.element('test');
       expect(result).toBe(browser);
@@ -220,6 +226,29 @@ describe('WebBrowser Unit Tests', () => {
     });
   });
 
+  describe('start method', () => {
+    it('should start a new browser session', async () => {
+      browser.driver = mockDriver;
+      await browser.start();
+      expect(mockDriver.getSession.calledOnce).toBe(true);
+    });
+
+    it('should close existing session before starting new one', async () => {
+      const mockOldSession = { sessionId: 'old-session' };
+      browser.driver = mockDriver;
+      mockDriver.getSession = sandbox.stub().resolves(mockOldSession);
+      await browser.start();
+      expect(mockDriver.getSession.calledOnce).toBe(true);
+    });
+
+    it('should handle error during session cleanup', async () => {
+      browser.driver = mockDriver;
+      mockDriver.getSession = sandbox.stub().rejects(new Error('Session error'));
+      await browser.start();
+      expect(mockDriver.getSession.calledOnce).toBe(true);
+    });
+  });
+
   describe('write method', () => {
     it('should write text to input field', async () => {
       browser.elementlocator.find = sandbox.stub().resolves(mockElement);
@@ -240,6 +269,12 @@ describe('WebBrowser Unit Tests', () => {
       await browser.element('content').write('test');
       expect(mockElement.sendKeys.calledWith('test')).toBe(true);
     });
+
+    it('should reset stack after write', async () => {
+      browser.elementlocator.find = sandbox.stub().resolves(mockElement);
+      await browser.element('username').write('testuser');
+      expect(browser.stack).toEqual([]);
+    });
   });
 
   describe('find method', () => {
@@ -247,6 +282,11 @@ describe('WebBrowser Unit Tests', () => {
       browser.elementlocator.find = sandbox.stub().resolves(mockElement);
       await browser.element('submit').find();
       expect(browser.stack).toEqual([]);
+    });
+
+    it('should handle error in find', async () => {
+      browser.elementlocator.find = sandbox.stub().rejects(new Error('Not found'));
+      await expect(browser.element('submit').find()).rejects.toThrow();
     });
   });
 
@@ -262,6 +302,11 @@ describe('WebBrowser Unit Tests', () => {
     it('should throw error if no elements found', async () => {
       browser.elementlocator.findAll = sandbox.stub().resolves([]);
       await expect(browser.element('nonexistent').findAll()).rejects.toThrow('No elements matching the criteria were found');
+    });
+
+    it('should handle timeout in findAll', async () => {
+      browser.elementlocator.findAll = sandbox.stub().resolves([]);
+      await expect(browser.element('nonexistent').findAll(100)).rejects.toThrow('No elements matching the criteria were found');
     });
   });
 
@@ -280,6 +325,11 @@ describe('WebBrowser Unit Tests', () => {
       const result = await browser.textbox('username').text();
       expect(result).toBe('input value');
     });
+
+    it('should handle error in text', async () => {
+      browser.elementlocator.find = sandbox.stub().rejects(new Error('Not found'));
+      await expect(browser.element('welcome').text()).rejects.toThrow();
+    });
   });
 
   describe('attribute method', () => {
@@ -288,6 +338,11 @@ describe('WebBrowser Unit Tests', () => {
       const result = await browser.element('link').attribute('href');
       expect(result).toBe('test value');
       expect(browser.stack).toEqual([]);
+    });
+
+    it('should handle error in attribute', async () => {
+      browser.elementlocator.find = sandbox.stub().rejects(new Error('Not found'));
+      await expect(browser.element('link').attribute('href')).rejects.toThrow();
     });
   });
 
@@ -306,6 +361,11 @@ describe('WebBrowser Unit Tests', () => {
       expect(mockDriver.actions().move().pause().click().perform.calledOnce).toBe(true);
       expect(browser.stack).toEqual([]);
     });
+
+    it('should handle error in click', async () => {
+      browser.elementlocator.find = sandbox.stub().rejects(new Error('Not found'));
+      await expect(browser.element('button').click()).rejects.toThrow();
+    });
   });
 
   describe('doubleClick method', () => {
@@ -314,6 +374,11 @@ describe('WebBrowser Unit Tests', () => {
       await browser.element('text').doubleClick();
       expect(mockDriver.actions().doubleClick().perform.calledOnce).toBe(true);
       expect(browser.stack).toEqual([]);
+    });
+
+    it('should handle error in doubleClick', async () => {
+      browser.elementlocator.find = sandbox.stub().rejects(new Error('Not found'));
+      await expect(browser.element('text').doubleClick()).rejects.toThrow();
     });
   });
 
@@ -324,6 +389,11 @@ describe('WebBrowser Unit Tests', () => {
       expect(mockDriver.actions().contextClick().perform.calledOnce).toBe(true);
       expect(browser.stack).toEqual([]);
     });
+
+    it('should handle error in rightClick', async () => {
+      browser.elementlocator.find = sandbox.stub().rejects(new Error('Not found'));
+      await expect(browser.element('context-menu').rightClick()).rejects.toThrow();
+    });
   });
 
   describe('focus method', () => {
@@ -332,6 +402,11 @@ describe('WebBrowser Unit Tests', () => {
       await browser.element('input').focus();
       expect(mockDriver.executeScript.calledWith('arguments[0].focus();', mockElement)).toBe(true);
       expect(browser.stack).toEqual([]);
+    });
+
+    it('should handle error in focus', async () => {
+      browser.elementlocator.find = sandbox.stub().rejects(new Error('Not found'));
+      await expect(browser.element('input').focus()).rejects.toThrow();
     });
   });
 
@@ -348,6 +423,11 @@ describe('WebBrowser Unit Tests', () => {
       browser.elementlocator.find = sandbox.stub().resolves(mockElement);
       await browser.textarea('description').clear();
       expect(mockElement.clear.calledOnce).toBe(true);
+    });
+
+    it('should handle error in clear', async () => {
+      browser.elementlocator.find = sandbox.stub().rejects(new Error('Not found'));
+      await expect(browser.textbox('username').clear()).rejects.toThrow();
     });
   });
 
@@ -371,6 +451,11 @@ describe('WebBrowser Unit Tests', () => {
       browser.elementlocator.find = sandbox.stub().resolves(mockElement);
       await browser.checkbox('agree').check();
       expect(mockElement.click.calledOnce).toBe(false);
+    });
+
+    it('should handle error in check', async () => {
+      browser.elementlocator.find = sandbox.stub().rejects(new Error('Not found'));
+      await expect(browser.checkbox('agree').check()).rejects.toThrow();
     });
   });
 

@@ -72,7 +72,7 @@ export default function messenger(a) {
     waitVisibility: ' to be visible',
     waitInvisibility: ' to not be visible',
     isDisabled: ' is disabled',
-    click: a.x !== null && a.y !== null ? ` at location x:${a.x} y:${a.y}` : '',
+    click: (a.x !== null && a.y !== null && a.x !== undefined && a.y !== undefined) ? ` at location x:${a.x} y:${a.y}` : '',
   };
 
   if (suffixes[a.action]) {

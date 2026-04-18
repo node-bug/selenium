@@ -146,4 +146,19 @@ describe('WebBrowser', () => {
       expect(end - start).toBeGreaterThanOrEqual(100)
     })
   })
+
+  describe('alert method', () => {
+    it('should return alert instance', () => {
+      const alertInstance = browser.alert()
+      expect(alertInstance).toBeDefined()
+      // The alert instance should be an Alert class
+      expect(alertInstance.constructor.name).toBe('Alert')
+    })
+
+    it('should return alert instance with text parameter', () => {
+      const alertInstance = browser.alert('Test Alert Text')
+      expect(alertInstance).toBeDefined()
+      expect(alertInstance._targetText).toBe('Test Alert Text')
+    })
+  })
 })
