@@ -5,6 +5,7 @@ import Browser from './app/browser/index.js';
 import { LocatorStrategy } from './app/elements/locator-strategy.js';
 import { SelectorStackBuilder } from './app/elements/selector-stack-builder.js';
 import messenger from './app/messenger.js';
+import { ClickDelegate } from './app/command-delegates/click-delegate.js';
 
 const selenium = config('selenium');
 
@@ -23,11 +24,13 @@ const selenium = config('selenium');
  */
 class WebBrowser extends Browser {
   #message = '';
+  #clickDelegate;
 
   constructor() {
     super()
     this.stack = []
     this.locatorStrategy = new LocatorStrategy()
+    this.#clickDelegate = new ClickDelegate(this);
 
     Object.keys(this.locatorStrategy.definitions).forEach(type => {
       this[type] = (data) => {
@@ -87,7 +90,7 @@ class WebBrowser extends Browser {
   /**
    * Centralized retry logic for finding elements
    */
-  async #finder(t = null, action = null) {
+  async _finder(t = null, action = null) {
     let locator;
     const stacks = this.getDescriptions();
     const timeout = t ?? (selenium.timeout * 1000);
@@ -124,7 +127,7 @@ class WebBrowser extends Browser {
   async write(value) {
     this.message = messenger({ stack: this.stack, action: 'write', data: value });
     try {
-      const locator = await this.#finder(null, 'write');
+      const locator = await this._finder(null, 'write');
       const isInput = ['input', 'textarea'].includes(locator.tagName);
 
       if (isInput) {
@@ -132,7 +135,7 @@ class WebBrowser extends Browser {
       } else {
         // Fallback for custom content-editable fields
         const text = await locator.getAttribute('textContent');
-        await this.clicker(locator);
+        await this._clicker(locator);
         // Move to end of text
         for (let i = 0; i < text.length; i++) {
           await this.actions().sendKeys(Key.RIGHT).perform();
@@ -140,7 +143,7 @@ class WebBrowser extends Browser {
         await this.actions().sendKeys(value).perform();
       }
     } catch (err) {
-      this.#handleError(err, 'entering data');
+      this.handleError(err, 'entering data');
     } finally {
       this.stack = [];
     }
@@ -158,11 +161,11 @@ class WebBrowser extends Browser {
   async find() {
     this.message = messenger({ stack: this.stack, action: 'find' });
     try {
-      // finder() handles the retry logic and "OR" conditions
-      const locator = await this.#finder();
+      // _finder() handles the retry logic and "OR" conditions
+      const locator = await this._finder();
       return locator;
     } catch (err) {
-      this.#handleError(err, 'finding element');
+      this.handleError(err, 'finding element');
     } finally {
       this.stack = [];
     }
@@ -226,11 +229,11 @@ class WebBrowser extends Browser {
   async hover() {
     this.message = messenger({ stack: this.stack, action: 'hover' });
     try {
-      const locator = await this.#finder();
+      const locator = await this._finder();
       // Move mouse to the center of the element
       await this.actions().move({ origin: locator }).perform();
     } catch (err) {
-      this.#handleError(err, 'hovering');
+      this.handleError(err, 'hovering');
     } finally {
       this.stack = [];
     }
@@ -249,7 +252,7 @@ class WebBrowser extends Browser {
   async scroll(alignToTop = true) {
     this.message = messenger({ stack: this.stack, action: 'scroll' });
     try {
-      const locator = await this.#finder();
+      const locator = await this._finder();
 
       // 'smooth' behavior can be added here if desired for visual debugging
       await this.driver.executeScript(
@@ -263,7 +266,7 @@ class WebBrowser extends Browser {
         await this.driver.executeScript('arguments[0].scrollLeft = arguments[0].scrollWidth;', locator);
       }
     } catch (err) {
-      this.#handleError(err, 'scrolling into view');
+      this.handleError(err, 'scrolling into view');
     } finally {
       this.stack = [];
     }
@@ -271,7 +274,7 @@ class WebBrowser extends Browser {
   }
 
   // Common Error Handler Helper
-  #handleError(err, context) {
+  handleError(err, context) {
     log.error(`${this.message}\nError while ${context}.\n${err.stack}`);
     this.stack = [];
     err.message = `Error while ${this.message}\n${err.message}`;
@@ -292,16 +295,7 @@ class WebBrowser extends Browser {
    * await browser.element('menu').click(10, 20); // Click at coordinates
    */
   async click(x = null, y = null) {
-    this.message = messenger({ stack: this.stack, action: 'click', x, y });
-    try {
-      const locator = await this.#finder();
-      await this.clicker(locator, x, y);
-    } catch (err) {
-      this.#handleError(err, 'clicking');
-    } finally {
-      this.stack = [];
-    }
-    return true;
+    return await this.#clickDelegate.click(x, y);
   }
 
   /**
@@ -315,10 +309,10 @@ class WebBrowser extends Browser {
   async focus() {
     this.message = messenger({ stack: this.stack, action: 'focus' });
     try {
-      const locator = await this.#finder();
+      const locator = await this._finder();
       await this.driver.executeScript('arguments[0].focus();', locator);
     } catch (err) {
-      this.#handleError(err, 'focusing');
+      this.handleError(err, 'focusing');
     } finally {
       this.stack = [];
     }
@@ -336,17 +330,7 @@ class WebBrowser extends Browser {
    * await browser.button('edit').doubleClick();
    */
   async doubleClick() {
-    this.message = messenger({ stack: this.stack, action: 'doubleclick' });
-    try {
-      const locator = await this.finder();
-      // Actions API is required for true double-click simulation
-      await this.actions().doubleClick(locator).perform();
-    } catch (err) {
-      this.#handleError(err, 'double clicking');
-    } finally {
-      this.stack = [];
-    }
-    return true;
+    return await this.#clickDelegate.doubleClick();
   }
 
   /**
@@ -360,17 +344,7 @@ class WebBrowser extends Browser {
    * await browser.button('options').rightClick();
    */
   async rightClick() {
-    this.message = messenger({ stack: this.stack, action: 'rightclick' });
-    try {
-      const locator = await this.finder();
-      // contextClick is the Selenium equivalent of a right-click
-      await this.actions().contextClick(locator).perform();
-    } catch (err) {
-      this.#handleError(err, 'right clicking');
-    } finally {
-      this.stack = [];
-    }
-    return true;
+    return await this.#clickDelegate.rightClick();
   }
 
   /**
@@ -385,34 +359,8 @@ class WebBrowser extends Browser {
    * @param {number} [y] - Y coordinate (optional)
    * @returns {Promise<void>}
    */
-  async clicker(e, x, y) {
-    const hasCoordinates = (x !== null && x !== undefined) && (y !== null && y !== undefined);
-
-    if (hasCoordinates) {
-      const rect = await e.getRect();
-      if (x >= rect.width || y >= rect.height) {
-        throw new Error(`Click out of bounds: target x:${x} y:${y}, element size ${rect.width}x${rect.height}`);
-      }
-      const ex = rect.x + isNaN(parseInt(x, 10)) ? 0 : parseInt(x, 10);
-      const ey = rect.y + isNaN(parseInt(y, 10)) ? 0 : parseInt(y, 10);
-
-      await this.actions()
-        .move({ x: Math.ceil(ex), y: Math.ceil(ey) })
-        .pause(500) // Reduced from 1000 for speed
-        .click()
-        .perform();
-    } else {
-      try {
-        await e.click();
-      } catch (err) {
-        // Fallback to JS click if element is blocked or not interactable
-        if (['ElementNotInteractableError', 'ElementClickInterceptedError'].includes(err.name)) {
-          await this.driver.executeScript('arguments[0].click();', e);
-        } else {
-          throw err;
-        }
-      }
-    }
+  async _clicker(e, x, y) {
+    return await this.#clickDelegate._clicker(e, x, y);
   }
 
   /**
@@ -429,7 +377,7 @@ class WebBrowser extends Browser {
   async clear() {
     this.message = messenger({ stack: this.stack, action: 'clear' });
     try {
-      const locator = await this.finder(null, 'write');
+      const locator = await this._finder(null, 'write');
       const isInput = ['input', 'textarea'].includes(locator.tagName);
 
       if (isInput) {
@@ -441,11 +389,11 @@ class WebBrowser extends Browser {
         }
       } else {
         // For Content-Editable elements
-        await this.clicker(locator);
+        await this._clicker(locator);
         await this.actions().keyDown(Key.CONTROL).sendKeys('a').keyUp(Key.CONTROL).sendKeys(Key.BACK_SPACE).perform();
       }
     } catch (err) {
-      this.#handleError(err, 'clearing field');
+      this.handleError(err, 'clearing field');
     } finally {
       this.stack = [];
     }
@@ -466,16 +414,16 @@ class WebBrowser extends Browser {
   async overwrite(value) {
     this.message = messenger({ stack: this.stack, action: 'overwrite', data: value });
     try {
-      let locator = await this.finder(null, 'write');
+      let locator = await this._finder(null, 'write');
 
       // Perform clear logic
       await this.clear();
 
       // Re-find in case the clear triggered a DOM refresh (common in React)
-      locator = await this.finder(null, 'write');
+      locator = await this._finder(null, 'write');
       await locator.sendKeys(value);
     } catch (err) {
-      this.#handleError(err, 'overwriting text');
+      this.handleError(err, 'overwriting text');
     } finally {
       this.stack = [];
     }
@@ -492,7 +440,7 @@ class WebBrowser extends Browser {
       text: async () => {
         this.message = messenger({ stack: this.stack, action: 'getText' });
         try {
-          const locator = await this.finder();
+          const locator = await this._finder();
           let value = await locator.getAttribute('textContent');
 
           if ((value === null || value.trim() === '') &&
@@ -501,7 +449,7 @@ class WebBrowser extends Browser {
           }
           return value?.trim() ?? '';
         } catch (err) {
-          this.#handleError(err, 'getting text');
+          this.handleError(err, 'getting text');
         } finally {
           this.stack = [];
         }
@@ -510,10 +458,10 @@ class WebBrowser extends Browser {
       attribute: async (name) => {
         this.message = messenger({ stack: this.stack, action: 'getAttribute', data: name });
         try {
-          const locator = await this.finder();
+          const locator = await this._finder();
           return await locator.getAttribute(name);
         } catch (err) {
-          this.#handleError(err, `getting attribute '${name}'`);
+          this.handleError(err, `getting attribute '${name}'`);
         } finally {
           this.stack = [];
         }
@@ -524,7 +472,7 @@ class WebBrowser extends Browser {
         if (this.stack.length > 0) {
           try {
             this.message = messenger({ stack: this.stack, action: 'screenshot' });
-            const locator = await this.finder();
+            const locator = await this._finder();
             dataUrl = await locator.takeScreenshot(true);
           } catch (err) {
             log.error(`Failed to capture element screenshot: ${err.message}`);
@@ -551,7 +499,7 @@ class WebBrowser extends Browser {
    */
   async #toggleCheckbox(targetState) {
     try {
-      const locator = await this.finder(null, 'check');
+      const locator = await this._finder(null, 'check');
       const isChecked = await locator.isSelected();
       const needsChange = (targetState === 'check' && !isChecked) ||
         (targetState === 'uncheck' && isChecked);
@@ -575,7 +523,7 @@ class WebBrowser extends Browser {
         log.info(`Checkbox is already ${targetState}ed. Skipping.`);
       }
     } catch (err) {
-      this.#handleError(err, `${targetState}ing checkbox`);
+      this.handleError(err, `${targetState}ing checkbox`);
     } finally {
       this.stack = [];
     }
@@ -629,7 +577,7 @@ class WebBrowser extends Browser {
     let found = false;
     try {
       // Use a shorter default timeout for a simple check
-      const locator = await this.finder(t ?? 2000);
+      const locator = await this._finder(t ?? 2000);
       found = !!locator;
     } catch (err) {
       log.info(`Element not visible: ${err.message}`);
@@ -653,11 +601,11 @@ class WebBrowser extends Browser {
   async isDisplayed(t = null) {
     this.message = messenger({ stack: this.stack, action: 'waitVisibility' });
     try {
-      await this.finder(t);
+      await this._finder(t);
       log.info('Element is visible on page');
       return true;
     } catch (err) {
-      this.#handleError(err, 'waiting for visibility');
+      this.handleError(err, 'waiting for visibility');
     } finally {
       this.stack = [];
     }
@@ -682,9 +630,9 @@ class WebBrowser extends Browser {
       while (Date.now() < endTime) {
         try {
           // We check with a very short 500ms timeout per loop
-          await this.finder(500);
+          await this._finder(500);
         } catch {
-          // If finder throws, the element is gone. Success!
+          // If _finder throws, the element is gone. Success!
           log.info('Element is no longer visible');
           return true;
         }
@@ -692,7 +640,7 @@ class WebBrowser extends Browser {
       }
       throw new Error(`Element still visible after ${timeout}ms`);
     } catch (err) {
-      this.#handleError(err, 'waiting for invisibility');
+      this.handleError(err, 'waiting for invisibility');
     } finally {
       this.stack = [];
     }
@@ -711,7 +659,7 @@ class WebBrowser extends Browser {
   async isDisabled() {
     this.message = messenger({ stack: this.stack, action: 'isDisabled' });
     try {
-      const locator = await this.finder();
+      const locator = await this._finder();
       // Check both the property and the attribute for maximum compatibility
       const isEnabled = await locator.isEnabled();
       const hasDisabledAttr = await locator.getAttribute('disabled');
@@ -720,7 +668,7 @@ class WebBrowser extends Browser {
       log.info(`Element is ${result ? 'disabled' : 'enabled'}`);
       return result;
     } catch (err) {
-      this.#handleError(err, 'checking if disabled');
+      this.handleError(err, 'checking if disabled');
     } finally {
       this.stack = [];
     }
@@ -771,7 +719,7 @@ class WebBrowser extends Browser {
         });
       }
     } catch (err) {
-      this.#handleError(err, 'hiding elements');
+      this.handleError(err, 'hiding elements');
     } finally {
       this.stack = [];
     }
@@ -801,7 +749,7 @@ class WebBrowser extends Browser {
         });
       }
     } catch (err) {
-      this.#handleError(err, 'unhiding elements');
+      this.handleError(err, 'unhiding elements');
     } finally {
       this.stack = [];
     }
@@ -820,11 +768,11 @@ class WebBrowser extends Browser {
   async upload(filePath) {
     this.message = messenger({ stack: this.stack, action: 'upload', data: filePath });
     try {
-      const locator = await this.finder();
+      const locator = await this._finder();
       // Selenium's sendKeys handles local file paths for <input type="file">
       await locator.sendKeys(filePath);
     } catch (err) {
-      this.#handleError(err, 'uploading file');
+      this.handleError(err, 'uploading file');
     } finally {
       this.stack = [];
     }
@@ -1010,7 +958,7 @@ class WebBrowser extends Browser {
 
       log.info(`Successfully dragged ${dragStack[0].id} onto ${dropStack[0].id}`);
     } catch (err) {
-      this.#handleError(err, 'performing drag and drop');
+      this.handleError(err, 'performing drag and drop');
     } finally {
       this.stack = [];
     }

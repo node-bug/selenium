@@ -112,18 +112,18 @@ describe('WebBrowser Comprehensive Unit Tests', () => {
     });
   });
 
-  describe('finder method', () => {
+  describe('_finder method', () => {
     it('should use default timeout from config', async () => {
       const finderStub = sandbox.stub().resolves(mockElement);
       browser.locatorStrategy.find = finderStub;
-      await browser.finder();
+      await browser._finder();
       expect(finderStub.calledOnce).toBe(true);
     });
 
     it('should use custom timeout if provided', async () => {
       const finderStub = sandbox.stub().resolves(mockElement);
       browser.locatorStrategy.find = finderStub;
-      await browser.finder(5000);
+      await browser._finder(5000);
       expect(finderStub.calledOnce).toBe(true);
     });
 
@@ -132,14 +132,14 @@ describe('WebBrowser Comprehensive Unit Tests', () => {
         .onFirstCall().rejects(new Error('Not found'))
         .onSecondCall().resolves(mockElement);
       browser.locatorStrategy.find = finderStub;
-      const result = await browser.finder();
+      const result = await browser._finder();
       expect(result).toBe(mockElement);
     });
 
     it('should throw error after timeout', async () => {
       const finderStub = sandbox.stub().rejects(new Error('Not found'));
       browser.locatorStrategy.find = finderStub;
-      await expect(browser.finder(100)).rejects.toThrow('Element not found after');
+      await expect(browser._finder(100)).rejects.toThrow('Element not found after');
     });
   });
 

@@ -6,6 +6,9 @@ const ACTION_MAP = {
   click:             () => 'Clicking on ',
   doubleclick:       () => 'Double clicking on ',
   rightclick:        () => 'Right clicking on ',
+  middleclick:       () => 'Middle clicking on ',
+  tripleclick:       () => 'Triple clicking on ',
+  longpress:         () => 'Long pressing on ',
   focus:             () => 'Focussing on ',
   scroll:            () => 'Scrolling into view ',
   drag:              () => 'Dragging ',
@@ -73,6 +76,8 @@ export default function messenger(a) {
     waitInvisibility: ' to not be visible',
     isDisabled: ' is disabled',
     click: (a.x !== null && a.y !== null && a.x !== undefined && a.y !== undefined) ? ` at location x:${a.x} y:${a.y}` : '',
+    multipleclick: (a.times !== undefined) ? ` ${a.times} times` : '',
+    clickwithmodifier: (a.options !== undefined) ? ` with modifiers: ${JSON.stringify(a.options)}` : '',
   };
 
   if (suffixes[a.action]) {
