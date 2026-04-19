@@ -61,25 +61,6 @@ class Tab extends BrowserTarget {
      * await browser.tab().close();
      */
     async close() { return super.close('Tab'); }
-
-    /**
-     * Switch to a specific tab by index or title
-     * 
-     * @param {number|string} tab - Tab index (number) or title (string)
-     * @returns {Promise<void>} Resolves when tab is switched
-     * @example
-     * await browser.tab.switchTab(0); // Switch to first tab
-     * await browser.tab.switchTab('Google'); // Switch to tab with title 'Google'
-     */
-    async switchTab(tab) {
-        log.info(`Switching to Tab ${tab}`);
-        if (typeof tab === 'number') {
-            const handles = await this.driver.getAllWindowHandles();
-            return await this.driver.switchTo().window(handles[tab]);
-        }
-        this.title(tab);
-        return await this.switch();
-    }
 }
 
 export default Tab;

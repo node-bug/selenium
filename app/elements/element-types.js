@@ -34,7 +34,6 @@ export class ElementTypes {
       tab: `@role='tab'`,
       toolbar: `@role='toolbar'`,
       dialog: `@role='dialog'`,
-      alert: `@role='alert'`,
 
       // Tables / Grids
       row: `self::tr or @role='row'`,

@@ -153,7 +153,7 @@ async function advancedDemo() {
     await browser.element('myTextInput').write('Hello World');
     
     // Verify text was entered
-    const text = await browser.element('myTextInput').get.text();
+    const text = await browser.element('myTextInpu').get.text();
     console.log(`Text entered: "${text}"`);
     
     // Show that we can navigate away and come back

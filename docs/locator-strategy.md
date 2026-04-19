@@ -49,3 +49,23 @@ For inputs, edits, dropdowns, selects, and other form elements, the library will
 The same locator strategy applies to both desktop and mobile web browser testing. The human-like approach ensures consistent element identification across different platforms and devices.
 
 This approach makes the library more intuitive and reliable for developers, as it mimics how a human would naturally identify elements on a web page.
+
+## Supported Attributes
+
+The following list contains the supported attributes that tests can interact with. Attributes are searched for without the need to refer to them in the script. The command `browser.element("test element").isDisplayed()` will search through elements with the following attributes:
+
+- `placeholder`
+- `value`
+- `data-test-id`
+- `data-testid`
+- `id`
+- `resource-id`
+- `name`
+- `aria-label`
+- `class`
+- `hint`
+- `title`
+- `tooltip`
+- `alt`
+- `src`
+- `role`

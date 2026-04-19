@@ -20,6 +20,22 @@ A JavaScript library for browser automation with a fluent API, built on top of S
 npm install @nodebug/selenium
 ```
 
+## Setup
+
+Before using the library, you must create a configuration file named `selenium.json` in your project's `.config` directory. This file defines which browser to use and other settings.
+
+Create a `.config/selenium.json` file with the desired browser configuration:
+
+```json
+{
+  "browser": "firefox",
+  "headless": true,
+  "timeout": 10
+}
+```
+
+For more information on browser management and configuration options, see the [browser management documentation](docs/browser-management.md).
+
 ## Usage
 
 ```javascript
@@ -184,20 +200,118 @@ npm test -- tests/integration/webbrowser.test.js
 npm test
 ```
 
-## Examples
+## Browser Management
 
-The project includes several examples demonstrating various features:
+The WebBrowser library provides methods to start and stop browser sessions:
 
-- `examples/form-interaction-example.js` - Basic form interaction
-- `examples/javascript-alerts-example.js` - JavaScript alert handling
-- `examples/tab-management-example.js` - Tab management
-- `examples/window-management-example.js` - Window management
-- `examples/comprehensive-demo.js` - Comprehensive demo showing various features interacting with the SeleniumBase demo page
+### Starting a Browser Session
 
-To run any example:
+```javascript
+import WebBrowser from '@nodebug/selenium'
+
+const browser = new WebBrowser()
+await browser.start()
+```
+
+### Stopping a Browser Session
+
+```javascript
+import WebBrowser from '@nodebug/selenium'
+
+const browser = new WebBrowser()
+await browser.start()
+
+// Do some browser operations...
+
+// Close the browser
+await browser.close()
+```
+
+### Browser Selection
+
+The browser type is determined by configuration and cannot be set programmatically. The browser can be selected using:
+
+1. **Configuration file**: Using `.config/selenium.json`
+2. **Environment variables**: Setting `browser` environment variable
+3. **Command line parameters**: Passing as Node.js command line arguments
+
+#### Using Configuration File
+
+Create a `.config/selenium.json` file with the desired browser:
+
+```json
+{
+  "browser": "firefox",
+  "headless": true,
+  "timeout": 10
+}
+```
+
+#### Using Environment Variables
+
+Set the browser type using environment variables:
 
 ```bash
-node examples/[example-name].js
+export browser=firefox
+node your-script.js
+```
+
+Or set it directly in the command:
+
+```bash
+browser=firefox node your-script.js
+```
+
+#### Using Command Line Parameters
+
+You can also set the browser through command line arguments when running Node.js:
+
+```bash
+node your-script.js --browser=firefox
+```
+
+### Browser Options
+
+Additional browser options can be configured in the selenium.json file:
+
+```json
+{
+  "browser": "chrome",
+  "headless": true,
+  "timeout": 10,
+  "downloadsPath": "./reports/downloads",
+  "incognito": false,
+  "height": null,
+  "width": null,
+  "hub": null,
+  "goog:chromeOptions": {
+    "args": ["--no-sandbox", "--disable-dev-shm-usage"]
+  }
+}
+```
+
+#### Headless Mode
+
+Headless mode allows the browser to run without a graphical user interface. This is useful for running tests in CI/CD environments or when you don't need to see the browser window.
+
+```json
+{
+  "browser": "chrome",
+  "headless": true
+}
+```
+
+When `headless` is set to `true`, the browser will run in headless mode. This is particularly useful for automated testing.
+
+#### Incognito Mode
+
+Incognito mode provides a private browsing session where no cookies or browsing history are saved.
+
+```json
+{
+  "browser": "chrome",
+  "incognito": true
+}
 ```
 
 ## License
@@ -274,135 +388,13 @@ node example.js
 
 The library provides advanced window management capabilities through the `Window` class.
 
-**window.new()**
-Opens a new browser window.
-
-```javascript
-await browser.window().new()
-```
-
-**window.close()**
-Closes the current window.
-
-```javascript
-await browser.window().close()
-```
-
-**window.isDisplayed()**
-Checks if a window with a specific title is displayed and visible.
-
-```javascript
-// Check if current window is displayed
-const isDisplayed = await browser.window('some title').isDisplayed()
-
-// Check with custom timeout
-const isDisplayed = await browser.window('some title').isDisplayed(5000)
-```
-
-**window.switch()**
-Switches to a window with a specific title.
-
-```javascript
-// Switch to window with title
-await browser.window('some title').switch()
-
-// Switch with custom timeout
-await browser.window('some title').switch(5000)
-```
-
-**window.get.url()**
-Gets the current URL.
-
-```javascript
-const url = await browser.window().get.url()
-```
-
-**window.get.title()**
-Gets the page title.
-
-```javascript
-const title = await browser.window().get.title()
-```
-
-**window.maximize()**
-Maximizes the browser window.
-
-```javascript
-await browser.window().maximize()
-```
-
-**window.minimize()**
-Minimizes the browser window.
-
-```javascript
-await browser.window('some window title').minimize()
-```
-
-**window.fullscreen()**
-Switches the browser to fullscreen mode.
-
-```javascript
-await browser.window(index).fullscreen()
-await browser.window('some window title').fullscreen()
-await browser.window().fullscreen()
-```
+For detailed information about window management, see the [window management documentation](docs/window-management.md).
 
 ### Tab Management
 
 The library provides tab management capabilities through the `Tab` class.
 
-**tab.new()**
-Opens a new browser tab.
-
-```javascript
-await browser.tab().new()
-```
-
-**tab.close()**
-Closes the current tab.
-
-```javascript
-await browser.tab('some tab title').close()
-await browser.tab(3).close()
-```
-
-**tab.isDisplayed()**
-Checks if a tab with a specific index is displayed and visible.
-
-```javascript
-// Check if tab at index 0 is displayed
-const isDisplayed = await browser.tab(0).isDisplayed()
-
-// Check with custom timeout
-const isDisplayed = await browser.tab(0).isDisplayed(5000)
-```
-
-**tab.switch()**
-Switches to a tab with a specific index.
-
-```javascript
-// Switch to tab at index 0
-await browser.tab(0).switch()
-
-// Switch with custom timeout
-await browser.tab(0).switch(5000)
-```
-
-**tab.get.url()**
-Gets the current tab or another tab URL.
-
-```javascript
-const url = await browser.tab().get.url()
-const url2 = await browser.tab('some other tab').get.url()
-```
-
-**tab.get.title()**
-Gets the current tab or by index title.
-
-```javascript
-const title = await browser.tab().get.title()
-const title2 = await browser.tab(5).get.title()
-```
+For detailed information about tab management, see the [tab management documentation](docs/tab-management.md).
 
 ### Alert Management
 

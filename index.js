@@ -3,6 +3,7 @@ import { Key } from 'selenium-webdriver';
 import config from '@nodebug/config';
 import Browser from './app/browser/index.js';
 import { LocatorStrategy } from './app/elements/locator-strategy.js';
+import { SelectorStackBuilder } from './app/elements/selector-stack-builder.js';
 import messenger from './app/messenger.js';
 
 const selenium = config('selenium');
@@ -86,7 +87,7 @@ class WebBrowser extends Browser {
   /**
    * Centralized retry logic for finding elements
    */
-  async finder(t = null, action = null) {
+  async #finder(t = null, action = null) {
     let locator;
     const stacks = this.getDescriptions();
     const timeout = t ?? (selenium.timeout * 1000);
@@ -123,7 +124,7 @@ class WebBrowser extends Browser {
   async write(value) {
     this.message = messenger({ stack: this.stack, action: 'write', data: value });
     try {
-      const locator = await this.finder(null, 'write');
+      const locator = await this.#finder(null, 'write');
       const isInput = ['input', 'textarea'].includes(locator.tagName);
 
       if (isInput) {
@@ -158,7 +159,7 @@ class WebBrowser extends Browser {
     this.message = messenger({ stack: this.stack, action: 'find' });
     try {
       // finder() handles the retry logic and "OR" conditions
-      const locator = await this.finder();
+      const locator = await this.#finder();
       return locator;
     } catch (err) {
       this.#handleError(err, 'finding element');
@@ -225,7 +226,7 @@ class WebBrowser extends Browser {
   async hover() {
     this.message = messenger({ stack: this.stack, action: 'hover' });
     try {
-      const locator = await this.finder();
+      const locator = await this.#finder();
       // Move mouse to the center of the element
       await this.actions().move({ origin: locator }).perform();
     } catch (err) {
@@ -248,7 +249,7 @@ class WebBrowser extends Browser {
   async scroll(alignToTop = true) {
     this.message = messenger({ stack: this.stack, action: 'scroll' });
     try {
-      const locator = await this.finder();
+      const locator = await this.#finder();
 
       // 'smooth' behavior can be added here if desired for visual debugging
       await this.driver.executeScript(
@@ -293,7 +294,7 @@ class WebBrowser extends Browser {
   async click(x = null, y = null) {
     this.message = messenger({ stack: this.stack, action: 'click', x, y });
     try {
-      const locator = await this.finder();
+      const locator = await this.#finder();
       await this.clicker(locator, x, y);
     } catch (err) {
       this.#handleError(err, 'clicking');
@@ -314,7 +315,7 @@ class WebBrowser extends Browser {
   async focus() {
     this.message = messenger({ stack: this.stack, action: 'focus' });
     try {
-      const locator = await this.finder();
+      const locator = await this.#finder();
       await this.driver.executeScript('arguments[0].focus();', locator);
     } catch (err) {
       this.#handleError(err, 'focusing');
@@ -831,66 +832,32 @@ class WebBrowser extends Browser {
   }
 
   // STACK BUILDERS
-  // Removed JSON.stringify checks for direct object comparison (much faster)
-  #isFlagObject(obj) {
-    return obj && typeof obj.exact === 'boolean' && typeof obj.hidden === 'boolean';
-  }
-
-  /**
-   * Internal helper to set flags on the stack.
-   * If the top of the stack is already a flag object, it updates it.
-   * Otherwise, it pushes a new flag object.
-  **/
-  #setFlag(key, value) {
-    const top = this.stack[this.stack.length - 1];
-
-    if (this.#isFlagObject(top)) {
-      top[key] = value;
-    } else {
-      // Default flags if none exist
-      this.stack.push({ exact: false, hidden: false, [key]: value });
-    }
-    return this;
-  }
-
-  exact() {
-    return this.#setFlag('exact', true);
-  }
-
-  hidden() {
-    return this.#setFlag('hidden', true);
-  }
-
-  #element(data) {
-    // Pop the potential flag object
-    const og = this.stack.pop();
-    let flags = { exact: false, hidden: false };
-
-    if (this.#isFlagObject(og)) {
-      flags = og;
-    } else if (og) {
-      // If it wasn't a flag, put it back
-      this.stack.push(og);
-    }
-
-    const member = {
-      type: 'element',
-      id: data.toString(),
-      exact: flags.exact,
-      hidden: flags.hidden,
-      matches: [],
-      index: false
-    };
-
-    this.stack.push(member);
-    return this;
-  }
-
   #typefixer(data, type) {
     this.#element(data);
     this.stack[this.stack.length - 1].type = type;
     return this;
   }
+
+  // Entry points that return a new builder
+  exact() {
+    return new SelectorStackBuilder(this).exact();
+  }
+
+  hidden() {
+    return new SelectorStackBuilder(this).hidden();
+  }
+
+  // Default element call without modifiers
+  // avoid state pollution by not pushing directly to stack here
+  #element(data) {
+    return new SelectorStackBuilder(this).element(data);
+  }
+
+  // // Internal method used by the builder to return to the main class flow
+  // pushElement(member) {
+  //   this.stack.push(member);
+  //   return this; // Return 'this' (WebBrowser) so we can call .click(), .write(), etc.
+  // }
 
   // --- Spatial / Relative Positioners ---
 

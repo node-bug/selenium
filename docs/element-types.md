@@ -129,3 +129,70 @@ When elements share the same name or label, specifying the type helps to target 
 - Example: `await browser.checkbox('Subscribe').check()`
 
 This approach makes the library more intuitive and reliable for developers, as it mimics how a human would naturally identify elements on a web page.
+
+## Element Indexes
+
+Element indexes are allowed for when multiple instances of the same element are on the page. The `atIndex()` method can be used with any element type to target a specific instance.
+
+### Usage
+
+```javascript
+// Click the 3rd element with the text "Search"
+await browser.element('Search').atIndex(2).click()
+
+// Get the value of the 2nd textbox named "Email"
+await browser.element('Email').atIndex(1).get.value()
+
+// Check the 1st checkbox named "Subscribe"
+await browser.element('Subscribe').atIndex(0).check()
+
+// Select the 4th dropdown named "Country"
+await browser.element('Country').atIndex(3).select('United States')
+```
+
+### Indexing Behavior
+
+- Indexes are zero-based (0, 1, 2, ...)
+- When no index is specified, the first matching element is used
+- If an index is out of range, the operation will fail gracefully
+- The `atIndex()` method can be chained with any element type method
+
+## Filtered Indexes
+
+Filtered indexes are a combination of indexes and types. They allow you to specify both an element type and an index to target a specific instance of that element type.
+
+### Usage
+
+```javascript
+// Find the second input/edit named "address"
+await browser.textbox('address').atIndex(2).find()
+
+// Find the third dropdown named "Country"
+await browser.dropdown('Country').atIndex(2).select('United States')
+
+// Find the first checkbox named "Subscribe"
+await browser.checkbox('Subscribe').atIndex(0).check()
+```
+
+### Behavior
+
+- Filtered indexes combine the specificity of element types with the positioning of indexes
+- The index is applied after the element type is determined
+- This allows for precise targeting of elements when multiple instances of the same type exist
+- The `atIndex()` method works with all element types and can be chained with any element method
+
+### Examples
+
+```javascript
+// Find the 2nd textbox named "Email"
+await browser.textbox('Email').atIndex(2).get.value()
+
+// Find the 3rd button named "Submit"
+await browser.button('Submit').atIndex(3).click()
+
+// Find the 1st radio button named "male"
+await browser.radio('male').atIndex(0).check()
+
+// Find the 2nd file input named "Upload"
+await browser.file('Upload').atIndex(2).upload('/path/to/file.txt')
+```
