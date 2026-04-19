@@ -43,6 +43,7 @@ For inputs, edits, dropdowns, selects, and other form elements, the library will
 
 - Example: When finding a textbox, the library will look for a label element associated with that input to improve accuracy.
 - Example: `await browser.checkbox('male').check()`
+- Example: `await browser.checkbox('remember-me').isChecked()`
 
 ## Desktop vs Mobile Testing
 

@@ -41,6 +41,8 @@ Types allow us to differentiate elements that have the same name on the screen. 
    - Example: `await browser.checkbox('Subscribe').click()`
    - Example: `await browser.switch('Remember me').check()`
    - Example: `await browser.switch('Remember me').isChecked()`
+   - Example: `await browser.checkbox('Subscribe').isChecked()`
+   - Example: `await browser.checkbox('Subscribe').isUnchecked()`
 
 7. **radio button** (or "radio")
    - Example: `await browser.radio('male').check()`

@@ -7,6 +7,7 @@ import messenger from './app/messenger.js';
 import { ClickDelegate } from './app/command-delegates/click-delegate.js';
 import { InputDelegate } from './app/command-delegates/input-delegate.js';
 import { VisibilityDelegate } from './app/command-delegates/visibility-delegate.js';
+import { CheckboxDelegate } from './app/command-delegates/checkbox-delegate.js';
 
 const selenium = config('selenium');
 
@@ -28,6 +29,7 @@ class WebBrowser extends Browser {
   #clickDelegate;
   #inputDelegate;
   #visibilityDelegate;
+  #checkboxDelegate;
 
   constructor() {
     super()
@@ -36,6 +38,7 @@ class WebBrowser extends Browser {
     this.#clickDelegate = new ClickDelegate(this);
     this.#inputDelegate = new InputDelegate(this);
     this.#visibilityDelegate = new VisibilityDelegate(this);
+    this.#checkboxDelegate = new CheckboxDelegate(this);
 
     Object.keys(this.locatorStrategy.definitions).forEach(type => {
       this[type] = (data) => {
@@ -369,75 +372,7 @@ class WebBrowser extends Browser {
     };
   }
 
-  /**
-   * Internal helper to set checkbox state
-   * 
-   * @private
-   * @param {string} targetState - 'check' or 'uncheck'
-   * @returns {Promise<boolean>} True if successful
-   */
-  async #toggleCheckbox(targetState) {
-    try {
-      const locator = await this._finder(null, 'check');
-      const isChecked = await locator.isSelected();
-      const needsChange = (targetState === 'check' && !isChecked) ||
-        (targetState === 'uncheck' && isChecked);
 
-      if (needsChange) {
-        try {
-          await locator.click();
-        } catch {
-          // Fallback: Many modern checkboxes are 0x0 pixels and covered by a <label>.
-          // If Selenium can't "click" it, we force the change via JS.
-          log.debug('Standard click failed, attempting JS click for checkbox');
-          await this.driver.executeScript('arguments[0].click();', locator);
-        }
-
-        // Final verification
-        const finalState = await locator.isSelected();
-        if (finalState === isChecked) {
-          throw new Error(`Failed to ${targetState} checkbox. State did not change.`);
-        }
-      } else {
-        log.info(`Checkbox is already ${targetState}ed. Skipping.`);
-      }
-    } catch (err) {
-      this.handleError(err, `${targetState}ing checkbox`);
-    } finally {
-      this.stack = [];
-    }
-    return true;
-  }
-
-  /**
-   * Checks a checkbox element.
-   * 
-   * Clicks the checkbox if it's not already checked. Falls back to JavaScript
-   * click if Selenium click fails.
-   * 
-   * @returns {Promise<boolean>} True if successful
-   * @example
-   * await browser.checkbox('agree').check();
-   */
-  async check() {
-    this.message = messenger({ stack: this.stack, action: 'check' });
-    return await this.#toggleCheckbox('check');
-  }
-
-  /**
-   * Unchecks a checkbox element.
-   * 
-   * Clicks the checkbox if it's not already unchecked. Falls back to JavaScript
-   * click if Selenium click fails.
-   * 
-   * @returns {Promise<boolean>} True if successful
-   * @example
-   * await browser.checkbox('agree').uncheck();
-   */
-  async uncheck() {
-    this.message = messenger({ stack: this.stack, action: 'uncheck' });
-    return await this.#toggleCheckbox('uncheck');
-  }
 
   /**
    * Checks if an element is currently in the DOM and visible.
@@ -499,8 +434,33 @@ class WebBrowser extends Browser {
   }
 
   /**
-   * Hides all elements matching the current stack by setting opacity to 0.
+   * Checks a checkbox element.
+   * 
+   * Clicks the checkbox if it's not already checked. Falls back to JavaScript
+   * click if Selenium click fails.
+   * 
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.checkbox('agree').check();
    */
+  async check() {
+    return await this.#checkboxDelegate.check();
+  }
+
+  /**
+   * Unchecks a checkbox element.
+   * 
+   * Clicks the checkbox if it's not already unchecked. Falls back to JavaScript
+   * click if Selenium click fails.
+   * 
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.checkbox('agree').uncheck();
+   */
+  async uncheck() {
+    return await this.#checkboxDelegate.uncheck();
+  }
+
   /**
    * Hides all elements matching the current stack by setting opacity to 0.
    * 
@@ -515,9 +475,6 @@ class WebBrowser extends Browser {
     return await this.#visibilityDelegate.hide();
   }
 
-  /**
-   * Restores visibility to all elements matching the stack.
-   */
   /**
    * Restores visibility to all elements matching the stack.
    * 
