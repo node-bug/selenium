@@ -37,6 +37,17 @@ When locating elements, the library prioritizes visible text and attributes in t
 10. **Alt/Src** - Alt or src attributes for images
     - Example: `await browser.image('Company Logo').click()`
 
+## Exact Matching
+
+By default, locators match partial text. If you need an exact text match, use the `exact()` keyword.
+
+- Example: `await browser.exact().element('male').click()` will only click on an element with the exact text "male" and will not match "Female"
+- Example: `await browser.exact().button('Delete').click()` will click on the exact element labeled "Delete"
+
+You can combine `exact()` with strict type selection:
+
+- `await browser.exact().checkbox('male').check()`
+
 ## Special Handling for Form Elements
 
 For inputs, edits, dropdowns, selects, and other form elements, the library will also search for corresponding labels to improve element identification accuracy.
