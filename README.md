@@ -97,6 +97,7 @@ await browser.file('Upload your resume').upload('/path/to/resume.pdf')
 - `checkbox(selector)` - Find a checkbox element
 - `write(text)` - Write text to an element
 - `click()` - Click on an element
+- `hover()` - Hover over an element
 - `find()` - Find an element
 - `clear()` - Clear text from an element
 - `check()` - Check a checkbox
@@ -111,6 +112,13 @@ await browser.file('Upload your resume').upload('/path/to/resume.pdf')
 - `drag()` - Start drag operation
 - `onto()` - Specify drop target
 - `drop()` - Complete drag and drop operation
+
+### Command Delegates
+
+For detailed information about command delegates, see the documentation:
+
+- [Click Delegate](docs/click-delegate.md)
+- [Input Delegate](docs/input-delegate.md)
 
 ### Element Selection Priority
 
@@ -162,6 +170,10 @@ await browser.radio('gender male').check()
 
 // Find a file input by its title attribute
 await browser.file('Upload your resume').upload('/path/to/resume.pdf')
+
+// Hover over an element to trigger hover states
+await browser.element('menu').hover()
+await browser.button('dropdown').hover()
 ```
 
 ### Navigation Methods

@@ -118,3 +118,18 @@ All click methods:
 - Clean up the stack after execution
 - Use the existing `_finder()` method to locate elements
 - Follow the same documentation style and examples as other methods
+
+## Hover Method
+
+The hover method is a special case that's implemented in the ClickDelegate class but is not a click operation. It's used to move the mouse cursor over an element to trigger hover states.
+
+### hover()
+
+Hovers the mouse over an element.
+
+- **Returns:** Promise<boolean> - True if successful
+- **Example:**
+  ```javascript
+  await browser.element('menu').hover()
+  await browser.button('dropdown').hover()
+  ```

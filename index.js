@@ -1,11 +1,12 @@
 import { log } from '@nodebug/logger';
-import { Key } from 'selenium-webdriver';
 import config from '@nodebug/config';
 import Browser from './app/browser/index.js';
 import { LocatorStrategy } from './app/elements/locator-strategy.js';
 import { SelectorStackBuilder } from './app/elements/selector-stack-builder.js';
 import messenger from './app/messenger.js';
 import { ClickDelegate } from './app/command-delegates/click-delegate.js';
+import { InputDelegate } from './app/command-delegates/input-delegate.js';
+import { VisibilityDelegate } from './app/command-delegates/visibility-delegate.js';
 
 const selenium = config('selenium');
 
@@ -25,12 +26,16 @@ const selenium = config('selenium');
 class WebBrowser extends Browser {
   #message = '';
   #clickDelegate;
+  #inputDelegate;
+  #visibilityDelegate;
 
   constructor() {
     super()
     this.stack = []
     this.locatorStrategy = new LocatorStrategy()
     this.#clickDelegate = new ClickDelegate(this);
+    this.#inputDelegate = new InputDelegate(this);
+    this.#visibilityDelegate = new VisibilityDelegate(this);
 
     Object.keys(this.locatorStrategy.definitions).forEach(type => {
       this[type] = (data) => {
@@ -125,29 +130,7 @@ class WebBrowser extends Browser {
    * await browser.textbox('search').write('query');
    */
   async write(value) {
-    this.message = messenger({ stack: this.stack, action: 'write', data: value });
-    try {
-      const locator = await this._finder(null, 'write');
-      const isInput = ['input', 'textarea'].includes(locator.tagName);
-
-      if (isInput) {
-        await locator.sendKeys(value);
-      } else {
-        // Fallback for custom content-editable fields
-        const text = await locator.getAttribute('textContent');
-        await this._clicker(locator);
-        // Move to end of text
-        for (let i = 0; i < text.length; i++) {
-          await this.actions().sendKeys(Key.RIGHT).perform();
-        }
-        await this.actions().sendKeys(value).perform();
-      }
-    } catch (err) {
-      this.handleError(err, 'entering data');
-    } finally {
-      this.stack = [];
-    }
-    return true;
+    return await this.#inputDelegate.write(value);
   }
 
   /**
@@ -216,28 +199,12 @@ class WebBrowser extends Browser {
     return locators;
   }
 
-  /**
-   * Hovers the mouse over an element.
-   * 
-   * Moves the mouse cursor to the center of the element to trigger hover states.
-   * 
-   * @returns {Promise<boolean>} True if successful
-   * @example
-   * await browser.element('menu').hover();
-   * await browser.button('dropdown').hover();
-   */
-  async hover() {
-    this.message = messenger({ stack: this.stack, action: 'hover' });
-    try {
-      const locator = await this._finder();
-      // Move mouse to the center of the element
-      await this.actions().move({ origin: locator }).perform();
-    } catch (err) {
-      this.handleError(err, 'hovering');
-    } finally {
-      this.stack = [];
-    }
-    return true;
+  // Common Error Handler Helper
+  handleError(err, context) {
+    log.error(`${this.message}\nError while ${context}.\n${err.stack}`);
+    this.stack = [];
+    err.message = `Error while ${this.message}\n${err.message}`;
+    throw err;
   }
 
   /**
@@ -250,35 +217,7 @@ class WebBrowser extends Browser {
    * await browser.element('footer').scroll(false); // Align to bottom
    */
   async scroll(alignToTop = true) {
-    this.message = messenger({ stack: this.stack, action: 'scroll' });
-    try {
-      const locator = await this._finder();
-
-      // 'smooth' behavior can be added here if desired for visual debugging
-      await this.driver.executeScript(
-        'arguments[0].scrollIntoView({ behavior: "instant", block: arguments[1] ? "start" : "end" });',
-        locator,
-        alignToTop
-      );
-
-      // Optional: Horizontal scroll handling for tables or carousels
-      if (alignToTop === 'right') {
-        await this.driver.executeScript('arguments[0].scrollLeft = arguments[0].scrollWidth;', locator);
-      }
-    } catch (err) {
-      this.handleError(err, 'scrolling into view');
-    } finally {
-      this.stack = [];
-    }
-    return true;
-  }
-
-  // Common Error Handler Helper
-  handleError(err, context) {
-    log.error(`${this.message}\nError while ${context}.\n${err.stack}`);
-    this.stack = [];
-    err.message = `Error while ${this.message}\n${err.message}`;
-    throw err;
+    return await this.#visibilityDelegate.scroll(alignToTop);
   }
 
   /**
@@ -307,16 +246,21 @@ class WebBrowser extends Browser {
    * await browser.element('input').focus();
    */
   async focus() {
-    this.message = messenger({ stack: this.stack, action: 'focus' });
-    try {
-      const locator = await this._finder();
-      await this.driver.executeScript('arguments[0].focus();', locator);
-    } catch (err) {
-      this.handleError(err, 'focusing');
-    } finally {
-      this.stack = [];
-    }
-    return true;
+    return await this.#inputDelegate.focus();
+  }
+  
+  /**
+   * Hovers the mouse over an element.
+   * 
+   * Moves the mouse cursor to the center of the element to trigger hover states.
+   * 
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.element('menu').hover();
+   * await browser.button('dropdown').hover();
+   */
+  async hover() {
+    return await this.#clickDelegate.hover();
   }
 
   /**
@@ -363,72 +307,7 @@ class WebBrowser extends Browser {
     return await this.#clickDelegate._clicker(e, x, y);
   }
 
-  /**
-   * Clears text from an input field or content-editable element.
-   * 
-   * Clears text from input fields, textareas, or content-editable elements.
-   * Uses keyboard shortcuts as fallback for complex cases.
-   * 
-   * @returns {Promise<boolean>} True if successful
-   * @example
-   * await browser.textbox('username').clear();
-   * await browser.element('search').clear();
-   */
-  async clear() {
-    this.message = messenger({ stack: this.stack, action: 'clear' });
-    try {
-      const locator = await this._finder(null, 'write');
-      const isInput = ['input', 'textarea'].includes(locator.tagName);
 
-      if (isInput) {
-        await locator.clear();
-        // Fallback check: if it's still not empty, use keyboard shortcuts
-        const value = await locator.getAttribute('value');
-        if (value !== '') {
-          await locator.sendKeys(Key.CONTROL, 'a', Key.BACK_SPACE);
-        }
-      } else {
-        // For Content-Editable elements
-        await this._clicker(locator);
-        await this.actions().keyDown(Key.CONTROL).sendKeys('a').keyUp(Key.CONTROL).sendKeys(Key.BACK_SPACE).perform();
-      }
-    } catch (err) {
-      this.handleError(err, 'clearing field');
-    } finally {
-      this.stack = [];
-    }
-    return true;
-  }
-
-  /**
-   * Overwrites text in an input field.
-   * 
-   * Clears existing text and enters new text. Useful for form fields that
-   * may have default values or validation that prevents direct entry.
-   * 
-   * @param {string} value - Text to overwrite with
-   * @returns {Promise<boolean>} True if successful
-   * @example
-   * await browser.textbox('username').overwrite('newvalue');
-   */
-  async overwrite(value) {
-    this.message = messenger({ stack: this.stack, action: 'overwrite', data: value });
-    try {
-      let locator = await this._finder(null, 'write');
-
-      // Perform clear logic
-      await this.clear();
-
-      // Re-find in case the clear triggered a DOM refresh (common in React)
-      locator = await this._finder(null, 'write');
-      await locator.sendKeys(value);
-    } catch (err) {
-      this.handleError(err, 'overwriting text');
-    } finally {
-      this.stack = [];
-    }
-    return true;
-  }
 
   /**
    * "Namespace" or "Sub-resource" pattern for organized access to retrieval operations.
@@ -573,18 +452,7 @@ class WebBrowser extends Browser {
    * }
    */
   async isVisible(t = null) {
-    this.message = messenger({ stack: this.stack, action: 'isVisible' });
-    let found = false;
-    try {
-      // Use a shorter default timeout for a simple check
-      const locator = await this._finder(t ?? 2000);
-      found = !!locator;
-    } catch (err) {
-      log.info(`Element not visible: ${err.message}`);
-    } finally {
-      this.stack = [];
-    }
-    return found;
+    return await this.#visibilityDelegate.isVisible(t);
   }
 
   /**
@@ -599,16 +467,7 @@ class WebBrowser extends Browser {
    * await browser.button('submit').isDisplayed(10000); // 10 second timeout
    */
   async isDisplayed(t = null) {
-    this.message = messenger({ stack: this.stack, action: 'waitVisibility' });
-    try {
-      await this._finder(t);
-      log.info('Element is visible on page');
-      return true;
-    } catch (err) {
-      this.handleError(err, 'waiting for visibility');
-    } finally {
-      this.stack = [];
-    }
+    return await this.#visibilityDelegate.isDisplayed(t);
   }
 
   /**
@@ -622,28 +481,7 @@ class WebBrowser extends Browser {
    * await browser.element('modal').isNotDisplayed(10000); // 10 second timeout
    */
   async isNotDisplayed(t = null) {
-    this.message = messenger({ stack: this.stack, action: 'waitInvisibility' });
-    const timeout = t ?? (selenium.timeout * 1000);
-    const endTime = Date.now() + timeout;
-
-    try {
-      while (Date.now() < endTime) {
-        try {
-          // We check with a very short 500ms timeout per loop
-          await this._finder(500);
-        } catch {
-          // If _finder throws, the element is gone. Success!
-          log.info('Element is no longer visible');
-          return true;
-        }
-        await new Promise(resolve => setTimeout(resolve, 500));
-      }
-      throw new Error(`Element still visible after ${timeout}ms`);
-    } catch (err) {
-      this.handleError(err, 'waiting for invisibility');
-    } finally {
-      this.stack = [];
-    }
+    return await this.#visibilityDelegate.isNotDisplayed(t);
   }
 
   /**
@@ -657,40 +495,7 @@ class WebBrowser extends Browser {
    * }
    */
   async isDisabled() {
-    this.message = messenger({ stack: this.stack, action: 'isDisabled' });
-    try {
-      const locator = await this._finder();
-      // Check both the property and the attribute for maximum compatibility
-      const isEnabled = await locator.isEnabled();
-      const hasDisabledAttr = await locator.getAttribute('disabled');
-
-      const result = !isEnabled || hasDisabledAttr !== null;
-      log.info(`Element is ${result ? 'disabled' : 'enabled'}`);
-      return result;
-    } catch (err) {
-      this.handleError(err, 'checking if disabled');
-    } finally {
-      this.stack = [];
-    }
-  }
-
-  /**
-   * Internal helper to switch to element context (frame).
-   * 
-   * @private
-   * @param {number} frame - Frame index to switch to
-   * @returns {Promise<void>}
-   */
-  async #switchToElementContext(frame) {
-    await this.driver.switchTo().defaultContent();
-    if (frame >= 0) {
-      try {
-        await this.driver.switchTo().frame(frame);
-      } catch (err) {
-        if (err.name !== 'NoSuchFrameError') throw err;
-        log.error(`Frame ${frame} no longer exists.`);
-      }
-    }
+    return await this.#visibilityDelegate.isDisabled();
   }
 
   /**
@@ -707,23 +512,7 @@ class WebBrowser extends Browser {
    * await browser.element('popup').hide();
    */
   async hide() {
-    this.message = messenger({ stack: this.stack, action: 'hide' });
-    try {
-      const elements = await this.findAll();
-      log.debug(`Hiding ${elements.length} matching elements.`);
-
-      for (const e of elements) {
-        // Automatically handle context switching for each element
-        await this.#switchToElementContext(e.frame, async () => {
-          await this.driver.executeScript('arguments[0].style.opacity="0";', e);
-        });
-      }
-    } catch (err) {
-      this.handleError(err, 'hiding elements');
-    } finally {
-      this.stack = [];
-    }
-    return true;
+    return await this.#visibilityDelegate.hide();
   }
 
   /**
@@ -740,20 +529,7 @@ class WebBrowser extends Browser {
    * await browser.element('popup').unhide();
    */
   async unhide() {
-    this.message = messenger({ stack: this.stack, action: 'unhide' });
-    try {
-      const elements = await this.findAll();
-      for (const e of elements) {
-        await this.#switchToElementContext(e.frame, async () => {
-          await this.driver.executeScript('arguments[0].style.opacity="1";', e);
-        });
-      }
-    } catch (err) {
-      this.handleError(err, 'unhiding elements');
-    } finally {
-      this.stack = [];
-    }
-    return true;
+    return await this.#visibilityDelegate.unhide();
   }
 
   /**
@@ -993,6 +769,36 @@ class WebBrowser extends Browser {
   onto() {
     this.stack.push({ type: 'action', perform: 'onto' });
     return this;
+  }
+
+  /**
+   * Clears text from an input field or content-editable element.
+   * 
+   * Clears text from input fields, textareas, or content-editable elements.
+   * Uses keyboard shortcuts as fallback for complex cases.
+   * 
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.textbox('username').clear();
+   * await browser.element('search').clear();
+   */
+  async clear() {
+    return await this.#inputDelegate.clear();
+  }
+
+  /**
+   * Overwrites text in an input field.
+   * 
+   * Clears existing text and enters new text. Useful for form fields that
+   * may have default values or validation that prevents direct entry.
+   * 
+   * @param {string} value - Text to overwrite with
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.textbox('username').overwrite('newvalue');
+   */
+  async overwrite(value) {
+    return await this.#inputDelegate.overwrite(value);
   }
 }
 

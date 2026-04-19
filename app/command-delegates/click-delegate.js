@@ -291,4 +291,29 @@ export class ClickDelegate {
       }
     }
   }
+
+  /**
+   * Hovers the mouse over an element.
+   * 
+   * Moves the mouse cursor to the center of the element to trigger hover states.
+   * 
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.element('menu').hover();
+   * await browser.button('dropdown').hover();
+   */
+  async hover() {
+    const browser = this.browser;
+    browser.message = messenger({ stack: browser.stack, action: 'hover' });
+    try {
+      const locator = await browser._finder();
+      // Move mouse to the center of the element
+      await browser.actions().move({ origin: locator }).perform();
+    } catch (err) {
+      browser.handleError(err, 'hovering');
+    } finally {
+      browser.stack = [];
+    }
+    return true;
+  }
 }
