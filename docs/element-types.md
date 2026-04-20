@@ -36,11 +36,9 @@ Types allow us to differentiate elements that have the same name on the screen. 
    - Example: `await browser.select('Country').select('United States')`
    - Example: `await browser.dropdown('Country').get.value()`
 
-6. **checkbox** (or "switch")
+6. **checkbox** (or "toggle" or "switch")
    - Example: `await browser.checkbox('Subscribe').check()`
    - Example: `await browser.checkbox('Subscribe').click()`
-   - Example: `await browser.switch('Remember me').check()`
-   - Example: `await browser.switch('Remember me').isChecked()`
    - Example: `await browser.checkbox('Subscribe').isChecked()`
    - Example: `await browser.checkbox('Subscribe').isUnchecked()`
 
