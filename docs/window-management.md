@@ -115,7 +115,7 @@ await browser.window().fullscreen()
 
 ## Window Management API Reference
 
-### window.get.url()
+### window().get.url()
 
 Gets the current URL.
 
@@ -123,7 +123,7 @@ Gets the current URL.
 const url = await browser.window().get.url()
 ```
 
-### window.get.title()
+### window().get.title()
 
 Gets the page title.
 
@@ -131,7 +131,7 @@ Gets the page title.
 const title = await browser.window().get.title()
 ```
 
-### window.maximize()
+### window().maximize()
 
 Maximizes the browser window.
 
@@ -139,7 +139,7 @@ Maximizes the browser window.
 await browser.window().maximize()
 ```
 
-### window.minimize()
+### window().minimize()
 
 Minimizes the browser window.
 
@@ -147,7 +147,7 @@ Minimizes the browser window.
 await browser.window('some window title').minimize()
 ```
 
-### window.fullscreen()
+### window().fullscreen()
 
 Switches the browser to fullscreen mode.
 
@@ -157,7 +157,7 @@ await browser.window('some window title').fullscreen()
 await browser.window().fullscreen()
 ```
 
-### window.new()
+### window().new()
 
 Opens a new browser window.
 
@@ -165,7 +165,7 @@ Opens a new browser window.
 await browser.window().new()
 ```
 
-### window.close()
+### window().close()
 
 Closes the current window.
 
@@ -175,7 +175,7 @@ await browser.window('title').close()
 await browser.window().close()
 ```
 
-### window.isDisplayed()
+### window().isDisplayed()
 
 Checks if a window with a specific title is displayed and visible.
 
@@ -187,7 +187,7 @@ const isDisplayed = await browser.window('some title').isDisplayed()
 const isDisplayed = await browser.window('some title').isDisplayed(5000)
 ```
 
-### window.switch()
+### window().switch()
 
 Switches to a window with a specific title.
 

@@ -125,7 +125,7 @@ class Alert {
              * 
              * @returns {Promise<string>} Text content of the alert
              * @example
-             * const text = await browser.window.get.text();
+             * const text = await browser.window().get.text();
              */
             text: async () => {
                 await this.isVisible();

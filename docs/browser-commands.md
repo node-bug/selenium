@@ -236,16 +236,18 @@ Reset browser state (close all windows, delete cookies, clear storage).
 await browser.reset()
 ```
 
-### `async consoleErrors()`
+### `async get.consoleErrors()`
 
-Get console errors from the browser.
+Get console errors from the current window or tab.
 
 **Returns:** `Promise<Array>` - Array of console error entries
 
 **Example:**
 
 ```javascript
-const errors = await browser.consoleErrors()
+const errors = await browser.window().get.consoleErrors()
+// or
+const errors = await browser.tab.get.consoleErrors()
 ```
 
 ### `actions()`

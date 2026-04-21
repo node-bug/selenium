@@ -13,6 +13,7 @@ A JavaScript library for browser automation with a fluent API, built on top of S
   - [Browser Class](#browser-class)
   - [Window Management](#window-management)
   - [Tab Management](#tab-management)
+  - [Alerts](#alerts)
   - [Element Methods](#element-methods)
   - [Command Delegates](#command-delegates)
 - [Browser Management](#browser-management)
@@ -143,6 +144,12 @@ await browser.radio('male gender').check()
 // Find a file input by its title attribute
 await browser.file('Upload your resume').upload('/path/to/resume.pdf')
 
+// Handle alerts
+const isAlertPresent = await browser.alert('with text').isVisible()
+if (isAlertPresent) {
+  await browser.alert().accept()
+}
+
 // Hover over an element to trigger hover states
 await browser.element('menu').hover()
 await browser.button('dropdown').hover()
@@ -198,35 +205,35 @@ For information about spatial references and element positioning, see the [spati
 
 #### Window Object Methods
 
-**window.get.url()**
+**window().get.url()**
 Gets the current URL.
 
 ```javascript
 const url = await browser.window().get.url()
 ```
 
-**window.get.title()**
+**window().get.title()**
 Gets the page title.
 
 ```javascript
 const title = await browser.window().get.title()
 ```
 
-**window.maximize()**
+**window().maximize()**
 Maximizes the browser window.
 
 ```javascript
 await browser.window().maximize()
 ```
 
-**window.minimize()**
+**window().minimize()**
 Minimizes the browser window.
 
 ```javascript
 await browser.window('some window title').minimize()
 ```
 
-**window.fullscreen()**
+**window().fullscreen()**
 Switches the browser to fullscreen mode.
 
 ```javascript
@@ -235,14 +242,14 @@ await browser.window('some window title').fullscreen()
 await browser.window().fullscreen()
 ```
 
-**window.new()**
+**window().new()**
 Opens a new browser window.
 
 ```javascript
 await browser.window().new()
 ```
 
-**window.close()**
+**window().close()**
 Closes the current window.
 
 ```javascript
@@ -251,7 +258,7 @@ await browser.window('title').close()
 await browser.window().close()
 ```
 
-**window.isDisplayed()**
+**window().isDisplayed()**
 Checks if a window with a specific title is displayed and visible.
 
 ```javascript
@@ -262,7 +269,7 @@ const isDisplayed = await browser.window('some title').isDisplayed()
 const isDisplayed = await browser.window('some title').isDisplayed(5000)
 ```
 
-**window.switch()**
+**window().switch()**
 Switches to a window with a specific title.
 
 ```javascript
@@ -355,6 +362,12 @@ For detailed information about command delegates, see the documentation:
 - [Click Delegate](docs/click-delegate.md)
 - [Input Delegate](docs/input-delegate.md)
 - [Visibility Delegate](docs/visibility-delegate.md)
+
+### Alerts
+
+The library provides alert handling capabilities through the Alert class.
+
+For detailed information about alerts, see the [alerts documentation](docs/alerts.md).
 
 ## Browser Management
 
@@ -495,7 +508,7 @@ async function runExample() {
 
     // Navigate to a URL
     await browser.goto('https://www.google.com')
-    console.log(`URL: ${await browser.window.get.url()}`)
+    console.log(`URL: ${await browser.window().get.url()}`)
 
     // Wait for page to load
     await browser.sleep(1000)
@@ -507,7 +520,7 @@ async function runExample() {
     await browser.refresh()
 
     // Get console errors
-    const errors = await browser.consoleErrors()
+    const errors = await browser.window().get.consoleErrors()
     console.log(`Errors found: ${errors.length}`)
 
     // Reset browser state
@@ -521,23 +534,6 @@ async function runExample() {
 }
 
 runExample()
-```
-
-### Example Scripts
-
-The repository includes several example scripts demonstrating different features:
-
-- **[example.js](example.js)** - Comprehensive example showing various browser automation features
-- **[window-features-example.js](window-features-example.js)** - Demonstrates window management features (maximize, minimize, fullscreen)
-- **[advanced-actions-example.js](advanced-actions-example.js)** - Shows advanced actions like sleep, navigation, and console error detection
-- **[browser-info-example.js](browser-info-example.js)** - Demonstrates browser information retrieval and basic operations
-- **[window-management-example.js](window-management-example.js)** - Demonstrates window management features including `isDisplayed` and `switch` functions
-- **[consolidated-example.js](consolidated-example.js)** - Consolidated example covering all WebBrowser features
-
-Run any example:
-
-```bash
-node example.js
 ```
 
 ### Alert Management
@@ -560,33 +556,6 @@ await browser.alert().dismiss()
 await browser.alert('some text').dismiss()
 ```
 
-## Testing
-
-The project includes both unit and integration tests:
-
-```bash
-# Run unit tests
-npm test -- tests/unit/webbrowser.test.js
-
-# Run integration tests
-npm test -- tests/integration/webbrowser.test.js
-
-# Run all tests
-npm test
-```
-
-Run the test suite:
-
-```bash
-npm test
-```
-
-Run linting:
-
-```bash
-npm run lint
-```
-
 ## Browser Support
 
 - Chrome
@@ -598,6 +567,7 @@ npm run lint
 
 For detailed information about specific features, see the documentation:
 
+- [Alerts](docs/alerts.md) - Alert handling methods
 - [Browser Commands](docs/browser-commands.md) - Browser class methods and properties
 - [Browser Management](docs/browser-management.md) - Configuration and browser selection
 - [Click Delegate](docs/click-delegate.md) - Click command delegate

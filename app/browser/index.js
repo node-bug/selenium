@@ -220,7 +220,7 @@ class Browser {
       !Number.isNaN(size.height);
 
     // //maximize no matter what if this function is called
-    // await this.window.maximize()
+    // await this.window().maximize()
     try {
       if (isValidSize) {
         await this.driver.manage().window().setRect(size)
@@ -387,32 +387,6 @@ class Browser {
       await this.driver.get('about:blank');
     } catch (err) {
       log.error(`Error resetting browser: ${err.message}`)
-      throw err
-    }
-  }
-
-  /**
-   * Get console errors from the browser
-   * @returns {Promise<Array>} Array of console error entries
-   */
-  async consoleErrors() {
-    try {
-      const title = await this.window().get.title()
-      log.info(`Getting console errors on page '${title}'`)
-
-      const entries = []
-      const logs = []
-
-      const promises = ['browser'].map(async (type) => {
-        entries.push(...(await this.driver.manage().logs().get(type)))
-      })
-
-      await Promise.all(promises)
-      logs.push(...entries.filter((entry) => entry.level.name === 'SEVERE'))
-      log.info(`Found ${logs.length} console error(s) on page '${title}'`)
-      return logs
-    } catch (err) {
-      log.error(`Error getting console errors: ${err.message}`)
       throw err
     }
   }

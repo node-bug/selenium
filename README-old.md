@@ -352,7 +352,7 @@ async function runExample() {
 
     // Navigate to a URL
     await browser.goto('https://www.google.com')
-    console.log(`URL: ${await browser.window.get.url()}`)
+    console.log(`URL: ${await browser.window().get.url()}`)
 
     // Wait for page to load
     await browser.sleep(1000)
@@ -364,7 +364,7 @@ async function runExample() {
     await browser.refresh()
 
     // Get console errors
-    const errors = await browser.consoleErrors()
+    const errors = await browser.window().get.consoleErrors()
     console.log(`Errors found: ${errors.length}`)
 
     // Reset browser state
@@ -568,10 +568,12 @@ await browser.reset()
 ```
 
 **consoleErrors()**
-Gets console errors from the browser.
+Gets console errors from the current window or tab.
 
 ```javascript
-const errors = await browser.consoleErrors()
+const errors = await browser.window().get.consoleErrors()
+// or
+const errors = await browser.tab.get.consoleErrors()
 // Returns: Array of error entries
 ```
 
@@ -586,35 +588,35 @@ const actions = browser.actions()
 
 The `browser.window` object provides access to window management methods.
 
-**window.get.url()**
+**window().get.url()**
 Gets the current URL.
 
 ```javascript
 const url = await browser.window().get.url()
 ```
 
-**window.get.title()**
+**window().get.title()**
 Gets the page title.
 
 ```javascript
 const title = await browser.window().get.title()
 ```
 
-**window.maximize()**
+**window().maximize()**
 Maximizes the browser window.
 
 ```javascript
 await browser.window().maximize()
 ```
 
-**window.minimize()**
+**window().minimize()**
 Minimizes the browser window.
 
 ```javascript
 await browser.window('some window title').minimize()
 ```
 
-**window.fullscreen()**
+**window().fullscreen()**
 Switches the browser to fullscreen mode.
 
 ```javascript
@@ -623,14 +625,14 @@ await browser.window('some window title').fullscreen()
 await browser.window().fullscreen()
 ```
 
-**window.new()**
+**window().new()**
 Opens a new browser window.
 
 ```javascript
 await browser.window().new()
 ```
 
-**window.close()**
+**window().close()**
 Closes the current window.
 
 ```javascript
@@ -639,7 +641,7 @@ await browser.window('title').close()
 await browser.window().close()
 ```
 
-**window.isDisplayed()**
+**window().isDisplayed()**
 Checks if a window with a specific title is displayed and visible.
 
 ```javascript
@@ -650,7 +652,7 @@ const isDisplayed = await browser.window('some title').isDisplayed()
 const isDisplayed = await browser.window('some title').isDisplayed(5000)
 ```
 
-**window.switch()**
+**window().switch()**
 Switches to a window with a specific title.
 
 ```javascript

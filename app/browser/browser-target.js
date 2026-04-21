@@ -64,7 +64,7 @@ export class BrowserTarget {
              * 
              * @returns {Promise<string>} Title of the current target
              * @example
-             * const title = await browser.window.get.title();
+             * const title = await browser.window().get.title();
              */
             title: async () => {
                 try {
@@ -80,7 +80,7 @@ export class BrowserTarget {
              * 
              * @returns {Promise<string>} URL of the current target
              * @example
-             * const url = await browser.window.get.url();
+             * const url = await browser.window().get.url();
              */
             url: async () => {
                 try {
@@ -89,6 +89,33 @@ export class BrowserTarget {
                 } catch (err) {
                     log.error(`Unrecognized error while getting the current URL : ${err.message}`);
                     throw err;
+                }
+            },
+            /**
+             * Get console errors from the current target (window or tab)
+             * @returns {Promise<Array>} Array of console error entries
+             * @example
+             * const errors = await browser.window().get.consoleErrors();
+             */
+            consoleErrors: async () => {
+                try {
+                    const title = await this.get.title()
+                    log.info(`Getting console errors on ${this._label.toLowerCase()} '${title}'`)
+
+                    const entries = []
+                    const logs = []
+
+                    const promises = ['browser'].map(async (type) => {
+                        entries.push(...(await this.driver.manage().logs().get(type)))
+                    })
+
+                    await Promise.all(promises)
+                    logs.push(...entries.filter((entry) => entry.level.name === 'SEVERE'))
+                    log.info(`Found ${logs.length} console error(s) on ${this._label.toLowerCase()} '${title}'`)
+                    return logs
+                } catch (err) {
+                    log.error(`Error getting console errors: ${err.message}`)
+                    throw err
                 }
             }
         };
@@ -124,8 +151,8 @@ export class BrowserTarget {
      * 
      * @param {string} title - Title that needs to be active
      * @example
-     * browser.window.smartPrepare('Google');
-     * await browser.window.get.title(); // Will ensure focus on Google window
+     * browser.window().smartPrepare('Google');
+     * await browser.window().get.title(); // Will ensure focus on Google window
      */
     smartPrepare(title) {
         this._pendingTitle = title;
