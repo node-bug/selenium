@@ -1,6 +1,6 @@
 {
   "name": "@nodebug/selenium",
-  "version": "4.3.5",
+  "version": "5.0.0",
   "lockfileVersion": 1,
   "requires": true,
   "author": {
@@ -48,7 +48,6 @@
   },
   "scripts": {
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
-    "demo": "node launch-demo.js",
     "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
     "lint": "eslint .",
     "prepare": "husky && echo 'npx lint-staged' > .husky/pre-commit && chmod +x .husky/pre-commit"

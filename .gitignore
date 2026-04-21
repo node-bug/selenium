@@ -16,6 +16,7 @@ node_modules/
 jspm_packages/
 package-lock.json
 
+
 # Optional npm cache directory
 .npm
 .husky
@@ -29,7 +30,6 @@ reports
 coverage
 
 # IDE
-.vscode/
 .idea/
 *.swp
 *.swo

@@ -136,6 +136,7 @@ export class VisibilityDelegate {
       }
       throw new Error(`Element still visible after ${timeout}ms`);
     } catch (err) {
+      // browser.handleError decides to throw or log the error
       browser.handleError(err, 'waiting for invisibility');
     } finally {
       browser.stack = [];

@@ -7,6 +7,7 @@ jest.config.js
 
 # Development directories
 .github/
+.husky/
 .git/
 .editorconfig
 .gitignore
@@ -19,7 +20,6 @@ jest.config.js
 .stylelintrc
 .stylelintrc.js
 lint-staged.config.js
-husky/
 .nyc_output/
 coverage/
 .nyc_output/
@@ -64,4 +64,20 @@ Thumbs.db
 
 # Package lock file
 node_modules/
+package-lock.json
+
+.github
+.husky
+.vscode
+coverage
+logs
+node_modules
+reports
+tests
+.editorconfig
+.gitignore
+.npmignore
+.prettierrc
+eslint.config.js
+jest.config.js
 package-lock.json
