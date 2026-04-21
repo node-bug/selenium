@@ -2,6 +2,27 @@
 
 A JavaScript library for browser automation with a fluent API, built on top of Selenium WebDriver.
 
+## Table of Contents
+
+- [Features](#features)
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Configuration](#configuration)
+- [Usage Guide](#usage-guide)
+- [API Reference](#api-reference)
+  - [Browser Class](#browser-class)
+  - [Window Management](#window-management)
+  - [Tab Management](#tab-management)
+  - [Element Methods](#element-methods)
+  - [Command Delegates](#command-delegates)
+- [Browser Management](#browser-management)
+- [Examples](#examples)
+- [Testing](#testing)
+- [Browser Support](#browser-support)
+- [Documentation](#documentation)
+- [Contributing](#contributing)
+- [License](#license)
+
 ## Features
 
 - Fluent API for browser automation
@@ -20,7 +41,25 @@ A JavaScript library for browser automation with a fluent API, built on top of S
 npm install @nodebug/selenium
 ```
 
-## Setup
+## Quick Start
+
+```javascript
+import WebBrowser from '@nodebug/selenium'
+
+const browser = new WebBrowser()
+
+// Navigate to a page
+await browser.goto('https://example.com')
+
+// Find and interact with elements
+await browser.element('input').write('Hello World')
+await browser.button('submit').click()
+
+// Check element visibility
+const isVisible = await browser.element('div').isVisible()
+```
+
+## Configuration
 
 Before using the library, you must create a configuration file named `selenium.json` in your project's `.config` directory. This file defines which browser to use and other settings.
 
@@ -36,7 +75,27 @@ Create a `.config/selenium.json` file with the desired browser configuration:
 
 For more information on browser management and configuration options, see the [browser management documentation](docs/browser-management.md).
 
-## Usage
+## Usage Guide
+
+### Element Selection Priority
+
+When locating elements, the library prioritizes visible text and attributes in the following order, processing elements as a human would:
+
+1. **Text** - Text content of the element
+2. **Placeholder** - Placeholder attribute
+3. **Value** - Value attribute
+4. **data-tid/data-testid/data-test-id/Id/resource-id/data-id** - Test identifiers
+5. **Name** - Name attribute
+6. **aria-label** - ARIA label attribute
+7. **CSS Class** - CSS class attribute
+8. **Hint/Title/Tooltip** - Title or tooltip attributes
+9. **Alt/Src** - Alt or src attributes for images
+
+For inputs, edits, dropdowns, selects, and other form elements, the library will also search for corresponding labels to improve element identification accuracy.
+
+For detailed information about how elements are located and prioritized in this library, please see the [locator strategy documentation](docs/locator-strategy.md).
+
+### Basic Usage Examples
 
 ```javascript
 import WebBrowser from '@nodebug/selenium'
@@ -83,11 +142,25 @@ await browser.radio('male gender').check()
 
 // Find a file input by its title attribute
 await browser.file('Upload your resume').upload('/path/to/resume.pdf')
+
+// Hover over an element to trigger hover states
+await browser.element('menu').hover()
+await browser.button('dropdown').hover()
 ```
 
 ## API Reference
 
-### Core Methods
+### Browser Class
+
+For detailed information about the Browser class and its methods, see the [browser commands documentation](docs/browser-commands.md).
+
+#### Constructor
+
+```javascript
+const browser = new Browser()
+```
+
+#### Core Methods
 
 - `start()` - Start a new browser session
 - `goto(url)` - Navigate to a URL
@@ -113,77 +186,155 @@ await browser.file('Upload your resume').upload('/path/to/resume.pdf')
 - `onto()` - Specify drop target
 - `drop()` - Complete drag and drop operation
 
-### Command Delegates
+### Window Management
 
-For detailed information about command delegates, see the documentation:
+The library provides advanced window management capabilities through the `Window` class.
 
-- [Click Delegate](docs/click-delegate.md)
-- [Input Delegate](docs/input-delegate.md)
+For detailed information about window management, see the [window management documentation](docs/window-management.md).
 
-### Element Selection Priority
+For more information about multiple element references, see the [multiple references documentation](docs/multiple-references.md).
 
-When locating elements, the library prioritizes visible text and attributes in the following order, processing elements as a human would:
+For information about spatial references and element positioning, see the [spatial references documentation](docs/spatial-references.md).
 
-1. **Text** - Text content of the element
-2. **Placeholder** - Placeholder attribute
-3. **Value** - Value attribute
-4. **data-tid/data-testid/data-test-id/Id/resource-id/data-id** - Test identifiers
-5. **Name** - Name attribute
-6. **aria-label** - ARIA label attribute
-7. **CSS Class** - CSS class attribute
-8. **Hint/Title/Tooltip** - Title or tooltip attributes
-9. **Alt/Src** - Alt or src attributes for images
+#### Window Object Methods
 
-For inputs, edits, dropdowns, selects, and other form elements, the library will also search for corresponding labels to improve element identification accuracy.
-
-For detailed information about how elements are located and prioritized in this library, please see the [locator strategy documentation](docs/locator-strategy.md).
-
-#### Examples
+**window.get.url()**
+Gets the current URL.
 
 ```javascript
-// Find a button by its text content
-await browser.button('Submit').click()
-
-// Find a textbox by its placeholder
-await browser.textbox('Enter your email').write('user@example.com')
-
-// Find a checkbox by its data-testid attribute
-await browser.checkbox('remember-me').check()
-
-// Find a dropdown by its name attribute
-await browser.element('country').click()
-
-// Find a link by its aria-label
-await browser.link('Go to home page').click()
-
-// Find an image by its alt text
-await browser.image('Company Logo').click()
-
-// Find a textbox by its value
-await browser.textbox('john.doe@example.com').write('new.email@example.com')
-
-// Find a button by its data-id
-await browser.button('save-button').click()
-
-// Find a radio button by its name
-await browser.radio('gender male').check()
-
-// Find a file input by its title attribute
-await browser.file('Upload your resume').upload('/path/to/resume.pdf')
-
-// Hover over an element to trigger hover states
-await browser.element('menu').hover()
-await browser.button('dropdown').hover()
+const url = await browser.window().get.url()
 ```
 
-### Navigation Methods
+**window.get.title()**
+Gets the page title.
 
-- `refresh()` - Refresh the current page
-- `goBack()` - Go back in browser history
-- `goForward()` - Go forward in browser history
-- `window()` - Switch to a different window
+```javascript
+const title = await browser.window().get.title()
+```
 
-### Element Type Methods
+**window.maximize()**
+Maximizes the browser window.
+
+```javascript
+await browser.window().maximize()
+```
+
+**window.minimize()**
+Minimizes the browser window.
+
+```javascript
+await browser.window('some window title').minimize()
+```
+
+**window.fullscreen()**
+Switches the browser to fullscreen mode.
+
+```javascript
+await browser.window(index).fullscreen()
+await browser.window('some window title').fullscreen()
+await browser.window().fullscreen()
+```
+
+**window.new()**
+Opens a new browser window.
+
+```javascript
+await browser.window().new()
+```
+
+**window.close()**
+Closes the current window.
+
+```javascript
+await browser.window(index).close()
+await browser.window('title').close()
+await browser.window().close()
+```
+
+**window.isDisplayed()**
+Checks if a window with a specific title is displayed and visible.
+
+```javascript
+// Check current window
+const isDisplayed = await browser.window('some title').isDisplayed()
+
+// Check with custom timeout
+const isDisplayed = await browser.window('some title').isDisplayed(5000)
+```
+
+**window.switch()**
+Switches to a window with a specific title.
+
+```javascript
+// Switch to window with title
+await browser.window('some title').switch()
+
+// Switch with custom timeout
+await browser.window('some title').switch(5000)
+```
+
+### Tab Management
+
+The library provides tab management capabilities through the `Tab` class.
+
+For detailed information about tab management, see the [tab management documentation](docs/tab-management.md).
+
+#### Tab Object Methods
+
+**tab.new()**
+Opens a new browser tab.
+
+```javascript
+await browser.tab().new()
+```
+
+**tab.close()**
+Closes the current tab.
+
+```javascript
+await browser.tab('some tab title').close()
+await browser.tab(3).close()
+```
+
+**tab.isDisplayed()**
+Checks if a tab with a specific index is displayed and visible.
+
+```javascript
+// Check if tab at index 0 is displayed
+const isDisplayed = await browser.tab(0).isDisplayed()
+
+// Check with custom timeout
+const isDisplayed = await browser.tab(0).isDisplayed(5000)
+```
+
+**tab.switch()**
+Switches to a tab with a specific index.
+
+```javascript
+// Switch to tab at index 0
+await browser.tab(0).switch()
+
+// Switch with custom timeout
+await browser.tab(0).switch(5000)
+```
+
+**tab.get.url()**
+Gets the current tab or another tab URL.
+
+```javascript
+const url = await browser.tab().get.url()
+const url2 = await browser.tab('some other tab').get.url()
+```
+
+**tab.get.title()**
+Gets the current tab or by index title.
+
+```javascript
+const title = await browser.tab().get.title()
+const title2 = await browser.tab(5).get.title()
+```
+
+### Element Methods
 
 - `element()` - Generic element selector
 - `button()` - Button element selector
@@ -197,20 +348,13 @@ await browser.button('dropdown').hover()
 - `dialog()` - Dialog element selector
 - `file()` - File input element selector
 
-## Testing
+### Command Delegates
 
-The project includes both unit and integration tests:
+For detailed information about command delegates, see the documentation:
 
-```bash
-# Run unit tests
-npm test -- tests/unit/webbrowser.test.js
-
-# Run integration tests
-npm test -- tests/integration/webbrowser.test.js
-
-# Run all tests
-npm test
-```
+- [Click Delegate](docs/click-delegate.md)
+- [Input Delegate](docs/input-delegate.md)
+- [Visibility Delegate](docs/visibility-delegate.md)
 
 ## Browser Management
 
@@ -326,9 +470,9 @@ Incognito mode provides a private browsing session where no cookies or browsing 
 }
 ```
 
-## License
+## Examples
 
-MIT
+### Basic Example
 
 ```javascript
 import WebBrowser from '@nodebug/selenium'
@@ -396,18 +540,6 @@ Run any example:
 node example.js
 ```
 
-### Window Management
-
-The library provides advanced window management capabilities through the `Window` class.
-
-For detailed information about window management, see the [window management documentation](docs/window-management.md).
-
-### Tab Management
-
-The library provides tab management capabilities through the `Tab` class.
-
-For detailed information about tab management, see the [tab management documentation](docs/tab-management.md).
-
 ### Alert Management
 
 The library provides alert management capabilities through the `Alert` class.
@@ -428,14 +560,20 @@ await browser.alert().dismiss()
 await browser.alert('some text').dismiss()
 ```
 
-## Browser Support
-
-- Chrome
-- Firefox
-- Safari
-- Edge
-
 ## Testing
+
+The project includes both unit and integration tests:
+
+```bash
+# Run unit tests
+npm test -- tests/unit/webbrowser.test.js
+
+# Run integration tests
+npm test -- tests/integration/webbrowser.test.js
+
+# Run all tests
+npm test
+```
 
 Run the test suite:
 
@@ -449,293 +587,37 @@ Run linting:
 npm run lint
 ```
 
-## License
+## Browser Support
 
-MPL-2.0
+- Chrome
+- Firefox
+- Safari
+- Edge
+
+## Documentation
+
+For detailed information about specific features, see the documentation:
+
+- [Browser Commands](docs/browser-commands.md) - Browser class methods and properties
+- [Browser Management](docs/browser-management.md) - Configuration and browser selection
+- [Click Delegate](docs/click-delegate.md) - Click command delegate
+- [Element Types](docs/element-types.md) - Supported element types and selectors
+- [Input Delegate](docs/input-delegate.md) - Input command delegate
+- [Locator Strategy](docs/locator-strategy.md) - How elements are located and prioritized
+- [Multiple References](docs/multiple-references.md) - Multiple element references
+- [Spatial References](docs/spatial-references.md) - Spatial references and positioning
+- [Tab Management](docs/tab-management.md) - Tab management methods
+- [Visibility Delegate](docs/visibility-delegate.md) - Visibility command delegate
+- [Window Management](docs/window-management.md) - Window management methods
 
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
+## License
+
+MIT
+
 ## Support
 
 For issues and questions, please visit the [GitHub repository](https://github.com/node-bug/selenium/issues).
-
-## API Reference
-
-#### Browser Class ([app/browser/index.js](app/browser/index.js))
-
-The main Browser class provides core browser automation functionality.
-
-##### Constructor
-
-```javascript
-const browser = new Browser()
-```
-
-##### Methods
-
-**start()**
-Starts a new browser session.
-
-```javascript
-await browser.start()
-```
-
-**close()**
-Closes the browser session.
-
-```javascript
-await browser.close()
-```
-
-**name()**
-Gets the browser name.
-
-```javascript
-const browserName = await browser.get.name()
-```
-
-**os()**
-Gets the operating system name.
-
-```javascript
-const osName = await browser.get.os()
-```
-
-**setSize(size)**
-Sets the browser window size.
-
-```javascript
-await browser.setSize({ width: 1280, height: 800 })
-```
-
-**get.size()**
-Gets the current browser window size.
-
-```javascript
-const size = await browser.get.size()
-// Returns: { width: number, height: number }
-```
-
-**goto(url)**
-Navigates to the specified URL.
-
-```javascript
-await browser.goto('https://example.com')
-```
-
-**goBack()**
-Navigates back in browser history.
-
-```javascript
-await browser.goBack()
-```
-
-**goForward()**
-Navigates forward in browser history.
-
-```javascript
-await browser.goForward()
-```
-
-**refresh()**
-Refreshes the current page.
-
-```javascript
-await browser.refresh()
-```
-
-**sleep(ms)**
-Pauses execution for the specified milliseconds.
-
-```javascript
-await browser.sleep(1000)
-```
-
-**reset()**
-Resets browser state by closing all windows, deleting cookies, and clearing storage.
-
-```javascript
-await browser.reset()
-```
-
-**consoleErrors()**
-Gets console errors from the browser.
-
-```javascript
-const errors = await browser.consoleErrors()
-// Returns: Array of error entries
-```
-
-**actions()**
-Gets the WebDriver actions instance for advanced interactions.
-
-```javascript
-const actions = browser.actions()
-```
-
-#### Window Object
-
-The `browser.window` object provides access to window management methods.
-
-**window.get.url()**
-Gets the current URL.
-
-```javascript
-const url = await browser.window().get.url()
-```
-
-**window.get.title()**
-Gets the page title.
-
-```javascript
-const title = await browser.window().get.title()
-```
-
-**window.maximize()**
-Maximizes the browser window.
-
-```javascript
-await browser.window().maximize()
-```
-
-**window.minimize()**
-Minimizes the browser window.
-
-```javascript
-await browser.window('some window title').minimize()
-```
-
-**window.fullscreen()**
-Switches the browser to fullscreen mode.
-
-```javascript
-await browser.window(index).fullscreen()
-await browser.window('some window title').fullscreen()
-await browser.window().fullscreen()
-```
-
-**window.new()**
-Opens a new browser window.
-
-```javascript
-await browser.window().new()
-```
-
-**window.close()**
-Closes the current window.
-
-```javascript
-await browser.window(index).close()
-await browser.window('title').close()
-await browser.window().close()
-```
-
-**window.isDisplayed()**
-Checks if a window with a specific title is displayed and visible.
-
-```javascript
-// Check current window
-const isDisplayed = await browser.window('some title').isDisplayed()
-
-// Check with custom timeout
-const isDisplayed = await browser.window('some title').isDisplayed(5000)
-```
-
-**window.switch()**
-Switches to a window with a specific title.
-
-```javascript
-// Switch to window with title
-await browser.window('some title').switch()
-
-// Switch with custom timeout
-await browser.window('some title').switch(5000)
-```
-
-#### Tab Object
-
-The `browser.tab` object provides access to tab management methods.
-
-**tab.new()**
-Opens a new browser tab.
-
-```javascript
-await browser.tab().new()
-```
-
-**tab.close()**
-Closes the current tab.
-
-```javascript
-await browser.tab('some tab title').close()
-await browser.tab(3).close()
-```
-
-**tab.isDisplayed()**
-Checks if a tab with a specific index is displayed and visible.
-
-```javascript
-// Check if tab at index 0 is displayed
-const isDisplayed = await browser.tab(0).isDisplayed()
-
-// Check with custom timeout
-const isDisplayed = await browser.tab(0).isDisplayed(5000)
-```
-
-**tab.switch()**
-Switches to a tab with a specific index.
-
-```javascript
-// Switch to tab at index 0
-await browser.tab(0).switch()
-
-// Switch with custom timeout
-await browser.tab(0).switch(5000)
-```
-
-**tab.get.url()**
-Gets the current tab or another tab URL.
-
-```javascript
-const url = await browser.tab().get.url()
-const url2 = await browser.tab('some other tab').get.url()
-```
-
-**tab.get.title()**
-Gets the current tab or by index title.
-
-```javascript
-const title = await browser.tab().get.title()
-const title2 = await browser.tab(5).get.title()
-```
-
-## Browser Support
-
-- Chrome
-- Firefox
-- Safari
-- Edge
-
-## Testing
-
-Run the test suite:
-
-```bash
-npm test
-```
-
-Run linting:
-
-```bash
-npm run lint
-```
-
-## Locator Strategy
-
-For detailed information about how elements are located and prioritized in this library, please see the [locator strategy documentation](docs/locator-strategy.md).
-
-For detailed information about what elements are supported in this library, please see the [element types documentation](docs/element-types.md).
-
-This library uses a human-like approach to element identification, prioritizing visible text and attributes in a specific order to make browser automation more intuitive and reliable.

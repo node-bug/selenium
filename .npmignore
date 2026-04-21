@@ -3,17 +3,19 @@ tests
 reports
 test.js
 *.test.js
+jest.config.js
 
 # Development directories
 .github/
 .git/
+.editorconfig
 .gitignore
 .npmignore
-.editorconfig
-.eslintrc
-.eslintrc.js
 .prettierrc
 .prettierrc.js
+.eslintrc
+.eslintrc.js
+.eslint.config.js
 .stylelintrc
 .stylelintrc.js
 lint-staged.config.js
