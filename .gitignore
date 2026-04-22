@@ -14,7 +14,9 @@ pids
 # Dependency directories
 node_modules/
 jspm_packages/
+
 package-lock.json
+
 
 
 # Optional npm cache directory
@@ -46,3 +48,4 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
+.DS_Store
