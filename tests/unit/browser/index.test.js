@@ -1,18 +1,27 @@
 import { jest } from '@jest/globals';
 
+let dynamicConfig = {
+  selenium: {
+    timeout: 5,
+    hub: null,
+  },
+};
+
 // ---------------- MOCKS ----------------
 const mockDriver = {
-  getAllWindowHandles: jest.fn(),
-  getWindowHandle: jest.fn(),
+  getAllWindowHandles: jest.fn().mockResolvedValue(['main-window']),
+  getWindowHandle: jest.fn().mockResolvedValue('main-window'),
   switchTo: jest.fn(),
+  manage: jest.fn(),
+  executeScript: jest.fn(),
+  setFileDetector: jest.fn().mockResolvedValue(true),
+  quit: jest.fn().mockResolvedValue(true),
   getTitle: jest.fn(),
   getCurrentUrl: jest.fn(),
   close: jest.fn(),
-  manage: jest.fn(),
-  executeScript: jest.fn(),
-  setFileDetector: jest.fn(),
-  wait: jest.fn(),
-  quit: jest.fn(),
+  wait: jest.fn().mockImplementation(async (conditionFn) => {
+    return await conditionFn(mockDriver); 
+  }),
 };
 
 const mockSwitchTo = {
@@ -23,8 +32,9 @@ const mockSwitchTo = {
 };
 
 const mockManage = {
-  window: jest.fn(),
   logs: jest.fn(),
+  window: jest.fn().mockReturnValue({ setRect: jest.fn() }),
+  setTimeouts: jest.fn()
 };
 
 const mockWindow = {
@@ -38,18 +48,25 @@ mockDriver.manage.mockReturnValue(mockManage);
 mockManage.window.mockReturnValue(mockWindow);
 
 jest.unstable_mockModule('selenium-webdriver', () => ({
-  Builder: jest.fn(() => ({
-    withCapabilities: jest.fn(),
-    usingServer: jest.fn(),
-    build: jest.fn().mockResolvedValue(mockDriver),
-  })),
-  By: {},
+  Builder: jest.fn().mockImplementation(function() {
+    this.withCapabilities = jest.fn().mockReturnThis();
+    this.usingServer = jest.fn().mockReturnThis();
+    this.build = jest.fn().mockResolvedValue(mockDriver);
+    return this;
+  }),
+  By: { xpath: (val) => val },
   until: {},
   WebDriver: jest.fn(() => mockDriver),
   Key: {
     ARROW_RIGHT: '\uE015',
   },
   remote: {
+    FileDetector: jest.fn(),
+  },
+}));
+
+jest.unstable_mockModule('selenium-webdriver/remote/index.js', () => ({
+  default: {
     FileDetector: jest.fn(),
   },
 }));
@@ -64,19 +81,15 @@ jest.unstable_mockModule('@nodebug/logger', () => ({
 
 // Mock config module
 jest.unstable_mockModule('@nodebug/config', () => ({
-  default: jest.fn(() => ({
-    selenium: {
-      timeout: 5,
-      hub: null,
-    },
-  })),
+  default: jest.fn((key) => {
+    if (key === 'selenium') return dynamicConfig.selenium;
+    return dynamicConfig;
+  }),
 }));
 
 // Mock capabilities
 jest.unstable_mockModule('../../../app/capabilities/index.js', () => ({
-  default: jest.fn(() => ({
-    browserName: 'chrome',
-  })),
+  default: jest.fn(() => ({ browserName: 'chrome' })),
 }));
 
 // ---------------- IMPORTS ----------------
@@ -112,6 +125,7 @@ describe('Browser (ESM)', () => {
     //   return Promise.resolve();
     // });
 
+    dynamicConfig.selenium.hub = null;
     browser = new Browser.default();
   });
 
@@ -135,7 +149,7 @@ describe('Browser (ESM)', () => {
   // ---------------- PROPERTIES ----------------
   describe('properties', () => {
     test('has correct timeout property', () => {
-      expect(browser.timeout).toBe(5000); // 5 seconds * 1000
+      expect(browser.timeout).toBe(5000); // 10 seconds * 1000
     });
 
     test('has correct capabilities getter/setter', () => {
@@ -157,28 +171,20 @@ describe('Browser (ESM)', () => {
   describe('new()', () => {
     test('initializes a new browser session', async () => {
       await browser.new();
-      
       expect(mockDriver.wait).toHaveBeenCalled();
-      expect(mockDriver.quit).not.toHaveBeenCalled();
+      expect(mockDriver.getAllWindowHandles).toHaveBeenCalled();
     });
 
     test('uses Selenium Grid hub when configured', async () => {
-      // Mock config to return a hub URL
-      jest.unstable_mockModule('@nodebug/config', () => ({
-        default: jest.fn(() => ({
-          selenium: {
-            timeout: 5,
-            hub: 'http://localhost:4444/wd/hub',
-          },
-        })),
-      }));
+      // Update the hub on the same object reference that the module captured at load time
+      dynamicConfig.selenium.hub = 'http://localhost:4444/wd/hub';
       
-      // Re-import Browser with updated mocks
-      const BrowserUpdated = await import('../../../app/browser/index.js');
-      const updatedBrowser = new BrowserUpdated.default();
+      // Instantiate a fresh browser so it reads the new config
+      const hubBrowser = new Browser.default();
       
-      await updatedBrowser.new();
+      await hubBrowser.new();
       
+      // Verify setFileDetector was called when hub is configured
       expect(mockDriver.setFileDetector).toHaveBeenCalled();
     });
   });
@@ -187,9 +193,9 @@ describe('Browser (ESM)', () => {
     test('sleeps for specified milliseconds', async () => {
       const sleepTime = 1000;
       const start = Date.now();
-      
+
       await browser.sleep(sleepTime);
-      
+
       const end = Date.now();
       expect(end - start).toBeGreaterThanOrEqual(sleepTime);
     });
@@ -198,10 +204,13 @@ describe('Browser (ESM)', () => {
   describe('close()', () => {
     test('closes the browser session', async () => {
       browser.driver = mockDriver;
-      mockDriver.getCurrentUrl.mockResolvedValue('https://example.com');
       
+      // Minimal mock for the window().get.url() call in source
+      browser.window = jest.fn().mockReturnValue({
+        get: { url: jest.fn().mockResolvedValue('https://example.com') }
+      });
+
       const result = await browser.close();
-      
       expect(mockDriver.quit).toHaveBeenCalled();
       expect(result).toBe(true);
     });
@@ -209,7 +218,7 @@ describe('Browser (ESM)', () => {
     test('handles error during close', async () => {
       browser.driver = mockDriver;
       mockDriver.quit.mockRejectedValue(new Error('Close error'));
-      
+
       await expect(browser.close()).rejects.toThrow('Close error');
     });
   });

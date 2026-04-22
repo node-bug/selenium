@@ -25,44 +25,6 @@ describe('SelectorStackBuilder', () => {
     expect(selectorStackBuilder.stack).toBe(mockStack);
   });
 
-  describe('#isFlagObject', () => {
-    test('should return true for valid flag object', () => {
-      const flagObject = { exact: true, hidden: false };
-      expect(selectorStackBuilder['#isFlagObject'](flagObject)).toBe(true);
-    });
-
-    test('should return false for invalid flag object', () => {
-      const invalidObject = { exact: 'true', hidden: false };
-      expect(selectorStackBuilder['#isFlagObject'](invalidObject)).toBe(false);
-      
-      const emptyObject = {};
-      expect(selectorStackBuilder['#isFlagObject'](emptyObject)).toBe(false);
-      
-      const nullObject = null;
-      expect(selectorStackBuilder['#isFlagObject'](nullObject)).toBe(false);
-    });
-  });
-
-  describe('#setFlag', () => {
-    test('should set flag on existing flag object', () => {
-      mockStack.push({ exact: false, hidden: false });
-      selectorStackBuilder['#setFlag']('exact', true);
-      
-      expect(mockStack[0]).toEqual({ exact: true, hidden: false });
-    });
-
-    test('should create new flag object when none exists', () => {
-      selectorStackBuilder['#setFlag']('exact', true);
-      
-      expect(mockStack[0]).toEqual({ exact: true, hidden: false });
-    });
-
-    test('should return this for chaining', () => {
-      const result = selectorStackBuilder['#setFlag']('exact', true);
-      expect(result).toBe(selectorStackBuilder);
-    });
-  });
-
   describe('exact method', () => {
     test('should set exact flag to true', () => {
       selectorStackBuilder.exact();

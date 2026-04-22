@@ -8,7 +8,7 @@ export class LocatorStrategy extends ElementTypes {
   /**
    * Helper to switch context safely
    */
-  async #withContext(frame, callback) {
+  async _withContext(frame, callback) {
     await this.driver.switchTo().defaultContent();
     if (frame >= 0) {
       try {
@@ -22,22 +22,29 @@ export class LocatorStrategy extends ElementTypes {
   }
 
   async findChildElements(parent, childData) {
-    return this.#withContext(parent.frame, async () => {
+    return this._withContext(parent.frame, async () => {
       const xpath = this.getSelectors(childData.id, childData.exact)[childData.type];
       const elements = await parent.findElements(By.xpath(xpath));
 
-      const results = await Promise.all(
+      const qualified = await Promise.all(
         elements.map(async (el) => {
           el.frame = parent.frame;
           return this.addQualifiers(el);
         })
       );
 
-      return results.filter(e => e.rect.height > 0 && e.rect.width > 0);
+      return qualified.filter(e => e.rect.height > 0 && e.rect.width > 0);
     });
   }
 
   async relativeSearch(item, rel, relativeElement) {
+    if (rel?.located) {
+      const validLocations = ['above', 'below', 'toLeftOf', 'toRightOf', 'within'];
+      if (!validLocations.includes(rel.located)) {
+        throw new ReferenceError(`Location '${rel.located}' is not supported`);
+      }
+    }
+
     if (!rel?.located || !relativeElement) return item.matches;
 
     const { rect: r } = relativeElement;
@@ -68,6 +75,7 @@ export class LocatorStrategy extends ElementTypes {
   }
 
   async addQualifiers(elements) {
+    if (!elements) return []; // Fix for "should handle null elements"
     const targets = Array.isArray(elements) ? elements : [elements];
     if (targets.length === 0) return [];
 
@@ -77,14 +85,14 @@ export class LocatorStrategy extends ElementTypes {
         return {
           x: r.x, y: r.y, width: r.width, height: r.height,
           top: r.top, bottom: r.bottom, left: r.left, right: r.right,
-          tagName: el.tagName.toLowerCase()
+          tagName: el.tagName
         };
       });
     `, ...targets);
 
     return targets.map((el, i) => {
       const s = stats[i];
-      el.tagName = s.tagName;
+      el.tagName = s.tagName.toLowerCase();
       el.rect = {
         ...s,
         midx: s.x + s.width / 2,
@@ -139,7 +147,7 @@ export class LocatorStrategy extends ElementTypes {
       .sort((a, b) => a.distance - b.distance);
 
     // 4. Qualify the winner (add rect and midx/midy)
-    const winner = await this.addQualifiers(sortedCandidates[0]);
+    const [winner] = await this.addQualifiers(sortedCandidates[0]);
 
     // Clean up temporary property
     delete winner.distance;
@@ -153,7 +161,7 @@ export class LocatorStrategy extends ElementTypes {
     const frameIndices = [-1, ...frames.keys()]; // -1 represents default content
 
     for (const i of frameIndices) {
-      await this.#withContext(i, async () => {
+      await this._withContext(i, async () => {
         const xpaths = this.getSelectors(elementData.id, elementData.exact);
         const targetXpath = xpaths[elementData.type] || xpaths['element'];
 

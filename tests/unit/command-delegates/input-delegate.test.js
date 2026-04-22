@@ -202,14 +202,19 @@ describe('InputDelegate (ESM)', () => {
 
     test('handles error from clear', async () => {
       const error = new Error('fail');
-      mockElement.clear.mockRejectedValue(error);
-      mockBrowser._finder.mockResolvedValue(mockElement);
 
-      // Mock the clear method to throw an error
-      mockElement.clear = jest.fn().mockRejectedValue(error);
+      // 1. Ensure it looks like an input so it hits locator.clear()
+      mockElement.tagName = 'input';
+
+      // 2. Setup the rejection
+      mockElement.clear.mockRejectedValue(error);
+
+      // 3. Ensure the finder returns this specific mockElement
+      mockBrowser._finder.mockResolvedValue(mockElement);
 
       await inputDelegate.clear();
 
+      // This should now succeed
       expect(mockBrowser.handleError).toHaveBeenCalledWith(
         error,
         'clearing field'

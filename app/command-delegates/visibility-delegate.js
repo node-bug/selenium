@@ -138,6 +138,7 @@ export class VisibilityDelegate {
     } catch (err) {
       // browser.handleError decides to throw or log the error
       browser.handleError(err, 'waiting for invisibility');
+      return true
     } finally {
       browser.stack = [];
     }

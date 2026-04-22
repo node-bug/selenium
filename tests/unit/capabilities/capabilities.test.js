@@ -10,14 +10,10 @@ describe('Chrome Capabilities', () => {
     chrome = new Chrome();
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
-
   describe('capabilities getter', () => {
     it('should return chrome capabilities', () => {
       expect(chrome.capabilities).toBeDefined();
-      expect(chrome.capabilities).toHaveProperty('browserName', 'chrome');
+      expect(chrome.capabilities.get('browserName')).toBe('chrome');
     });
   });
 });
@@ -29,14 +25,10 @@ describe('Firefox Capabilities', () => {
     firefox = new Firefox();
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
-
   describe('capabilities getter', () => {
     it('should return firefox capabilities', () => {
       expect(firefox.capabilities).toBeDefined();
-      expect(firefox.capabilities).toHaveProperty('browserName', 'firefox');
+      expect(firefox.capabilities.get('browserName')).toBe('firefox');
     });
   });
 });
@@ -48,14 +40,10 @@ describe('Safari Capabilities', () => {
     safari = new Safari();
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
-
   describe('capabilities getter', () => {
     it('should return safari capabilities', () => {
       expect(safari.capabilities).toBeDefined();
-      expect(safari.capabilities).toHaveProperty('browserName', 'safari');
+      expect(safari.capabilities.get('browserName')).toBe('safari');
     });
   });
 });

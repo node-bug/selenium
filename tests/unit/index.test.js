@@ -8,9 +8,13 @@ jest.unstable_mockModule('@nodebug/logger', () => ({
     },
 }));
 
-jest.unstable_mockModule('@nodebug/config', () => jest.fn(() => ({
+// Mock config module
+jest.unstable_mockModule('@nodebug/config', () => ({
+  default: jest.fn(() => ({
     timeout: 1, // small timeout for fast tests
-})));
+    browser: 'chrome',
+})),
+}));
 
 // Mock dependencies
 jest.unstable_mockModule('../../app/elements/locator-strategy.js', () => {
@@ -24,7 +28,9 @@ jest.unstable_mockModule('../../app/elements/locator-strategy.js', () => {
     };
 });
 
-jest.unstable_mockModule('../../app/messenger.js', () => jest.fn(() => 'mock-message'));
+jest.unstable_mockModule('../../app/messenger.js', () => ({
+    default: jest.fn(() => 'mock-message')
+}));
 
 jest.unstable_mockModule('../../app/command-delegates/click-delegate.js', () => ({
     ClickDelegate: jest.fn().mockImplementation(() => ({
@@ -64,7 +70,7 @@ jest.unstable_mockModule('../../app/command-delegates/checkbox-delegate.js', () 
     })),
 }));
 
-const { default: WebBrowser } = await import('../../src/WebBrowser.js');
+const { default: WebBrowser } = await import('../../index.js');
 
 describe('WebBrowser', () => {
     let browser;
@@ -181,8 +187,8 @@ describe('WebBrowser', () => {
 
     test('write delegates correctly', async () => {
         const spy = jest
-            .spyOn(Object.getPrototypeOf(browser), 'write')
-            .mockResolvedValue(true);
+        .spyOn(Object.getPrototypeOf(browser), 'write') // This is problematic
+        .mockResolvedValue(true);
 
         const result = await browser.write('text');
 

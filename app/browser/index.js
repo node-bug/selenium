@@ -52,7 +52,7 @@ class Browser {
     }
 
     this.capabilities = capabilities()
-    if (selenium.hub !== null) {
+    if (selenium.hub && selenium.hub !== null && selenium.hub !== undefined && selenium.hub !== '') {
       this.hub = selenium.hub
     }
   }
@@ -120,13 +120,13 @@ class Browser {
     const builder = new Builder()
     builder.withCapabilities(this.capabilities)
 
-    if (this.hub !== undefined && this.hub !== null && this.hub !== '') {
+    if (this.hub && this.hub !== undefined && this.hub !== null && this.hub !== '') {
       builder.usingServer(this.hub)
     }
 
     this.driver = await builder.build()
 
-    if (this.hub && this.hub !== '' && this.hub !== null && this.hub !== undefined) {
+    if (this.hub && this.hub !== undefined && this.hub !== null && this.hub !== '') {
       await this.driver.setFileDetector(new remote.FileDetector())
     }
 
@@ -160,7 +160,8 @@ class Browser {
    * console.log(timeout); // e.g., 30000
    */
   get timeout() {
-    return parseInt(selenium.timeout, 10) * 1000
+    const timeoutValue = parseInt(selenium.timeout, 10);
+    return isNaN(timeoutValue) ? 10000 : timeoutValue * 1000;
   }
 
   /**

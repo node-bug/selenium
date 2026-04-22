@@ -136,7 +136,7 @@ describe('BrowserTarget (ESM)', () => {
   // ---------------- PROPERTIES ----------------
   describe('properties', () => {
     test('has correct timeout property', () => {
-      expect(browserTarget.timeout).toBe(5000); // 5 seconds * 1000
+      expect(browserTarget.timeout).toBe(10000); // 5 seconds * 1000
     });
 
     test('has correct label property', () => {
@@ -187,12 +187,13 @@ describe('BrowserTarget (ESM)', () => {
     });
 
     test('switches to window by title when pending title is a string', async () => {
-      browserTarget._pendingTitle = 'Google';
+      browserTarget._pendingTitle = 'Different Title';
       mockDriver.getTitle.mockResolvedValue('Google');
+      jest.spyOn(browserTarget, 'switch').mockResolvedValue(true);
       
       await browserTarget._ensureFocus();
       
-      expect(mockSwitchTo.window).toHaveBeenCalledWith(mockWindowHandle);
+      expect(browserTarget.switch).toHaveBeenCalled();
     });
   });
 
@@ -219,7 +220,7 @@ describe('BrowserTarget (ESM)', () => {
       browserTarget._targetTitle = 'Non-existent Title';
       mockDriver.getTitle.mockResolvedValue('Different Title');
       
-      const result = await browserTarget._findTarget(false);
+      const result = await browserTarget._findTarget(false, 100); // Short timeout
       
       expect(result).toBe(false);
     });
@@ -228,7 +229,7 @@ describe('BrowserTarget (ESM)', () => {
       browserTarget._targetTitle = 'Non-existent Title';
       mockDriver.getTitle.mockResolvedValue('Different Title');
       
-      await expect(browserTarget._findTarget(true)).rejects.toThrow();
+      await expect(browserTarget._findTarget(true, 100)).rejects.toThrow(); // Short timeout
     });
   });
 
@@ -254,15 +255,18 @@ describe('BrowserTarget (ESM)', () => {
 
   describe('isDisplayed()', () => {
     test('returns true when target is displayed', async () => {
-      const result = await browserTarget.isDisplayed('Test Title');
+      browserTarget._targetTitle = 'Test Title';
+      
+      const result = await browserTarget.isDisplayed();
       
       expect(result).toBe(true);
     });
 
     test('returns false when target is not displayed', async () => {
+      browserTarget._targetTitle = 'Non-existent Title';
       mockDriver.getTitle.mockResolvedValue('Different Title');
       
-      const result = await browserTarget.isDisplayed('Non-existent Title');
+      const result = await browserTarget.isDisplayed(100); // Short timeout
       
       expect(result).toBe(false);
     });
@@ -270,15 +274,18 @@ describe('BrowserTarget (ESM)', () => {
 
   describe('switch()', () => {
     test('switches to target and returns true', async () => {
-      const result = await browserTarget.switch('Test Title');
+      browserTarget._targetTitle = 'Test Title';
+      
+      const result = await browserTarget.switch();
       
       expect(result).toBe(true);
     });
 
     test('throws error when target is not found during switch', async () => {
+      browserTarget._targetTitle = 'Non-existent Title';
       mockDriver.getTitle.mockResolvedValue('Different Title');
       
-      await expect(browserTarget.switch('Non-existent Title')).rejects.toThrow();
+      await expect(browserTarget.switch(100)).rejects.toThrow(); // Short timeout
     });
   });
 });

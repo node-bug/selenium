@@ -19,7 +19,13 @@ jest.unstable_mockModule('@nodebug/logger', () => ({
   },
 }));
 
+jest.unstable_mockModule('../../../app/messenger.js', () => ({
+  default: jest.fn(({ action }) => `Checking: ${action}`),
+}));
+
 // ---------------- IMPORTS ----------------
+const { log } = await import('@nodebug/logger');
+
 const { CheckboxDelegate } = await import(
   '../../../app/command-delegates/checkbox-delegate.js'
 );
@@ -79,14 +85,15 @@ describe('CheckboxDelegate (ESM)', () => {
       await delegate.check();
 
       expect(mockLocator.click).not.toHaveBeenCalled();
-      expect(mockBrowser.message).toContain('already checked');
+      // FIX: Check the logger instead of mockBrowser.message
+      expect(log.info).toHaveBeenCalledWith(expect.stringContaining('already checked'));
     });
 
     test('should use JS click fallback if standard click fails', async () => {
       mockLocator.isSelected
         .mockResolvedValueOnce(false)
         .mockResolvedValueOnce(true);
-      
+
       mockLocator.click.mockRejectedValue(new Error('Element click intercepted'));
 
       await delegate.check();
@@ -99,7 +106,7 @@ describe('CheckboxDelegate (ESM)', () => {
 
     test('should throw error if state does not change after click', async () => {
       mockLocator.isSelected.mockResolvedValue(false); // Stays false despite click
-      
+
       await delegate.check();
 
       expect(mockBrowser.handleError).toHaveBeenCalledWith(
@@ -111,7 +118,7 @@ describe('CheckboxDelegate (ESM)', () => {
 
     test('should catch and handle errors during the toggle process', async () => {
       mockBrowser._finder.mockRejectedValue(new Error('Finder failed'));
-      
+
       await delegate.check();
 
       expect(mockBrowser.handleError).toHaveBeenCalledWith(expect.any(Error), 'checking checkbox');
@@ -137,12 +144,13 @@ describe('CheckboxDelegate (ESM)', () => {
       await delegate.uncheck();
 
       expect(mockLocator.click).not.toHaveBeenCalled();
-      expect(mockBrowser.message).toContain('already unchecked');
+      // FIX: Check the logger instead of mockBrowser.message
+      expect(log.info).toHaveBeenCalledWith(expect.stringContaining('already unchecked'));
     });
 
     test('should catch and handle errors during the toggle process', async () => {
       mockBrowser._finder.mockRejectedValue(new Error('Finder failed'));
-      
+
       await delegate.uncheck();
 
       expect(mockBrowser.handleError).toHaveBeenCalledWith(expect.any(Error), 'unchecking checkbox');
@@ -152,11 +160,13 @@ describe('CheckboxDelegate (ESM)', () => {
   // ---------------- IS CHECKED ----------------
   describe('isChecked()', () => {
     test('should return true if selected', async () => {
+      const { log } = await import('@nodebug/logger');
       mockLocator.isSelected.mockResolvedValue(true);
+
       const result = await delegate.isChecked();
 
       expect(result).toBe(true);
-      expect(mockBrowser.message).toContain('isChecked');
+      expect(log.info).toHaveBeenCalledWith(expect.stringContaining('checked'));
     });
 
     test('should handle errors in isChecked', async () => {
@@ -169,12 +179,17 @@ describe('CheckboxDelegate (ESM)', () => {
   // ---------------- IS UNCHECKED ----------------
   describe('isUnchecked()', () => {
     test('should return true if NOT selected', async () => {
-      mockLocator.isSelected.mockResolvedValue(false);
-      const result = await delegate.isUnchecked();
+    mockLocator.isSelected.mockResolvedValue(false);
+    
+    const result = await delegate.isUnchecked();
 
-      expect(result).toBe(true);
-      expect(mockBrowser.message).toContain('isUnchecked');
-    });
+    expect(result).toBe(true);
+    // This will now pass because messenger returns a string containing 'isUnchecked'
+    expect(mockBrowser.message).toContain('isUnchecked');
+    
+    // Also verify the logger was called as per the source code
+    expect(log.info).toHaveBeenCalledWith(expect.stringContaining('Checkbox is unchecked'));
+  });
 
     test('should handle errors in isUnchecked', async () => {
       mockBrowser._finder.mockRejectedValue(new Error('Selection failed'));

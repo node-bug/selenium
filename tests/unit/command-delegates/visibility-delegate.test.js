@@ -32,11 +32,10 @@ jest.unstable_mockModule('../../../app/messenger.js', () => ({
 
 // Mock config module
 jest.unstable_mockModule('@nodebug/config', () => ({
-  default: jest.fn(() => ({
-    selenium: {
-      timeout: 5,
-    },
-  })),
+  default: jest.fn((key) => {
+    if (key === 'selenium') return { timeout: 5 };
+    return {};
+  }),
 }));
 
 // Mock browser findAll method
@@ -196,51 +195,112 @@ describe('VisibilityDelegate (ESM)', () => {
   });
 
   // ---------------- ISNOTDISPLAYED ----------------
-  describe('isNotDisplayed()', () => {
-    test('resolves when element is not displayed', async () => {
-      mockBrowser._finder.mockRejectedValue(new Error('not found'));
+  describe('isNotDisplayed() Scenarios', () => {
+  let originalDateNow;
 
-      const result = await visibilityDelegate.isNotDisplayed();
-
-      expect(result).toBe(true);
-    });
-
-    test('rejects when element is still displayed', async () => {
-      mockBrowser._finder.mockResolvedValue(mockElement);
-
-      await expect(visibilityDelegate.isNotDisplayed(1000)).rejects.toThrow('Element still visible after 1000ms');
-    });
-
-    // this test should be to check that browser.handleError is called when error is thrown
-    test('handles error from isNotDisplayed', async () => {
-      const error = new Error('fail');
-      mockBrowser._finder.mockRejectedValue(error);
-
-      await visibilityDelegate.isNotDisplayed();
-
-      expect(mockBrowser.handleError).toHaveBeenCalledWith(
-        error,
-        'waiting for invisibility'
-      );
-    });
-
-    test('uses default timeout when not provided', async () => {
-      // Mock the Date.now to control the timeout behavior
-      const originalDateNow = Date.now;
-      const mockDateNow = jest.fn(() => 0);
-      Date.now = mockDateNow;
-      
-      mockBrowser._finder.mockRejectedValue(new Error('not found'));
-      
-      await visibilityDelegate.isNotDisplayed();
-      
-      // Restore original Date.now
-      Date.now = originalDateNow;
-      
-      // The test is checking that the timeout is properly calculated, but we can't easily test
-      // the exact timeout value without mocking Date.now properly
-    });
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.useFakeTimers();
+    originalDateNow = Date.now;
+    
+    // Set a consistent base time
+    let currentTime = 10000;
+    Date.now = jest.fn(() => currentTime);
   });
+
+  afterEach(() => {
+    jest.useRealTimers();
+    Date.now = originalDateNow;
+  });
+
+  /**
+   * Scenario 1: Success - Element is already gone
+   * Logic: _finder throws -> inner catch returns true.
+   */
+  test('returns true immediately when element is not found', async () => {
+    mockBrowser._finder.mockRejectedValue(new Error('NoSuchElement'));
+
+    const result = await visibilityDelegate.isNotDisplayed(2000);
+
+    expect(result).toBe(true);
+    expect(mockBrowser._finder).toHaveBeenCalledTimes(1);
+    expect(mockBrowser.handleError).not.toHaveBeenCalled();
+  });
+
+  /**
+   * Scenario 2: Success - Element disappears after 2 tries
+   * Logic: Loop runs twice, second catch returns true.
+   */
+  test('returns true after element disappears on second poll', async () => {
+    let callCount = 0;
+    Date.now = jest.fn(() => 10000 + (callCount * 100)); // Time moves slowly
+    
+    mockBrowser._finder
+      .mockResolvedValueOnce(mockElement) // First check: found
+      .mockImplementationOnce(() => { 
+        callCount++; 
+        throw new Error('Gone'); 
+      }); // Second check: gone
+
+    const promise = visibilityDelegate.isNotDisplayed(2000);
+    
+    // Advance timers to trigger the 500ms sleep
+    await jest.advanceTimersByTimeAsync(500);
+    
+    const result = await promise;
+    expect(result).toBe(true);
+    expect(mockBrowser._finder).toHaveBeenCalledTimes(2);
+  });
+
+  /**
+   * Scenario 3: Timeout - Element stays visible
+   * Logic: While loop expires -> throw error -> outer catch -> returns true.
+   */
+  test('calls handleError and returns true when timeout is reached', async () => {
+    let currentTime = 10000;
+    Date.now = jest.fn(() => {
+      const now = currentTime;
+      currentTime += 600; // Increment past the 500ms sleep
+      return now;
+    });
+
+    mockBrowser._finder.mockResolvedValue(mockElement); // Always found
+
+    const promise = visibilityDelegate.isNotDisplayed(1000);
+    await jest.runAllTimersAsync();
+    const result = await promise;
+
+    expect(mockBrowser.handleError).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: expect.stringContaining('Element still visible after 1000ms')
+      }),
+      'waiting for invisibility'
+    );
+    expect(result).toBe(true);
+  });
+
+  /**
+   * Scenario 4: Default Timeout Fallback
+   * Logic: Verifies selenium.timeout from config is used when t=null.
+   */
+  test('uses default config timeout when no time is provided', async () => {
+    // Mock Date.now to jump immediately past the 5s config timeout
+    Date.now = jest.fn()
+      .mockReturnValueOnce(0)    // Start
+      .mockReturnValueOnce(6000); // Exceeds config (5s)
+
+    mockBrowser._finder.mockResolvedValue(mockElement);
+
+    await visibilityDelegate.isNotDisplayed(); // No argument passed
+
+    expect(mockBrowser.handleError).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: expect.stringContaining('after 5000ms') // 5 seconds from config
+      }),
+      'waiting for invisibility'
+    );
+  });
+});
 
   // ---------------- ISDISABLED ----------------
   describe('isDisabled()', () => {
