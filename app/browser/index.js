@@ -1,268 +1,430 @@
-const config = require('@nodebug/config')('selenium')
-const { log } = require('@nodebug/logger')
-const { Builder } = require('selenium-webdriver')
-const capabilities = require('../capabilities')
-const Window = require('./window')
-const remote = require('selenium-webdriver/remote')
+import config from '@nodebug/config'
+import { log } from '@nodebug/logger'
+import { Builder } from 'selenium-webdriver'
+import remote from 'selenium-webdriver/remote/index.js'
+import capabilities from '../capabilities/index.js'
+import Window from './window.js'
+import Tab from './tab.js'
+import Alert from './alerts.js'
 
+const selenium = config('selenium')
+
+/**
+ * Base Browser class for Selenium WebDriver operations
+ * 
+ * This class provides a high-level API for automating web browsers using Selenium WebDriver.
+ * It supports multiple browsers (Chrome, Firefox, Safari) and provides convenient methods
+ * for window management, navigation, and browser state control.
+ * 
+ * @class Browser
+ * @property {Window} window - Window management instance
+ * @property {Tab} tab - Tab management instance
+ * @property {Object} capabilities - Browser capabilities configuration
+ * @property {Object} driver - Selenium WebDriver instance
+ */
 class Browser {
-    constructor() {
-        this.window = new Window()
-        this.capabilities = capabilities()
-        this.capabilities.set('pageLoadStrategy', 'normal')
+  /**
+   * Create a new Browser instance
+   * 
+   * @constructor
+   * @param {Object} [options] - Browser configuration options
+   * @param {string} [options.hub] - Selenium Grid hub URL (optional)
+   * @param {number} [options.timeout] - Default timeout in seconds
+   * @param {number} [options.width] - Default browser width
+   * @param {number} [options.height] - Default browser height
+   */
+  constructor() {
+    this._windowInstance = new Window();
+    this._tabInstance = new Tab();
+    this._alertInstance = new Alert();
 
-        if (config.grid !== null) {
-            this.hub = config.grid
-        }
+    this.window = (title) => {
+      this._windowInstance.title(title);
+      return this._windowInstance;
+    };
+    this.tab = (title) => {
+      this._tabInstance.title(title);
+      return this._tabInstance;
+    };
+    this.alert = (alertText) => {
+      this._alertInstance.text(alertText);
+      return this._alertInstance;
     }
 
-    get capabilities() {
-        return this._capabilities
+    this.capabilities = capabilities()
+    if (selenium.hub && selenium.hub !== null && selenium.hub !== undefined && selenium.hub !== '') {
+      this.hub = selenium.hub
+    }
+  }
+
+  /**
+   * Get browser capabilities
+   * 
+   * @returns {Object} Browser capabilities configuration object
+   * @example
+   * const capabilities = browser.capabilities;
+   * console.log(capabilities);
+   */
+  get capabilities() {
+    return this._capabilities
+  }
+
+  /**
+   * Set browser capabilities
+   * 
+   * @param {Object} value - Browser capabilities configuration object
+   * @example
+   * browser.capabilities = { browserName: 'chrome' };
+   */
+  set capabilities(value) {
+    this._capabilities = value
+  }
+
+  /**
+   * Get the WebDriver instance
+   * 
+   * @returns {Object} Selenium WebDriver instance
+   * @example
+   * const driver = browser.driver;
+   * console.log(driver);
+   */
+  get driver() {
+    return this._driver
+  }
+
+  /**
+   * Set the WebDriver instance
+   * 
+   * @param {Object} value - Selenium WebDriver instance
+   * @example
+   * browser.driver = driver;
+   */
+  set driver(value) {
+    this._driver = value
+    this._windowInstance.driver = value;
+    this._tabInstance.driver = value;
+    this._alertInstance.driver = value;
+  }
+
+  /**
+   * Initialize a new browser session with specified capabilities
+   * 
+   * This method creates a new browser session using the configured capabilities.
+   * If a Selenium Grid hub is configured, it will connect to that hub.
+   * 
+   * @returns {Promise<void>} Resolves when the browser session is initialized
+   * @example
+   * await browser.new();
+   */
+  async new() {
+    const builder = new Builder()
+    builder.withCapabilities(this.capabilities)
+
+    if (this.hub && this.hub !== undefined && this.hub !== null && this.hub !== '') {
+      builder.usingServer(this.hub)
     }
 
-    set capabilities(value) {
-        this._capabilities = value
+    this.driver = await builder.build()
+
+    if (this.hub && this.hub !== undefined && this.hub !== null && this.hub !== '') {
+      await this.driver.setFileDetector(new remote.FileDetector())
     }
 
-    set driver(value) {
-        this._driver = value
-        this.window.driver = value
+    await this.driver.wait(async (d) => {
+      const handles = await d.getAllWindowHandles();
+      return handles.length > 0;
+    }, 10000, 'Timeout waiting for initial window handle');
+
+    const cleanup = async () => {
+      if (this.driver) try {
+        await this.driver.quit();
+      } catch {
+        // Ignore errors if session was already closed
+      } finally {
+        this.driver = null; // CRITICAL: Nullify the reference
+      }
+      process.exit(0);
+    };
+
+    if (process.listenerCount('SIGINT') === 0) {
+      ['SIGINT', 'SIGTERM', 'exit', 'uncaughtException'].forEach(signal => process.on(signal, cleanup));
     }
+  }
 
-    get driver() {
-        return this._driver
+  /**
+   * Get the default timeout value in milliseconds
+   * 
+   * @returns {number} Timeout value in milliseconds
+   * @example
+   * const timeout = browser.timeout;
+   * console.log(timeout); // e.g., 30000
+   */
+  get timeout() {
+    const timeoutValue = parseInt(selenium.timeout, 10);
+    return isNaN(timeoutValue) ? 10000 : timeoutValue * 1000;
+  }
+
+  /**
+   * Sleep for specified milliseconds
+   * 
+   * Pauses execution for the specified number of milliseconds.
+   * 
+   * @param {number} ms - Milliseconds to sleep
+   * @returns {Promise<void>} Resolves after the specified time
+   * @example
+   * await browser.sleep(1000); // Sleep for 1 second
+   */
+  async sleep(ms) {
+    log.info(`Sleeping for ${ms} ms`)
+    return new Promise((resolve) => setTimeout(resolve, ms))
+  }
+
+  /**
+   * Close the browser session
+   * 
+   * Closes the current browser session and cleans up resources.
+   * 
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.close();
+   */
+  async close() {
+    try {
+      const currentUrl = await this.window().get.url()
+      log.info(`Closing the browser. Current URL is '${currentUrl}'.`)
+      await this.driver.quit()
+    } catch (err) {
+      log.error(`Error closing browser session: ${err.message}`)
+      throw err
     }
+    return true
+  }
 
-    async new() {
-        const builder = new Builder()
-        builder.withCapabilities(this.capabilities)
-        if (this.hub !== undefined) {
-            builder.usingServer(this.hub)
-        }
-        this.driver = builder.build()
+  /**
+   * Set browser window size
+   * 
+   * Resizes the browser window to the specified dimensions.
+   * 
+   * @param {Object} size - Window size object with width and height
+   * @param {number} size.width - Width in pixels
+   * @param {number} size.height - Height in pixels
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.setSize({ width: 1280, height: 800 });
+   */
+  async setSize(size) {
+    const isValidSize = size &&
+      typeof size === 'object' &&
+      typeof size.width === 'number' &&
+      !Number.isNaN(size.width) &&
+      typeof size.height === 'number' &&
+      !Number.isNaN(size.height);
 
-        if (!['', undefined, null].includes(this.hub)) {
-            await this.driver.setFileDetector(new remote.FileDetector())
-        }
-
-        await this.sleep(2000)
-
-            ;['SIGINT', 'SIGTERM', 'exit', 'uncaughtException'].forEach((signal) =>
-                process.on(signal, async () => {
-                    await this.close()
-                    process.exit()
-                }),
-            )
-    }
-
-    timeout() {
-        return parseInt(config.timeout, 10) * 1000
-    }
-
-    async sleep(ms) {
-        log.info(`Sleeping for ${ms} ms`)
-        return new Promise((resolve) => setTimeout(resolve, ms))
-    }
-
-    async name() {
-        return (await this.driver.getCapabilities())
-            .get('browserName')
-            .replace(/\s/g, '')
-    }
-
-    async os() {
-        return (await this.driver.getCapabilities())
-            .get('platformName')
-            .replace(/\s/g, '')
-    }
-
-    async newWindow() {
-        log.info(`Opening new ${config.browser} browser window`)
-        return this.driver.switchTo().newWindow('window')
-    }
-
-    async close() {
-        try {
-            log.info(`Closing the browser. Current URL is ${await this.window.get.url()}.`)
-            await this.driver.quit()
-        } catch (err) {
-            log.error(
-                `Unrecognized error while deleting existing sessions : ${err.message}`,
-            )
-        }
-        return true
-    }
-
-    async newTab() {
-        log.info(`Opening new tab in the browser`)
-        return this.driver.switchTo().newWindow('tab')
-    }
-
-    async switchTab(tab) {
-        log.info(`Switching to tab ${tab}`)
-        const handles = await this.driver.getAllWindowHandles()
-        try {
-            switch (typeof tab) {
-                case 'number':
-                    return this.driver.switchTo().window(handles[tab])
-
-                case 'string':
-                    {
-                        const og = await this.driver.getWindowHandle()
-                        try {
-                            await this.driver.wait(
-                                async () => {
-                                    const hs = await this.driver.getAllWindowHandles()
-                                    for (let i = 0; i < hs.length; i++) {
-                                        /* eslint-disable no-await-in-loop */
-                                        await this.driver.switchTo().window(hs[i])
-                                        if ((await this.window.get.title()).includes(tab)) {
-                                            return true
-                                        }
-                                        /* eslint-enable no-await-in-loop */
-                                    }
-                                    return false
-                                },
-                                this.timeout(),
-                                `Tab ${tab} was not found`,
-                            )
-                        } catch (err) {
-                            await this.driver.switchTo().window(og)
-                            throw err
-                        }
-                    }
-                    return true
-
-                default:
-                    return this.driver.switchTo().window(handles[0])
-            }
-        } catch (err) {
-            log.error(`Unable to switch to tab ${tab}\nError ${err.stack}`)
-            throw err
-        }
-    }
-
-    async closeTab() {
-        log.info(`Closing tab with title ${await this.window.get.title()}`)
-        await this.driver.close()
-        await this.switchTab()
-        log.info(`Current tab ${await this.window.get.title()}`)
-        return true
-    }
-
-    async setSize(size) {
-        await this.window.maximize()
-        try {
-            if (![0, undefined, null].includes(size.height)
-                && ![0, undefined, null].includes(size.width)) {
-                log.info(`Resizing the browser to ${JSON.stringify(size)}.`)
-                await this.driver.manage().window().setRect(size)
-                await this.driver.switchTo().defaultContent()
-                const deltaWidth = await this.driver.executeScript(
-                    'return window.outerWidth - window.innerWidth',
-                )
-                const deltaHeight = await this.driver.executeScript(
-                    'return window.outerHeight - window.innerHeight',
-                )
-                const lSize = size
-                lSize.width += deltaWidth
-                lSize.height += deltaHeight
-                lSize.x = 0
-                lSize.y = 0
-                await this.driver.manage().window().setRect(lSize)
-                log.info(`Resizing the browser to ${JSON.stringify(size)}.`)
-                return this.driver.manage().window().setRect(size)
-            }
-        } catch (err) {
-            log.error(err)
-            throw err
-        }
-        return false
-    }
-
-    async getSize() {
+    // //maximize no matter what if this function is called
+    // await this.window().maximize()
+    try {
+      if (isValidSize) {
+        await this.driver.manage().window().setRect(size)
         await this.driver.switchTo().defaultContent()
-        const width = await this.driver.executeScript('return window.innerWidth')
-        const height = await this.driver.executeScript('return window.innerHeight')
-        return { width, height }
-    }
 
-    async goto(url) {
-        log.info(`Loading the url ${url} in the browser.`)
-        try {
-            await this.setSize({
-                width: parseInt(config.width, 10),
-                height: parseInt(config.height, 10),
-            })
-            await this.driver.manage().setTimeouts({
-                implicit: 500,
-                pageLoad: 6 * this.timeout(),
-                script: 6 * this.timeout(),
-            })
-            await this.driver.get(url)
-            return true
-        } catch (err) {
-            log.error(`Unable to navigate to ${url}\nError ${err.stack}`)
-            throw err
-        }
-    }
-
-    async refresh() {
-        log.info(`Refreshing ${await this.window.get.title()}`)
-        return this.driver.navigate().refresh()
-    }
-
-    async goBack() {
-        log.info(`Current page is ${await this.window.get.title()}`)
-        log.info(`Performing browser back`)
-        await this.driver.navigate().back()
-        log.info(`Loaded page is ${await this.window.get.title()}`)
-        return true
-    }
-
-    async goForward() {
-        log.info(`Current page is ${await this.window.get.title()}`)
-        log.info(`Performing browser forward`)
-        await this.driver.navigate().forward()
-        log.info(`Loaded page is ${await this.window.get.title()}`)
-        return true
-    }
-
-    async reset() {
-        log.info(`Resetting the browser, cache and cookies`)
-        const hs = await this.driver.getAllWindowHandles()
-        for (let i = 1; i < hs.length; i++) {
-            /* eslint-disable no-await-in-loop */
-            await this.driver.switchTo().window(hs[i])
-            await this.driver.close()
-            await this.driver.switchTo().window(hs[0])
-            /* eslint-enable no-await-in-loop */
-        }
-        await this.driver.manage().deleteAllCookies()
-        return this.driver.executeScript(
-            'window.sessionStorage.clear();window.localStorage.clear();',
+        const deltaWidth = await this.driver.executeScript(
+          'return window.outerWidth - window.innerWidth'
         )
+        const deltaHeight = await this.driver.executeScript(
+          'return window.outerHeight - window.innerHeight'
+        )
+
+        const lSize = { ...size }
+        lSize.width += deltaWidth
+        lSize.height += deltaHeight
+        lSize.x = 0
+        lSize.y = 0
+
+        await this.driver.manage().window().setRect(lSize)
+        log.info(`Resizing the browser to (${JSON.stringify(size)}).`)
+
+        return await this.driver.manage().window().setRect(size)
+      } else {
+        log.info(`Invalid size provided (${JSON.stringify(size)}). Browser will not be resized.`)
+      }
+    } catch (err) {
+      log.error(`Error setting browser size: ${err.message}`)
+      throw err
     }
+    return false
+  }
 
-    async consoleErrors() {
-        log.info(`Getting console errors on page ${await this.window.get.title()}`)
+  /**
+   * Navigate to a URL
+   * 
+   * Loads the specified URL in the browser.
+   * 
+   * @param {string} url - URL to navigate to
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.goto('https://www.google.com');
+   */
+  async goto(url) {
+    try {
+      // Validate URL
+      if (!url || typeof url !== 'string') {
+        throw new Error('Invalid URL provided')
+      }
 
-        const entries = []
-        const logs = []
-        const promises = ['browser'].map(async (type) => {
-            entries.push(...(await this.driver.manage().logs().get(type)))
-        })
-        await Promise.all(promises)
-            ;['SEVERE'].map(async (level) => {
-                logs.push(...entries.filter((entry) => entry.level.name === level))
-            })
+      log.info(`Loading the url '${url}' in the browser.`)
 
-        return logs
+      await this.setSize({
+        width: parseInt(selenium.width, 10),
+        height: parseInt(selenium.height, 10),
+      })
+
+      await this.driver.manage().setTimeouts({
+        implicit: 500,
+        pageLoad: 6 * this.timeout,
+        script: 6 * this.timeout,
+      })
+
+      await this.driver.get(url)
+      return true
+    } catch (err) {
+      log.error(`Unable to navigate to '${url}': ${err.message}`)
+      throw err
     }
+  }
 
-    actions() {
-        return this.driver.actions({ async: true })
+  /**
+   * Refresh the current page
+   * 
+   * Reloads the current page.
+   * 
+   * @returns {Promise<void>} Resolves when the page is refreshed
+   * @example
+   * await browser.refresh();
+   */
+  async refresh() {
+    try {
+      const title = await this.window().get.title()
+      log.info(`Refreshing window with title '${title}'.`)
+      await this.driver.navigate().refresh()
+    } catch (err) {
+      log.error(`Error refreshing page: ${err.message}`)
+      throw err
     }
+  }
+
+  /**
+   * Go back in browser history
+   * 
+   * Navigates to the previous page in the browser history.
+   * 
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.goBack();
+   */
+  async goBack() {
+    try {
+      const currentTitle = await this.window().get.title()
+      log.info(`Current page is '${currentTitle}'`)
+      log.info(`Performing browser back`)
+      await this.driver.navigate().back()
+      const newTitle = await this.window().get.title()
+      log.info(`Loaded page is '${newTitle}'`)
+      return true
+    } catch (err) {
+      log.error(`Error going back: ${err.message}`)
+      throw err
+    }
+  }
+
+  /**
+   * Go forward in browser history
+   * 
+   * Navigates to the next page in the browser history.
+   * 
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.goForward();
+   */
+  async goForward() {
+    try {
+      const currentTitle = await this.window().get.title()
+      log.info(`Current page is '${currentTitle}'`)
+      log.info(`Performing browser forward`)
+      await this.driver.navigate().forward()
+      const newTitle = await this.window().get.title()
+      log.info(`Loaded page is '${newTitle}'`)
+      return true
+    } catch (err) {
+      log.error(`Error going forward: ${err.message}`)
+      throw err
+    }
+  }
+
+  /**
+   * Reset browser state (close all windows, delete cookies, clear storage)
+   * 
+   * Resets the browser to a clean state by closing all windows, deleting cookies,
+   * and clearing local storage and session storage.
+   * 
+   * @returns {Promise<void>} Resolves when the browser is reset
+   * @example
+   * await browser.reset();
+   */
+  async reset() {
+    try {
+      log.info(`Resetting the browser, cache and cookies`)
+
+      const windowHandles = await this.driver.getAllWindowHandles()
+      for (let i = 1; i < windowHandles.length; i++) {
+        await this.driver.switchTo().window(windowHandles[i])
+        await this.driver.close()
+        await this.driver.switchTo().window(windowHandles[0])
+      }
+
+      await this.driver.manage().deleteAllCookies()
+      await this.driver.executeScript(
+        'window.sessionStorage.clear(); window.localStorage.clear();'
+      )
+      await this.driver.get('about:blank');
+    } catch (err) {
+      log.error(`Error resetting browser: ${err.message}`)
+      throw err
+    }
+  }
+
+  /**
+   * Get the WebDriver actions instance
+   * @returns {Object} WebDriver actions instance
+   */
+  actions() {
+    return this.driver.actions({ async: true })
+  }
+
+  get get() {
+    return {
+      name: async () => {
+        const capabilities = await this.driver.getCapabilities()
+        return capabilities.get('browserName').replace(/\s/g, '')
+      },
+      os: async () => {
+        const capabilities = await this.driver.getCapabilities()
+        log.info(`Running tests on platform: '${capabilities.get('platformName')}'`)
+        return capabilities.get('platformName').replace(/\s/g, '')
+      },
+      size: async () => {
+        try {
+          await this.driver.switchTo().defaultContent()
+          const width = await this.driver.executeScript('return window.innerWidth')
+          const height = await this.driver.executeScript('return window.innerHeight')
+          log.info(`Current browser size is '${width}x${height}'.`)
+          return { width, height }
+        } catch (err) {
+          log.error(`Error getting browser size: ${err.message}`)
+          throw err
+        }
+      },
+    };
+  }
 }
 
-module.exports = Browser
+export default Browser

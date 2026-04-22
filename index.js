@@ -1,1019 +1,762 @@
-const { log } = require('@nodebug/logger')
-const { By, Key } = require('selenium-webdriver')
-const config = require('@nodebug/config')('selenium')
-const Browser = require('./app/browser')
-const ElementLocator = require('./app/browser/elements')
-const messenger = require('./app/messenger')
-// const Alert = require('./app/alerts')
-// const Visual = require('./app/visual')
-class Driver extends Browser {
+import { log } from '@nodebug/logger';
+import config from '@nodebug/config';
+import Browser from './app/browser/index.js';
+import { LocatorStrategy } from './app/elements/locator-strategy.js';
+import { SelectorStackBuilder } from './app/elements/selector-stack-builder.js';
+import messenger from './app/messenger.js';
+import { ClickDelegate } from './app/command-delegates/click-delegate.js';
+import { InputDelegate } from './app/command-delegates/input-delegate.js';
+import { VisibilityDelegate } from './app/command-delegates/visibility-delegate.js';
+import { CheckboxDelegate } from './app/command-delegates/checkbox-delegate.js';
+
+const selenium = config('selenium');
+
+/**
+ * Main WebBrowser class for Selenium WebDriver operations
+ * 
+ * This is the primary class for browser automation using Selenium WebDriver.
+ * It extends the base Browser class and provides additional functionality
+ * for managing browser sessions and alert handling.
+ * 
+ * @class WebBrowser
+ * @extends Browser
+ * @property {Array} stack - Stack for managing browser operations
+ * @property {Object} capabilities - Browser capabilities configuration
+ * @property {Object} driver - Selenium WebDriver instance
+ */
+class WebBrowser extends Browser {
+  #message = '';
+  #clickDelegate;
+  #inputDelegate;
+  #visibilityDelegate;
+  #checkboxDelegate;
+
   constructor() {
     super()
     this.stack = []
-    this.elementlocator = new ElementLocator()
+    this.locatorStrategy = new LocatorStrategy()
+    this.#clickDelegate = new ClickDelegate(this);
+    this.#inputDelegate = new InputDelegate(this);
+    this.#visibilityDelegate = new VisibilityDelegate(this);
+    this.#checkboxDelegate = new CheckboxDelegate(this);
+
+    Object.keys(this.locatorStrategy.definitions).forEach(type => {
+      this[type] = (data) => {
+        return this.#typefixer(data, type);
+      };
+    });
   }
 
-  get message() {
-    return this._message
-  }
+  get message() { return this.#message; }
+  set message(value) { this.#message = value; }
 
-  set message(value) {
-    this._message = value
-  }
-
+  /**
+   * Start a new browser session
+   * 
+   * Initializes a new browser session, cleaning up any existing sessions.
+   * 
+   * @returns {Promise<void>} Resolves when the browser session is started
+   * @example
+   * const browser = new WebBrowser();
+   * await browser.start();
+   */
   async start() {
     try {
-      const { sessionId } = this.driver
-      await this.close()
-      log.info(`Deleted existing session linked to this test run ${sessionId}`)
+      // Use optional chaining for safer session cleanup
+      const sessionId = this.driver?.sessionId;
+      if (sessionId) {
+        await this.close();
+        log.info(`Deleted existing session: ${sessionId}`);
+      }
     } catch (err) {
-      if (
-        ![
-          "Cannot read properties of undefined (reading 'getSession')",
-          "Cannot read properties of undefined (reading 'sessionId')",
-          "Cannot destructure property 'sessionId' of 'this.driver' as it is undefined.",
-        ].includes(err.message)
-      ) {
-        log.error(
-          `Unrecognized error while deleting existing sessions : ${err.message}`,
-        )
+      // Cleaned up error string matching
+      const ignorable = ["reading 'getSession'", "reading 'sessionId'", "as it is undefined"];
+      if (!ignorable.some(msg => err.message.includes(msg))) {
+        log.error(`Unrecognized error during session deletion: ${err.message}`);
       }
     }
-    await super.new()
-    this.elementlocator.driver = this.driver
-    this.window.driver = this.driver
+
+    await super.new();
+    this.locatorStrategy.driver = this.driver;
   }
 
-  get() {
-    return this
-  }
-
+  /**
+   * Splits the stack into sub-arrays based on 'or' conditions.
+   * Optimized to use a single pass with reduce.
+   */
   getDescriptions() {
-    const arrayOfArrays = []
-    let arr = this.stack
-    let index = arr.findIndex(
-      (c) => c.type === 'condition' && c.operator === 'or',
-    )
-    while (index !== -1) {
-      arrayOfArrays.push(arr.slice(0, index))
-      arr = arr.splice(index + 1)
-      index = arr.findIndex(
-        (c) => c.type === 'condition' && c.operator === 'or',
-      )
-    }
-    arrayOfArrays.push(arr)
-
-    return arrayOfArrays
-  }
-
-  async finder(t = null, action = null) {
-    let locator = null
-    const stacks = this.getDescriptions()
-
-    let timeout = config.timeout * 1000
-    if (t !== null) {
-      timeout = t
-    }
-
-    const now = await Date.now()
-    while (Date.now() < now + timeout && [null, undefined].includes(locator)) {
-      try {
-        // eslint-disable-next-line no-await-in-loop
-        for (let i = 0; i < stacks.length; i++) {
-          const currentStack = stacks[i]
-          try {
-            // eslint-disable-next-line no-await-in-loop
-            locator = await this.elementlocator.find(currentStack, action)
-            break
-          } catch (err) {
-            // eslint-disable-next-line no-continue
-            continue
-          }
-        }
-        if (locator) break
-      } catch (err) {
-        continue
-      }
-    }
-
-    if ([null, undefined].includes(locator)) {
-      throw new Error(
-        `Element was not found on screen after ${timeout} ms timeout`,
-      )
-    }
-
-    return locator
-  }
-
-  async write(value) {
-    this.message = messenger({ stack: this.stack, action: 'write', data: value })
-    try {
-      const locator = await this.finder(null, 'write')
-      if (['input', 'textarea'].includes(locator.tagName)) {
-        await locator.sendKeys(value)
+    return this.stack.reduce((acc, curr) => {
+      if (curr.type === 'condition' && curr.operator === 'or') {
+        acc.push([]);
       } else {
-        const eleValue = await locator.getAttribute('textContent')
-        await this.clicker(locator)
-        for (let i = 0; i < eleValue.length; i++) {
-          // eslint-disable-next-line no-await-in-loop
-          await this.actions().sendKeys(Key.RIGHT).perform()
-        }
-        await this.actions().sendKeys(value).perform()
+        acc[acc.length - 1].push(curr);
       }
-    } catch (err) {
-      log.error(
-        `${this.message}\nError while entering data.\nError ${err.stack}`,
-      )
-      this.stack = []
-      err.message = `Error while ${this.message}\n${err.message}`
-      throw err
-    }
-    this.stack = []
-    return true
+      return acc;
+    }, [[]]);
   }
 
-  async find() {
-    let locator
-    this.message = messenger({ stack: this.stack, action: 'find' })
-    try {
-      locator = await this.finder()
-    } catch (err) {
-      log.error(`${this.message}\nError while finding element.\n${err.stack}`)
-      this.stack = []
-      err.message = `Error while ${this.message}\n${err.message}`
-      throw err
-    }
-    this.stack = []
-    return locator
-  }
+  /**
+   * Centralized retry logic for finding elements
+   */
+  async _finder(t = null, action = null) {
+    let locator;
+    const stacks = this.getDescriptions();
+    const timeout = t ?? (selenium.timeout * 1000);
+    const endTime = Date.now() + timeout;
 
-  async findAll(t = null) {
-    let locators = []
-    this.message = messenger({ stack: this.stack, action: 'find' })
-    const stacks = this.getDescriptions()
-
-    let timeout = config.timeout * 1000
-    if (t !== null) {
-      timeout = t
-    }
-
-    const now = await Date.now()
-    while (Date.now() < now + timeout && !(locators.length > 0)) {
-      try {
-        // eslint-disable-next-line no-await-in-loop
-        for (let i = 0; i < stacks.length; i++) {
-          const currentStack = stacks[i]
-          try {
-            // eslint-disable-next-line no-await-in-loop
-            locators = await this.elementlocator.findAll(currentStack)
-            break
-          } catch (err) {
-            // eslint-disable-next-line no-continue
-            continue
-          }
-        }
-        if (locators.length > 0) break
-      } catch (err) {
-        continue
-      }
-    }
-
-    if (!(locators.length > 0)) {
-      this.stack = []
-      throw new Error(
-        `Element was not found on screen after ${timeout} ms timeout`,
-      )
-    }
-
-    this.stack = []
-    return locators
-  }
-
-  async text() {
-    let value
-    this.message = messenger({ stack: this.stack, action: 'getText' })
-    try {
-      const locator = await this.finder()
-      value = await locator.getAttribute('textContent')
-      if (value === '' && ['input', 'textarea'].includes(locator.tagName)) {
-        value = await locator.getAttribute('value')
-      }
-    } catch (err) {
-      log.error(
-        `${this.message}\nError during getting text.\nError ${err.stack}`,
-      )
-      this.stack = []
-      err.message = `Error while ${this.message}\n${err.message}`
-      throw err
-    }
-    this.stack = []
-    return value
-  }
-
-  async attribute(name) {
-    let value
-    this.message = messenger({ stack: this.stack, action: 'getAttribute', data: name })
-    try {
-      const locator = await this.finder()
-      value = await locator.getAttribute(name)
-    } catch (err) {
-      log.error(
-        `${this.message}\nError during getting text.\nError ${err.stack}`,
-      )
-      this.stack = []
-      err.message = `Error while ${this.message}\n${err.message}`
-      throw err
-    }
-    this.stack = []
-    return value
-  }
-
-  async hover() {
-    this.message = messenger({ stack: this.stack, action: 'hover' })
-    try {
-      const locator = await this.finder()
-      await this.actions().move({ origin: locator }).perform()
-    } catch (err) {
-      log.error(`${this.message}\nError during hover.\nError ${err.stack}`)
-      this.stack = []
-      err.message = `Error while ${this.message}\n${err.message}`
-      throw err
-    }
-    this.stack = []
-    return true
-  }
-
-  async scroll(d = null) {
-    this.message = messenger({ stack: this.stack, action: 'scroll' })
-    try {
-      const locator = await this.finder()
-      await this.driver.executeScript(
-        'return arguments[0].scrollIntoView(true);',
-        locator,
-      )
-      if (d !== null) {
-        await this.driver.executeScript(
-          'arguments[0].scrollLeft = arguments[0].scrollWidth',
-          locator,
-        )
-      }
-    } catch (err) {
-      log.error(
-        `${this.message}\nError during scroll into view.\nError ${err.stack}`,
-      )
-      this.stack = []
-      err.message = `Error while ${this.message}\n${err.message}`
-      throw err
-    }
-    this.stack = []
-    return true
-  }
-
-  async focus() {
-    this.message = messenger({ stack: this.stack, action: 'focus' })
-    try {
-      const locator = await this.finder()
-      await this.driver.executeScript('return arguments[0].focus();', locator)
-    } catch (err) {
-      log.error(`${this.message}\nError during focus.\nError ${err.stack}`)
-      this.stack = []
-      err.message = `Error while ${this.message}\n${err.message}`
-      throw err
-    }
-    this.stack = []
-    return true
-  }
-
-  async clicker(e, x, y) {
-    let ex
-    let ey
-    if (
-      ![null, undefined, ''].includes(x) &&
-      ![null, undefined, ''].includes(y)
-    ) {
-      const rect = await e.getRect()
-      if (x >= rect.width) {
-        throw new Error(
-          `Cannot click on element at x:${x} y:${y} as element width is ${rect.width}`,
-        )
-      } else {
-        ex = rect.x + parseInt(x, 10)
-      }
-      if (y >= rect.height) {
-        throw new Error(
-          `Cannot click on element at x:${x} y:${y} as element height is ${rect.height}`,
-        )
-      } else {
-        ey = rect.y + parseInt(y, 10)
-      }
-      await this.actions()
-        .move({ x: Math.ceil(ex), y: Math.ceil(ey) })
-        .pause(1000)
-        .click()
-        .perform()
-    } else {
-      try {
-        await e.click()
-      } catch (err) {
-        if (err.name === 'ElementNotInteractableError') {
-          await this.driver.executeScript('return arguments[0].click();', e)
-        } else if (err.name === 'ElementClickInterceptedError') {
-          // this is required for clicking on Froala edit boxes
-          await this.actions()
-            .move({ origin: e })
-            .pause(1000)
-            .click()
-            .perform()
-        } else {
-          throw err
-        }
-      }
-    }
-  }
-
-  async click(x = null, y = null) {
-    this.message = messenger({ stack: this.stack, action: 'click', x, y })
-    try {
-      const locator = await this.finder()
-      await this.clicker(locator, x, y)
-    } catch (err) {
-      log.error(`${this.message}\nError during click.\nError ${err.stack}`)
-      this.stack = []
-      err.message = `Error while ${this.message}\n${err.message}`
-      throw err
-    }
-    this.stack = []
-    return true
-  }
-
-  async doubleClick() {
-    this.message = messenger({ stack: this.stack, action: 'doubleclick' })
-    try {
-      const locator = await this.finder()
-      await this.actions().doubleClick(locator).perform()
-    } catch (err) {
-      log.error(
-        `${this.message}\nError during double click.\nError ${err.stack}`,
-      )
-      this.stack = []
-      err.message = `Error while ${this.message}\n${err.message}`
-      throw err
-    }
-    this.stack = []
-    return true
-  }
-
-  async rightClick() {
-    this.message = messenger({ stack: this.stack, action: 'rightclick' })
-    try {
-      const locator = await this.finder()
-      await this.actions().contextClick(locator).perform()
-    } catch (err) {
-      log.error(
-        `${this.message}\nError during right click.\nError ${err.stack}`,
-      )
-      this.stack = []
-      err.message = `Error while ${this.message}\n${err.message}`
-      throw err
-    }
-    this.stack = []
-    return true
-  }
-
-  async drop() {
-    let indx
-    indx = this.stack.findIndex((c) => c.type === 'action' && c.perform === 'drag')
-    stack = this.stack.splice(indx + 1)
-    indx = this.stack.findIndex((c) => c.type === 'action' && c.perform === 'onto')
-    const dropStack = this.stack.splice(indx + 1)
-    this.stack = this.stack.slice(0, indx)
-
-    try {
-      this.message = messenger({ stack: this.stack, action: 'drag' })
-      const draglocator = await this.finder()
-      this.stack = dropStack
-      this.message = messenger({ stack: this.stack, action: 'drop' })
-      const droplocator = await this.finder()
-
-      const actions = await driver.actions({ async: true })
-      await actions
-        .move({ origin: draglocator, x: 2, y: 2 })
-        .pause(1000)
-        .press()
-        .move({ origin: draglocator, x: 20, y: 20 })
-        .pause(1000)
-        .move({ origin: droplocator })
-        .pause(1000)
-        .release()
-        .perform()
-    } catch (err) {
-      log.error(`${this.message}\nError during drop.\nError ${err.stack}`)
-      this.stack = []
-      err.message = `Error while ${this.message}\n${err.message}`
-      throw err
-    }
-    this.stack = []
-    return true
-  }
-
-  async clear() {
-    this.message = messenger({ stack: this.stack, action: 'clear' })
-    try {
-      const locator = await this.finder(null, 'write')
-      if (['input', 'textarea'].includes(locator.tagName)) {
-        await locator.clear()
-      } else {
-        const eleValue = await locator.getAttribute('textContent')
-        await this.clicker(locator)
-        for (let i = 0; i < eleValue.length; i++) {
-          // eslint-disable-next-line no-await-in-loop
-          await this.actions().sendKeys(Key.RIGHT).perform()
-        }
-        await this.actions().keyDown(Key.SHIFT).perform()
-        for (let i = 0; i < eleValue.length; i++) {
-          // eslint-disable-next-line no-await-in-loop
-          await this.actions().sendKeys(Key.LEFT).perform()
-        }
-        await this.actions()
-          .keyUp(Key.SHIFT)
-          .sendKeys(Key.BACK_SPACE)
-          .perform()
-        await this.actions().sendKeys(Key.BACK_SPACE).perform()
-      }
-    } catch (err) {
-      log.error(
-        `${this.message}\nError while clearing field.\nError ${err.stack}`,
-      )
-      this.stack = []
-      err.message = `Error while ${this.message}\n${err.message}`
-      throw err
-    }
-    this.stack = []
-    return true
-  }
-
-  async overwrite(value) {
-    this.message = messenger({ stack: this.stack, action: 'overwrite', data: value })
-    try {
-      let locator = await this.finder(null, 'write')
-      if (['input', 'textarea'].includes(locator.tagName)) {
-        if ((await locator.getAttribute('type')) !== 'number') {
-          await locator.clear()
-        }
+    while (Date.now() < endTime) {
+      for (const currentStack of stacks) {
         try {
-          await this.clicker(locator)
+          locator = await this.locatorStrategy.find(currentStack, action);
+          if (locator) return locator;
+        } catch {
+          continue; // Try next stack in the OR condition
+        }
+      }
+      // Small pause to prevent CPU pegging during retries
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
+    throw new Error(`Element not found after ${timeout}ms timeout`);
+  }
+
+  /**
+   * Enter text into an input field or content-editable element
+   * 
+   * Writes text to an input field, textarea, or content-editable element.
+   * Handles both standard form fields and custom content-editable elements.
+   * 
+   * @param {string} value - Text to enter
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.element('username').write('myusername');
+   * await browser.textbox('search').write('query');
+   */
+  async write(value) {
+    return await this.#inputDelegate.write(value);
+  }
+
+  /**
+   * Finds a single element based on the current stack.
+   * Resets the stack after execution.
+   * 
+   * @returns {Promise<Object>} WebElement instance
+   * @example
+   * const element = await browser.element('submit').find();
+   */
+  async find() {
+    this.message = messenger({ stack: this.stack, action: 'find' });
+    try {
+      // _finder() handles the retry logic and "OR" conditions
+      const locator = await this._finder();
+      return locator;
+    } catch (err) {
+      this.handleError(err, 'finding element');
+    } finally {
+      this.stack = [];
+    }
+  }
+
+  /**
+   * Finds all matching elements for the current stack.
+   * Resets the stack after execution.
+   * 
+   * @param {number} [t] - Custom timeout in milliseconds
+   * @returns {Promise<Array>} Array of WebElement instances
+   * @throws {Error} If no elements are found within the timeout
+   * @example
+   * const elements = await browser.element('item').findAll();
+   * const links = await browser.link('nav-link').findAll(5000);
+   */
+  async findAll(t = null) {
+    this.message = messenger({ stack: this.stack, action: 'find' });
+    const stacks = this.getDescriptions();
+    const timeout = t ?? (selenium.timeout * 1000);
+    const endTime = Date.now() + timeout;
+
+    let locators = [];
+
+    while (Date.now() < endTime) {
+      try {
+        for (const currentStack of stacks) {
+          // Call the specialized findAll on the locator
+          const results = await this.locatorStrategy.findAll(currentStack);
+          if (results.length > 0) {
+            locators = results;
+            break;
+          }
+        }
+        if (locators.length > 0) break;
+      } catch {
+        // Silently retry until timeout
+      }
+      await new Promise(resolve => setTimeout(resolve, 200));
+    }
+
+    if (locators.length === 0) {
+      this.stack = [];
+      throw new Error(`No elements matching the criteria were found within ${timeout}ms`);
+    }
+
+    this.stack = [];
+    return locators;
+  }
+
+  // Common Error Handler Helper
+  handleError(err, context) {
+    log.error(`${this.message}\nError while ${context}.\n${err.stack}`);
+    this.stack = [];
+    err.message = `Error while ${this.message}\n${err.message}`;
+    throw err;
+  }
+
+  /**
+   * Scrolls an element into the viewport.
+   * 
+   * @param {boolean} [alignToTop=true] - If true, top of element aligns to top of viewport.
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.element('submit').scroll();
+   * await browser.element('footer').scroll(false); // Align to bottom
+   */
+  async scroll(alignToTop = true) {
+    return await this.#visibilityDelegate.scroll(alignToTop);
+  }
+
+  /**
+   * Performs a click on an element.
+   * 
+   * Clicks on an element at its center or at specified coordinates.
+   * Falls back to JavaScript click if Selenium click fails.
+   * 
+   * @param {number} [x] - X coordinate for click (optional)
+   * @param {number} [y] - Y coordinate for click (optional)
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.button('submit').click();
+   * await browser.element('menu').click(10, 20); // Click at coordinates
+   */
+  async click(x = null, y = null) {
+    return await this.#clickDelegate.click(x, y);
+  }
+
+  /**
+   * Sets focus on an element using JavaScript.
+   * 
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.textbox('username').focus();
+   * await browser.element('input').focus();
+   */
+  async focus() {
+    return await this.#inputDelegate.focus();
+  }
+  
+  /**
+   * Hovers the mouse over an element.
+   * 
+   * Moves the mouse cursor to the center of the element to trigger hover states.
+   * 
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.element('menu').hover();
+   * await browser.button('dropdown').hover();
+   */
+  async hover() {
+    return await this.#clickDelegate.hover();
+  }
+
+  /**
+   * Performs a double-click on the element.
+   * 
+   * Uses Selenium WebDriver Actions API to simulate a double-click.
+   * 
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.element('text').doubleClick();
+   * await browser.button('edit').doubleClick();
+   */
+  async doubleClick() {
+    return await this.#clickDelegate.doubleClick();
+  }
+
+  /**
+   * Performs a right-click (context click) on the element.
+   * 
+   * Uses Selenium WebDriver Actions API to simulate a right-click.
+   * 
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.element('context-menu').rightClick();
+   * await browser.button('options').rightClick();
+   */
+  async rightClick() {
+    return await this.#clickDelegate.rightClick();
+  }
+
+  /**
+   * Internal click handler for elements.
+   * 
+   * Handles both standard clicks and coordinate-based clicks.
+   * Falls back to JavaScript click if Selenium click fails.
+   * 
+   * @private
+   * @param {Object} e - WebElement to click
+   * @param {number} [x] - X coordinate (optional)
+   * @param {number} [y] - Y coordinate (optional)
+   * @returns {Promise<void>}
+   */
+  async _clicker(e, x, y) {
+    return await this.#clickDelegate._clicker(e, x, y);
+  }
+
+
+
+  /**
+   * "Namespace" or "Sub-resource" pattern for organized access to retrieval operations.
+   * Accessor for retrieval operations.
+   * Usage: await browser.element('id').get.text()
+   */
+  get get() {
+    return {
+      text: async () => {
+        this.message = messenger({ stack: this.stack, action: 'getText' });
+        try {
+          const locator = await this._finder();
+          let value = await locator.getAttribute('textContent');
+
+          if ((value === null || value.trim() === '') &&
+            ['input', 'textarea'].includes(locator.tagName)) {
+            value = await locator.getAttribute('value');
+          }
+          return value?.trim() ?? '';
         } catch (err) {
-          if (err.name === 'StaleElementReferenceError') {
-            locator = await this.finder(null, 'write')
-            await this.clicker(locator)
-          }
+          this.handleError(err, 'getting text');
+        } finally {
+          this.stack = [];
         }
-        const eleValue = await locator.getAttribute('value')
-        if (eleValue !== '') {
-          await this.clicker(locator)
-          for (let i = 0; i < eleValue.length; i++) {
-            // eslint-disable-next-line no-await-in-loop
-            await this.actions().sendKeys(Key.RIGHT).perform()
-          }
-          await this.actions().keyDown(Key.SHIFT).perform()
-          for (let i = 0; i < eleValue.length; i++) {
-            // eslint-disable-next-line no-await-in-loop
-            await this.actions().sendKeys(Key.LEFT).perform()
-          }
-          await this.actions().keyUp(Key.SHIFT).sendKeys(value).perform()
-        } else {
+      },
+
+      attribute: async (name) => {
+        this.message = messenger({ stack: this.stack, action: 'getAttribute', data: name });
+        try {
+          const locator = await this._finder();
+          return await locator.getAttribute(name);
+        } catch (err) {
+          this.handleError(err, `getting attribute '${name}'`);
+        } finally {
+          this.stack = [];
+        }
+      },
+
+      screenshot: async () => {
+        let dataUrl = null;
+        if (this.stack.length > 0) {
           try {
-            await locator.sendKeys(value)
+            this.message = messenger({ stack: this.stack, action: 'screenshot' });
+            const locator = await this._finder();
+            dataUrl = await locator.takeScreenshot(true);
           } catch (err) {
-            if (err.name === 'StaleElementReferenceError') {
-              locator = await this.finder(null, 'write')
-              await locator.sendKeys(value)
-            } else {
-              throw err
-            }
+            log.error(`Failed to capture element screenshot: ${err.message}`);
           }
         }
-      } else {
-        const eleValue = await locator.getAttribute('textContent')
-        await this.clicker(locator)
-        for (let i = 0; i < eleValue.length; i++) {
-          // eslint-disable-next-line no-await-in-loop
-          await this.actions().sendKeys(Key.RIGHT).perform()
+
+        if (!dataUrl) {
+          log.info('Capturing screenshot of the full page');
+          dataUrl = await this.driver.takeScreenshot();
         }
-        await this.actions().keyDown(Key.SHIFT).perform()
-        for (let i = 0; i < eleValue.length; i++) {
-          // eslint-disable-next-line no-await-in-loop
-          await this.actions().sendKeys(Key.LEFT).perform()
-        }
-        await this.actions().keyUp(Key.SHIFT).sendKeys(value).perform()
+
+        this.stack = [];
+        return dataUrl;
       }
-    } catch (err) {
-      log.error(
-        `${this.message}\nError while overwriting text in field.\nError ${err.stack}`,
-      )
-      this.stack = []
-      err.message = `Error while ${this.message}\n${err.message}`
-      throw err
-    }
-    this.stack = []
-    return true
+    };
   }
 
-  async select(value) {
-    this.message = messenger({ stack: this.stack, action: 'select', data: value })
-    try {
-      const locator = await this.finder(null, 'select')
-      if (['select'].includes(locator.tagName)) {
-        const selected = await locator.findElements(
-          By.xpath(`.//option[.="${value}"][@selected]`),
-        )
-        if (selected.length > 0) {
-          log.debug(
-            `'${value}' is already selected in the dropdown. Skipping select.`,
-          )
-        } else if (await locator.isEnabled()) {
-          await locator.click()
-          await locator.findElement(By.xpath(`.//option[.="${value}"]`)).click()
-        } else {
-          throw new ReferenceError(`Select element is disabled.`)
-        }
-      } else {
-        throw new ReferenceError(`Element is not of type select`)
-      }
-    } catch (err) {
-      log.error(
-        `${this.message}\nError while selecting value in dropdown.\n${err.stack}`,
-      )
-      this.stack = []
-      err.message = `Error while ${this.message}\n${err.message}`
-      throw err
-    }
-    this.stack = []
-    return true
-  }
 
-  async checkboxaction(action) {
-    try {
-      const locator = await this.finder(null, 'check')
-      const isChecked = await locator.isSelected()
-      if (
-        (action === 'check' && !isChecked) ||
-        (action === 'uncheck' && isChecked)
-      ) {
-        await this.clicker(locator)
-      }
-      if (isChecked === (await locator.isSelected())) {
-        if (
-          (action === 'check' && !isChecked) ||
-          (action === 'uncheck' && isChecked)
-        ) {
-          await this.driver.executeScript('return arguments[0].click();', locator)
-        }
-      }
-    } catch (err) {
-      log.error(
-        `${this.message}\nError during checkbox set.\nError ${err.stack}`,
-      )
-      this.stack = []
-      err.message = `Error while ${this.message}\n${err.message}`
-      throw err
-    }
-    this.stack = []
-    return true
-  }
 
-  async check() {
-    this.message = messenger({ stack: this.stack, action: 'check' })
-    return this.checkboxaction('check')
-  }
-
-  async uncheck() {
-    this.message = messenger({ stack: this.stack, action: 'uncheck' })
-    return this.checkboxaction('uncheck')
-  }
-
-  async isDisabled() {
-    this.message = messenger({ stack: this.stack, action: 'isDisabled' })
-
-    let result
-    try {
-      const e = await this.finder()
-      result = await e.isEnabled()
-    } catch (err) {
-      this.stack = []
-      log.info(`Error while ${this.message}\n${err.message}`)
-      err.message = `Error while ${this.message}\n${err.message}`
-      throw err
-    }
-    this.stack = []
-    return !result
-  }
-
+  /**
+   * Checks if an element is currently in the DOM and visible.
+   * Does not throw an error if not found; returns boolean.
+   * 
+   * @param {number} [t] - Custom timeout in milliseconds
+   * @returns {Promise<boolean>} True if element is visible
+   * @example
+   * const visible = await browser.element('submit').isVisible();
+   * if (visible) {
+   *   await browser.element('submit').click();
+   * }
+   */
   async isVisible(t = null) {
-    this.message = messenger({ stack: this.stack, action: 'isVisible' })
-    let e
-    try {
-      e = await this.finder(t)
-    } catch (err) {
-      log.info(err.message)
-    }
-
-    this.stack = []
-    if (![null, undefined, ''].includes(e)) {
-      log.info('Element is visible on page')
-      return true
-    }
-    log.info('Element is not visible on page')
-    return false
+    return await this.#visibilityDelegate.isVisible(t);
   }
 
+  /**
+   * Waits for an element to be visible.
+   * Throws an error if the element does not appear within the timeout.
+   * 
+   * @param {number} [t] - Custom timeout in milliseconds
+   * @returns {Promise<boolean>} True if element becomes visible
+   * @throws {Error} If element doesn't become visible within timeout
+   * @example
+   * await browser.element('loading-indicator').isDisplayed();
+   * await browser.button('submit').isDisplayed(10000); // 10 second timeout
+   */
   async isDisplayed(t = null) {
-    this.message = messenger({ stack: this.stack, action: 'waitVisibility' })
-    try {
-      await this.finder(t)
-    } catch (err) {
-      log.error(
-        `${this.message}\nElement is not visible on screen.`,
-      )
-      this.stack = []
-      err.message = `Error while ${this.message}\n${err.message}`
-      throw err
-    }
-    log.info('Element is visible on page')
-    this.stack = []
-    return true
+    return await this.#visibilityDelegate.isDisplayed(t);
   }
 
+  /**
+   * Waits for an element to disappear or become hidden.
+   * 
+   * @param {number} [t] - Custom timeout in milliseconds
+   * @returns {Promise<boolean>} True if element becomes invisible
+   * @throws {Error} If element doesn't become invisible within timeout
+   * @example
+   * await browser.element('loading-spinner').isNotDisplayed();
+   * await browser.element('modal').isNotDisplayed(10000); // 10 second timeout
+   */
   async isNotDisplayed(t = null) {
-    this.message = messenger({ stack: this.stack, action: 'waitInvisibility' })
-
-    let timeout = config.timeout * 1000
-    if (t !== null) {
-      timeout = t
-    }
-
-    const now = await Date.now()
-    /* eslint-disable no-await-in-loop */
-    while (Date.now() < now + timeout) {
-      try {
-        await this.finder(1000)
-        continue
-      } catch (err) {
-        log.info('Element is not visible on screen')
-        this.stack = []
-        return true
-      }
-    }
-    /* eslint-enable no-await-in-loop */
-    log.error(`${this.message}\nElement is visible on screen after ${timeout} ms`)
-    this.stack = []
-    throw new Error(`Error while ${this.message}\nElement is visible on screen after ${timeout} ms`)
+    return await this.#visibilityDelegate.isNotDisplayed(t);
   }
 
-  async screenshot() {
-    let dataUrl = false
-    if (this.stack.length > 0) {
-      let locator
-      try {
-        locator = await this.finder()
-      } catch (err) {
-        log.error(err.stack)
-      }
-      if (![undefined, null, ''].includes(locator)) {
-        this.message = messenger({ stack: this.stack, action: 'screenshot' })
-        dataUrl = await locator.takeScreenshot(true)
-      }
-    }
-
-    if (!dataUrl) {
-      log.info('Capturing screenshot of page')
-      dataUrl = await this.driver.takeScreenshot()
-    }
-
-    this.stack = []
-    return dataUrl
+  /**
+   * Checks if an element is disabled (has the 'disabled' attribute or property).
+   * 
+   * @returns {Promise<boolean>} True if element is disabled
+   * @example
+   * const disabled = await browser.button('submit').isDisabled();
+   * if (!disabled) {
+   *   await browser.button('submit').click();
+   * }
+   */
+  async isDisabled() {
+    return await this.#visibilityDelegate.isDisabled();
   }
 
+  /**
+   * Checks a checkbox element.
+   * 
+   * Clicks the checkbox if it's not already checked. Falls back to JavaScript
+   * click if Selenium click fails.
+   * 
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.checkbox('agree').check();
+   */
+  async check() {
+    return await this.#checkboxDelegate.check();
+  }
+
+  /**
+   * Unchecks a checkbox element.
+   * 
+   * Clicks the checkbox if it's not already unchecked. Falls back to JavaScript
+   * click if Selenium click fails.
+   * 
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.checkbox('agree').uncheck();
+   */
+  async uncheck() {
+    return await this.#checkboxDelegate.uncheck();
+  }
+
+  /**
+   * Hides all elements matching the current stack by setting opacity to 0.
+   * 
+   * Useful for testing visibility changes or hiding elements during testing.
+   * 
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.element('ad').hide();
+   * await browser.element('popup').hide();
+   */
   async hide() {
-    this.message = messenger({ stack: this.stack, action: 'hide' })
-    try {
-      const elements = await this.findAll()
-      log.debug(`${elements.length} matching elements found.`)
-      /* eslint-disable no-await-in-loop */
-      for (let i = 0; i < elements.length; i++) {
-        const e = elements[i]
-        await this.driver.switchTo().defaultContent()
-        if (e.frame >= 0) {
-          await this.driver.switchTo().frame(e.frame)
-        }
-        await this.driver.executeScript('return arguments[0].style.opacity=0', e)
-      }
-      /* eslint-enable no-await-in-loop */
-    } catch (err) {
-      log.error(`${this.message}\nError during hide.\nError ${err.stack}`)
-      this.stack = []
-      err.message = `Error while ${this.message}\n${err.message}`
-      throw err
-    }
-    this.stack = []
-    return true
+    return await this.#visibilityDelegate.hide();
   }
 
+  /**
+   * Restores visibility to all elements matching the stack.
+   * 
+   * Reverts the opacity changes made by the hide() method.
+   * 
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.element('ad').unhide();
+   * await browser.element('popup').unhide();
+   */
   async unhide() {
-    this.message = messenger({ stack: this.stack, action: 'unhide' })
+    return await this.#visibilityDelegate.unhide();
+  }
+
+  /**
+   * Uploads a file to a file input element.
+   * 
+   * @param {string} filePath - Absolute path to the file
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.file('upload').upload('/path/to/file.txt');
+   * await browser.element('avatar').upload('/path/to/image.png');
+   */
+  async upload(filePath) {
+    this.message = messenger({ stack: this.stack, action: 'upload', data: filePath });
     try {
-      const elements = await this.findAll()
-      log.debug(`${elements.length} matching elements found.`)
-      /* eslint-disable no-await-in-loop */
-      for (let i = 0; i < elements.length; i++) {
-        const e = elements[i]
-        await this.driver.switchTo().defaultContent()
-        if (e.frame >= 0) {
-          await this.driver.switchTo().frame(e.frame)
-        }
-        await this.driver.executeScript('return arguments[0].style.opacity=1', e)
-      }
-      /* eslint-enable no-await-in-loop */
+      const locator = await this._finder();
+      // Selenium's sendKeys handles local file paths for <input type="file">
+      await locator.sendKeys(filePath);
     } catch (err) {
-      log.error(`${this.message}\nError during unhide.\nError ${err.stack}`)
-      this.stack = []
-      err.message = `Error while ${this.message}\n${err.message}`
-      throw err
+      this.handleError(err, 'uploading file');
+    } finally {
+      this.stack = [];
     }
-    this.stack = []
-    return true
+    return true;
   }
 
-  async upload(value) {
-    this.message = messenger({ stack: this.stack, action: 'upload', data: value })
-    try {
-      const locator = await this.finder()
-      await locator.sendKeys(value)
-    } catch (err) {
-      log.error(
-        `${this.message}\nError while uploading file.\nError ${err.stack}`,
-      )
-      this.stack = []
-      err.message = `Error while ${this.message}\n${err.message}`
-      throw err
-    }
-    this.stack = []
-    return true
+  // STACK BUILDERS
+  #typefixer(data, type) {
+    this.#element(data);
+    this.stack[this.stack.length - 1].type = type;
+    return this;
   }
 
-  element(data) {
-    const member = {
-      type: 'element',
-      id: data.toString(),
-      exact: false,
-      hidden: false,
-      matches: [],
-      index: false,
-    }
-    const og = this.stack.pop()
-    if (typeof og !== 'undefined') {
-      if ([
-        JSON.stringify({ exact: true, hidden: true }),
-        JSON.stringify({ exact: false, hidden: true }),
-        JSON.stringify({ exact: true, hidden: false }),
-        JSON.stringify({ exact: false, hidden: false }),
-      ].includes(JSON.stringify(og))) {
-        member.exact = og.exact
-        member.hidden = og.hidden
-        this.stack.push(member)
-      } else {
-        this.stack.push(og)
-      }
-    }
-    this.stack.push(member)
-    return this
-  }
-
+  // Entry points that return a new builder
   exact() {
-    const member = {
-      exact: false,
-      hidden: false,
-    }
-    const og = this.stack.pop()
-    if (typeof og === 'undefined') {
-      member.exact = true
-      this.stack.push(member)
-    } else {
-      if ([
-        JSON.stringify({ exact: true, hidden: true }),
-        JSON.stringify({ exact: false, hidden: true }),
-        JSON.stringify({ exact: true, hidden: false }),
-        JSON.stringify({ exact: false, hidden: false }),
-      ].includes(JSON.stringify(og))) {
-        og.exact = true
-        this.stack.push(og)
-      } else {
-        this.stack.push(og)
-        member.exact = true
-        this.stack.push(member)
-      }
-    }
-    return this
+    return new SelectorStackBuilder(this).exact();
   }
 
   hidden() {
-    const member = {
-      exact: false,
-      hidden: false,
-    }
-    const og = this.stack.pop()
-    if (typeof og === 'undefined') {
-      member.hidden = true
-      this.stack.push(member)
-    } else {
-      if ([
-        JSON.stringify({ exact: true, hidden: true }),
-        JSON.stringify({ exact: false, hidden: true }),
-        JSON.stringify({ exact: true, hidden: false }),
-        JSON.stringify({ exact: false, hidden: false }),
-      ].includes(JSON.stringify(og))) {
-        og.hidden = true
-        this.stack.push(og)
-      } else {
-        this.stack.push(og)
-        member.hidden = true
-        this.stack.push(member)
-      }
-    }
-    return this
+    return new SelectorStackBuilder(this).hidden();
   }
 
-  typefixer(data, type) {
-    this.element(data)
-    const description = this.stack.pop()
-    description.type = type
-    this.stack.push(description)
-    return this
+  // Default element call without modifiers
+  // avoid state pollution by not pushing directly to stack here
+  #element(data) {
+    return new SelectorStackBuilder(this).element(data);
   }
 
-  button(data) {
-    return this.typefixer(data, 'button')
-  }
-
-  radio(data) {
-    return this.typefixer(data, 'radio')
-  }
-
-  textbox(data) {
-    return this.typefixer(data, 'textbox')
-  }
-
-  checkbox(data) {
-    return this.typefixer(data, 'checkbox')
-  }
-
-  image(data) {
-    return this.typefixer(data, 'image')
-  }
-
-  toolbar(data) {
-    return this.typefixer(data, 'toolbar')
-  }
-
-  tab(data) {
-    return this.typefixer(data, 'tab')
-  }
-
-  link(data) {
-    return this.typefixer(data, 'link')
-  }
-
-  dialog(data) {
-    return this.typefixer(data, 'dialog')
-  }
-
-  fileElement(data) {
-    return this.typefixer(data, 'file')
-  }
-
-  // row(data) {
-  //   if (typeof data !== 'string') {
-  //     throw new TypeError(
-  //       `Expected parameter for row is string. Received ${typeof data} instead`,
-  //     )
-  //   }
-  //   return this.typefixer(data, 'row')
+  // // Internal method used by the builder to return to the main class flow
+  // pushElement(member) {
+  //   this.stack.push(member);
+  //   return this; // Return 'this' (WebBrowser) so we can call .click(), .write(), etc.
   // }
 
-  // column(data) {
-  //   if (typeof data !== 'string') {
-  //     throw new TypeError(
-  //       `Expected parameter for column is string. Received ${typeof data} instead`,
-  //     )
-  //   }
-  //   return this.typefixer(data, 'column')
-  // }
+  // --- Spatial / Relative Positioners ---
 
-  // table(data) {
-  //   if (typeof data !== 'string') {
-  //     throw new TypeError(
-  //       `Expected parameter for table is string. Received ${typeof data} instead`,
-  //     )
-  //   }
+  /**
+   * Targets an element above the currently referenced element.
+   * 
+   * @returns {this} Returns the WebBrowser instance for chaining
+   * @example
+   * browser.element('target').above().element('other').click();
+   */
+  above() { return this.relativePositioner('above'); }
 
-  //   for (let i = this.stack.length - 1; i >= 0; i--) {
-  //     if (this.stack[i].type === 'row' || this.stack[i].type === 'column')
-  //     this.stack[i].table = data
-  //   }
+  /**
+   * Targets an element below the currently referenced element.
+   * 
+   * @returns {this} Returns the WebBrowser instance for chaining
+   * @example
+   * browser.element('target').below().element('other').click();
+   */
+  below() { return this.relativePositioner('below'); }
 
-  //   const description = this.stack.pop()
-  //   if (
-  //     JSON.stringify(description) !==
-  //     JSON.stringify({ type: 'location', located: 'within' })
-  //   ) {
-  //     if (typeof description !== 'undefined') {
-  //       this.stack.push(description)
-  //     }
-  //   }
-  //   return this
-  // }
+  /**
+   * Targets an element to the left of the currently referenced element.
+   * 
+   * @returns {this} Returns the WebBrowser instance for chaining
+   * @example
+   * browser.element('target').toLeftOf().element('other').click();
+   */
+  toLeftOf() { return this.relativePositioner('toLeftOf'); }
 
-  relativePositioner(position) {
-    const description = this.stack.pop()
-    if (JSON.stringify(description) === JSON.stringify({ exactly: true })) {
-      this.stack.push({ type: 'location', located: position, exactly: true })
-    } else {
-      if (typeof description !== 'undefined') {
-        this.stack.push(description)
-      }
-      this.stack.push({ type: 'location', located: position, exactly: false })
-    }
-    return this
-  }
+  /**
+   * Targets an element to the right of the currently referenced element.
+   * 
+   * @returns {this} Returns the WebBrowser instance for chaining
+   * @example
+   * browser.element('target').toRightOf().element('other').click();
+   */
+  toRightOf() { return this.relativePositioner('toRightOf'); }
 
-  above() {
-    return this.relativePositioner('above')
-  }
-
-  below() {
-    return this.relativePositioner('below')
-  }
-
-  toLeftOf() {
-    return this.relativePositioner('toLeftOf')
-  }
-
-  toRightOf() {
-    return this.relativePositioner('toRightOf')
-  }
-
-  atIndex(index) {
-    if (typeof index !== 'number') {
-      throw new TypeError(
-        `Expected parameter for atIndex is number. Received ${typeof index} instead`,
-      )
-    }
-    const description = this.stack.pop()
-    if (typeof description !== 'undefined') {
-      description.index = index
-      this.stack.push(description)
-    }
-    return this
-  }
-
-  exactly() {
-    this.stack.push({ exactly: true })
-    return this
-  }
-
+  /**
+   * Targets an element located inside another element.
+   * 
+   * @returns {this} Returns the WebBrowser instance for chaining
+   * @example
+   * browser.element('menu').within().element('item').click();
+   */
   within() {
-    this.stack.push({ type: 'location', located: 'within' })
-    return this
+    this.stack.push({ type: 'location', located: 'within' });
+    return this;
   }
 
+  /**
+   * Targets an element based on proximity.
+   * 
+   * @returns {this} Returns the WebBrowser instance for chaining
+   * @example
+   * browser.element('target').near().element('other').click();
+   */
   near() {
-    this.stack.push({ type: 'location', located: 'near' })
-    return this
+    this.stack.push({ type: 'location', located: 'near' });
+    return this;
   }
 
+  // --- Logic & Filter Modifiers ---
+
+  /**
+   * Forces a strict text match for the next element in the stack.
+   * 
+   * @returns {this} Returns the WebBrowser instance for chaining
+   * @example
+   * browser.element('text').exactly().toLeftOf().element('other').click();
+   */
+  exactly() {
+    this.stack.push({ exactly: true });
+    return this;
+  }
+
+  /**
+   * Combines multiple search criteria using logical OR.
+   * 
+   * @returns {this} Returns the WebBrowser instance for chaining
+   * @example
+   * browser.element('text1').or().element('text2').click();
+   */
   or() {
-    this.stack.push({ type: 'condition', operator: 'or' })
-    return this
+    this.stack.push({ type: 'condition', operator: 'or' });
+    return this;
   }
 
+  /**
+   * Selects a specific occurrence from a list of matching elements (1-based index).
+   * 
+   * @param {number} index - 1-based index of element to select
+   * @returns {this} Returns the WebBrowser instance for chaining
+   * @throws {TypeError} If index is not a number
+   * @example
+   * browser.element('item').atIndex(2).click(); // Selects 2nd matching element
+   */
+  atIndex(index) {
+    if (typeof index !== 'number') throw new TypeError('index must be a number');
+    const last = this.stack[this.stack.length - 1];
+    if (last) last.index = index;
+    return this;
+  }
+
+  /**
+   * Internal helper to split the stack into source and target descriptions.
+   */
+  #getDragDropStacks() {
+    const dragIndex = this.stack.findIndex(c => c.type === 'action' && c.perform === 'drag');
+    const ontoIndex = this.stack.findIndex(c => c.type === 'action' && c.perform === 'onto');
+
+    if (dragIndex === -1 || ontoIndex === -1) {
+      throw new Error('Invalid drag-and-drop stack. Ensure both .drag() and .onto() are used.');
+    }
+
+    // Source is everything before .drag()
+    const dragStack = this.stack.slice(0, dragIndex);
+    // Target is everything after .onto()
+    const dropStack = this.stack.slice(ontoIndex + 1);
+
+    return { dragStack, dropStack };
+  }
+
+  async drop() {
+    const { dragStack, dropStack } = this.#getDragDropStacks();
+
+    try {
+      // 1. Find source element
+      this.message = messenger({ stack: dragStack, action: 'drag' });
+      const dragLocator = await this.locatorStrategy.find(dragStack);
+
+      // 2. Find target element
+      this.message = messenger({ stack: dropStack, action: 'drop' });
+      const dropLocator = await this.locatorStrategy.find(dropStack);
+
+      // 3. Execute precise Action sequence
+      const actions = this.driver.actions({ async: true });
+
+      await actions
+        .move({ origin: dragLocator, x: 5, y: 5 }) // Small offset to avoid center-point deadzones
+        .press()
+        .pause(500) // Brief pause to trigger the 'dragstart' event
+        .move({ origin: dragLocator, x: 20, y: 20 }) // "Nudge" to confirm drag state
+        .pause(200)
+        .move({ origin: dropLocator })
+        .pause(500) // Wait for target to acknowledge the hover
+        .release()
+        .perform();
+
+      log.info(`Successfully dragged ${dragStack[0].id} onto ${dropStack[0].id}`);
+    } catch (err) {
+      this.handleError(err, 'performing drag and drop');
+    } finally {
+      this.stack = [];
+    }
+    return true;
+  }
+
+  // --- Stack Builder Methods ---
+
+  /**
+   * Initiates a drag operation on an element.
+   * 
+   * Must be followed by onto() to complete the drag-and-drop.
+   * 
+   * @returns {this} Returns the WebBrowser instance for chaining
+   * @example
+   * browser.element('drag-item').drag().onto().element('drop-target').drop();
+   */
   drag() {
-    this.stack.push({ type: 'action', perform: 'drag' })
-    return this
+    this.stack.push({ type: 'action', perform: 'drag' });
+    return this;
   }
 
+  /**
+   * Specifies the target element for a drag-and-drop operation.
+   * 
+   * Must be used after drag() and before drop().
+   * 
+   * @returns {this} Returns the WebBrowser instance for chaining
+   * @example
+   * browser.element('drag-item').drag().onto().element('drop-target').drop();
+   */
   onto() {
-    this.stack.push({ type: 'action', perform: 'onto' })
-    return this
+    this.stack.push({ type: 'action', perform: 'onto' });
+    return this;
   }
 
-  // async visual(path) {
-  //   const name = await browser.name()
-  //   const os = await browser.os()
-  //   const rect = await browser.getSize()
-  //   const image = await screenshot()
+  /**
+   * Clears text from an input field or content-editable element.
+   * 
+   * Clears text from input fields, textareas, or content-editable elements.
+   * Uses keyboard shortcuts as fallback for complex cases.
+   * 
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.textbox('username').clear();
+   * await browser.element('search').clear();
+   */
+  async clear() {
+    return await this.#inputDelegate.clear();
+  }
 
-  //   return Visual.compare(name, os, rect, image, path)
-  // }
+  /**
+   * Overwrites text in an input field.
+   * 
+   * Clears existing text and enters new text. Useful for form fields that
+   * may have default values or validation that prevents direct entry.
+   * 
+   * @param {string} value - Text to overwrite with
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.textbox('username').overwrite('newvalue');
+   */
+  async overwrite(value) {
+    return await this.#inputDelegate.overwrite(value);
+  }
 }
 
-module.exports = Driver
+export default WebBrowser
