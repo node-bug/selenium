@@ -1,23 +1,25 @@
-const desiredConfig = require('@nodebug/config')('selenium')
-const Chrome = require('./chrome')
-const Firefox = require('./firefox')
-const Safari = require('./safari')
+import config from '@nodebug/config'
+import Chrome from './chrome.js'
+import Firefox from './firefox.js'
+import Safari from './safari.js'
 
-function capabilities(config = desiredConfig) {
-    switch (config.browser.toLowerCase()) {
-        case 'firefox':
-            return (new Firefox()).capabilities
+const selenium = config('selenium')
 
-        case 'chrome':
-            return (new Chrome()).capabilities
+function capabilities(configuration = selenium) {
+  switch (configuration.browser.toLowerCase()) {
+    case 'firefox':
+      return new Firefox().capabilities
 
-        case 'safari':
-            return (new Safari()).capabilities
+    case 'chrome':
+      return new Chrome().capabilities
 
-        default:
-            return new Error(`${config.browser} is not a known platform name. \
+    case 'safari':
+      return new Safari().capabilities
+
+    default:
+      return new Error(`${configuration.browser} is not a known platform name. \
               Known platforms are 'Firefox', 'Safari' and 'Chrome'`)
-    }
+  }
 }
 
-module.exports = capabilities
+export default capabilities

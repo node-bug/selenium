@@ -1,11 +1,65 @@
-.config
-.vscode
-logs
-node_modules
+# Test files
+tests
 reports
-.eslintrc
+test.js
+*.test.js
+
+# Development directories
+.github/
+.git/
 .gitignore
 .npmignore
+.editorconfig
+.eslintrc
+.eslintrc.js
 .prettierrc
+.prettierrc.js
+.stylelintrc
+.stylelintrc.js
+lint-staged.config.js
+husky/
+.nyc_output/
+coverage/
+.nyc_output/
+.nyc_output
+node_modules/
+jspm_packages/
+logs/
+
+# Documentation
+CONTRIBUTING.md
+SECURITY.md
+CHANGELOG.md
+
+# Configuration files
+*.config.js
+*.rc
+*.json
+*.yml
+*.yaml
+*.toml
+*.ini
+.config/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Temporary files
+*.tmp
+*.temp
+
+# Package lock file
+node_modules/
 package-lock.json
-**/.DS_Store
