@@ -10,11 +10,9 @@
   },
   "dependencies": {
     "@nodebug/config": "2.1.0",
-    "@nodebug/gifencoder": "1.2.0",
     "@nodebug/logger": "1.1.0",
     "chai": "4.3.7",
-    "selenium-webdriver": "4.10.0",
-    "sharp": "0.32.1"
+    "selenium-webdriver": "4.10.0"
   },
   "description": "implementation of seleniumjs to use with test automation",
   "homepage": "https://github.com/node-bug/selenium#readme",
