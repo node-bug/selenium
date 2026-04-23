@@ -1,203 +1,120 @@
-# Spatial and Relative Element References
+# Spatial References
 
-This document explains how to select elements based on their position in relation to other elements, also known as "spatial" or "relative" positioning.
+Locate elements by position relative to other elements (anchor elements). See [Core Concepts](CONCEPTS.md#spatial-references) for detailed explanation.
 
-## Understanding Spatial References
-
-Spatial references let you locate elements based on where they appear in relation to other elements on the page. The element you're referencing is called the "anchor" element.
-
-For example, you can refer to elements in certain sections like:
+## Quick Examples
 
 ```javascript
-click button "Delete" below "Actions"
-```
+// Below an element
+await browser.button('Delete').below().element('Actions').click()
 
-This means: "Click the button labeled 'Delete' that appears below the element labeled 'Actions'."
+// Above an element
+await browser.textbox('Name').above().label('Name').write('John')
 
-## Anchor Elements
+// To the left/right
+await browser.element('Target').toLeftOf().element('Other').click()
+await browser.element('Target').toRightOf().element('Other').click()
 
-An anchor element is the reference point you use to locate other elements. You can use any element as an anchor, such as:
+// Within another element
+await browser.button('Save').within().dialog('Form').click()
 
-- Text labels
-- Buttons
-- Sections
-- Tables
-- Any visible element on the page
+// Near an element
+await browser.element('Item').near().element('Anchor').click()
 
-## Supported Relative Locations
-
-The following relative locations are supported for positioning elements:
-
-### to the left of
-
-```javascript
-browser.element('target').toLeftOf().element('other').click()
-```
-
-### to the right of
-
-```javascript
-browser.element('target').toRightOf().element('other').click()
-```
-
-### above
-
-```javascript
-browser.element('target').exactly().above().element('other').click()
-```
-
-### below
-
-```javascript
-browser.element('target').below().element('other').click()
-```
-
-### on the right top of
-
-```javascript
-browser.element('target').onRightOf().above().element('other').click()
-```
-
-### on the left top of
-
-```javascript
-browser.element('target').onLeftOf().exactly().above().element('other').click()
-```
-
-### on the right bottom of
-
-```javascript
-browser.element('target').onRightOf().below().element('other').click()
-```
-
-### on the left bottom of
-
-```javascript
-browser.element('target').exactly().onLeftOf().below().element('other').click()
-```
-
-### near
-
-```javascript
-browser.element('target').near().element('other').click()
-```
-
-## Visual Reference
-
-To help understand these positions, imagine a grid where elements can be located relative to each other:
-
-```
-    [Above]
-[Left] [Target] [Right]
-    [Below]
-```
-
-The "target" element is the one you're trying to find, and "other" is the anchor element.
-
-## Combining Multiple References
-
-You can combine multiple spatial references to locate elements more precisely:
-
-- Example: `click on button "Delete" below "Section Name" to the right of "label"`
-
-```javascript
-browser
-  .button('Delete')
+// Combine multiple spatial references
+await browser.button('Delete')
   .below()
-  .element('Section Name')
+  .element('Section')
   .toRightOf()
-  .element('label')
+  .element('Label')
   .click()
 ```
 
-This means: "Click the 'Delete' button that is both below the 'Section Name' element AND to the right of the 'label' element."
+## Positioning Keywords
 
-## Overlap and Precision
-
-### exactly keyword
-
-The **exactly** keyword forces precise positioning rather than approximate positioning.
-
-For example:
-`enter "some text" into "Name" exactly below "Section"`
+### below() / above()
+Element's vertical position relative to anchor.
 
 ```javascript
-browser.textbox('Name').exactly().below().element('Section').write('some text')
+await browser.button('Delete').below().element('Actions').click()
+await browser.textbox('City').above().label('State').write('TX')
 ```
 
-- Example: `enter "firstname" into "Username" below "Type" and exactly on the right of "Description"`
+### toLeftOf() / toRightOf()
+Element's horizontal position relative to anchor.
 
 ```javascript
-browser
-  .textbox('Username')
+await browser.element('Save').toLeftOf().element('Cancel').click()
+await browser.element('Cancel').toRightOf().element('Save').click()
+```
+
+### within()
+Element is contained within another element (contextual selection).
+
+```javascript
+// Click button within dialog
+await browser.button('Submit').within().dialog('Confirm').click()
+
+// Click row in table
+await browser.row('User1').within().table('Users').click()
+```
+
+### near()
+Element is in proximity to another element.
+
+```javascript
+await browser.element('Item').near().element('Anchor').click()
+```
+
+## Precision with exactly()
+
+Use `exactly()` for precise positioning (not approximate).
+
+```javascript
+// Approximate positioning
+await browser.textbox('Name').below().element('Label').write('John')
+
+// Precise positioning
+await browser.textbox('Name').exactly().below().element('Label').write('John')
+
+// Multiple anchors with mixed precision
+await browser.button('Delete')
   .below()
-  .element('Type')
+  .element('Section')
   .exactly()
   .toRightOf()
-  .element('Description')
-  .write('firstname')
+  .element('Label')
+  .click()
 ```
 
-This is NOT equivalent to:
+## Combining References
+
+Chain multiple spatial references for precise targeting:
 
 ```javascript
-browser
-  .textbox('Username')
-  .exactly()
+// Below Section AND to the right of Label
+await browser.button('Delete')
   .below()
-  .element('Type')
+  .element('Section')
   .toRightOf()
-  .element('Description')
-  .write('firstname')
-browser
-  .textbox('Username')
-  .below()
-  .element('Type')
-  .toRightOf()
-  .element('Description')
-  .write('firstname')
-```
+  .element('Label')
+  .click()
 
-If you want "exactly" for both anchors:
-
-- Example: `enter "firstname" into "Username" exactly below "Type" and exactly on the right of "Description"`
-
-```javascript
-browser
-  .textbox('Username')
-  .exactly()
-  .below()
-  .element('Type')
-  .exactly()
-  .toRightOf()
-  .element('Description')
-  .write('firstname')
-```
-
-## Tips for Using Multiple References
-
-1. **Order matters**: The first reference is typically interpreted more loosely
-2. **Use exactly when precision is needed**: Apply the exactly keyword to the reference that requires precise positioning
-3. **Combine with other spatial references**: You can mix different positioning types in a single reference
-
-## Selecting Elements in the Context of Other Elements
-
-You can also select elements within the context of other elements. This is particularly useful when working with tables, lists, or sections where you need to narrow down your search.
-
-For example, you can pinpoint a row in a table and ask to click a button in the context of that row:
-
-```javascript
-click on "Delete" within the context of table "actions" at row containing "id1" and column "Actions"
-```
-
-You can also combine spatial references with contextual references:
-
-- Example: `click on "Delete" within the context of "sectionTwo" below "Actions" and to the right of "rowName"`
-
-```javascript
-browser
-  .button('Delete')
+// Within dialog AND above submit button
+await browser.textbox('Email')
   .within()
+  .dialog('Form')
+  .above()
+  .button('Submit')
+  .write('user@example.com')
+```
+
+## See Also
+
+- [Core Concepts - Spatial References](CONCEPTS.md#spatial-references) - Detailed explanation
+- [API Reference - Positioning](API-REFERENCE.md#positioning--filtering) - All positioning methods
+- [Multiple References](multiple-references.md) - Using `or()` for alternatives
+
   .element('sectionTwo')
   .below()
   .element('Actions')

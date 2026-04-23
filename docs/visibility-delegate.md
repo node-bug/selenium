@@ -1,178 +1,171 @@
-# Visibility Delegate
+# Visibility Control
 
-The Visibility Delegate is a helper class that encapsulates all element visibility-related functionality. It handles operations such as scrolling elements into view, checking visibility states, and managing element opacity for hiding/unhiding elements.
+Element visibility checks and manipulation. See [API Reference](API-REFERENCE.md#element-state) for complete method signatures.
 
-## Usage
-
-The Visibility Delegate is automatically used by the WebBrowser class and is not intended to be used directly by end users. All visibility methods are accessible through the WebBrowser instance:
+## Quick Examples
 
 ```javascript
-const browser = new WebBrowser()
-await browser.start()
-await browser.goto('https://example.com')
+// Check if visible
+const visible = await browser.element('Submit').isVisible()
 
-// Scroll an element into view
-await browser.element('submit').scroll()
-await browser.element('footer').scroll(false) // Align to bottom
+// Wait for element to appear
+await browser.element('Loading').isDisplayed()
 
-// Check if an element is visible
-const isVisible = await browser.element('submit').isVisible()
-if (isVisible) {
-  await browser.element('submit').click()
-}
+// Wait for element to disappear
+await browser.element('Modal').isNotDisplayed()
 
-// Wait for an element to be displayed
-await browser.element('loading-indicator').isDisplayed()
-await browser.button('submit').isDisplayed(10000) // 10 second timeout
+// Check if disabled
+const disabled = await browser.button('Submit').isDisabled()
 
-// Wait for an element to become hidden
-await browser.element('loading-spinner').isNotDisplayed()
-await browser.element('modal').isNotDisplayed(10000) // 10 second timeout
+// Scroll into view
+await browser.element('Submit').scroll()
 
-// Check if an element is disabled
-const isDisabled = await browser.button('submit').isDisabled()
-if (!isDisabled) {
-  await browser.button('submit').click()
-}
-
-// Hide elements
-await browser.element('ad').hide()
-await browser.element('popup').hide()
-
-// Unhide elements
-await browser.element('ad').unhide()
-await browser.element('popup').unhide()
+// Hide/Unhide elements
+await browser.element('Ad').hide()
+await browser.element('Ad').unhide()
 ```
 
-## Methods
+## State Checking
 
-### scroll(alignToTop = true)
-
-Scrolls an element into the viewport.
-
-**Parameters:**
-
-- `alignToTop` (boolean, optional): If true, top of element aligns to top of viewport. Defaults to `true`.
-
-**Returns:**
-
-- `Promise<boolean>`: True if successful.
-
-**Examples:**
+### isVisible()
+Check if element is currently visible in the DOM.
 
 ```javascript
-await browser.element('submit').scroll()
-await browser.element('footer').scroll(false) // Align to bottom
-```
-
-### isVisible(t = null)
-
-Checks if an element is currently in the DOM and visible.
-
-**Parameters:**
-
-- `t` (number, optional): Custom timeout in milliseconds.
-
-**Returns:**
-
-- `Promise<boolean>`: True if element is visible.
-
-**Examples:**
-
-```javascript
-const visible = await browser.element('submit').isVisible()
+const visible = await browser.element('Item').isVisible()
 if (visible) {
-  await browser.element('submit').click()
+  await browser.element('Item').click()
 }
 ```
 
-### isDisplayed(t = null)
+**Returns**: `Promise<boolean>`
 
-Waits for an element to be visible.
-
-**Parameters:**
-
-- `t` (number, optional): Custom timeout in milliseconds.
-
-**Returns:**
-
-- `Promise<boolean>`: True if element becomes visible.
-
-**Throws:**
-
-- `Error`: If element doesn't become visible within timeout.
-
-**Examples:**
+### isDisplayed([timeout])
+Wait for element to become visible (wait up to timeout).
 
 ```javascript
-await browser.element('loading-indicator').isDisplayed()
-await browser.button('submit').isDisplayed(10000) // 10 second timeout
+await browser.element('Loading').isDisplayed()           // Default timeout
+await browser.button('Submit').isDisplayed(10000)       // 10 second timeout
 ```
 
-### isNotDisplayed(t = null)
+**Throws**: Error if not visible within timeout
 
-Waits for an element to disappear or become hidden.
+**Returns**: `Promise<boolean>`
 
-**Parameters:**
-
-- `t` (number, optional): Custom timeout in milliseconds.
-
-**Returns:**
-
-- `Promise<boolean>`: True if element becomes invisible.
-
-**Examples:**
+### isNotDisplayed([timeout])
+Wait for element to disappear (become hidden).
 
 ```javascript
-await browser.element('loading-spinner').isNotDisplayed()
-await browser.element('modal').isNotDisplayed(10000) // 10 second timeout
+await browser.element('Modal').isNotDisplayed()
+await browser.element('Spinner').isNotDisplayed(5000)  // 5 second timeout
 ```
 
-### isDisabled(t = null)
+**Returns**: `Promise<boolean>`
 
-Checks if an element is currently disabled.
-
-**Parameters:**
-
-- `t` (number, optional): Custom timeout in milliseconds.
-
-**Returns:**
-
-- `Promise<boolean>`: True if element is disabled.
-
-**Examples:**
+### isDisabled([timeout])
+Check if element is disabled.
 
 ```javascript
-const isDisabled = await browser.button('submit').isDisabled()
-if (!isDisabled) {
-  await browser.button('submit').click()
+const disabled = await browser.button('Submit').isDisabled()
+if (!disabled) {
+  await browser.button('Submit').click()
 }
 ```
+
+**Returns**: `Promise<boolean>`
+
+### isChecked()
+Check if checkbox is checked.
+
+```javascript
+const checked = await browser.checkbox('Subscribe').isChecked()
+```
+
+**Returns**: `Promise<boolean>`
+
+### isUnchecked()
+Check if checkbox is unchecked.
+
+```javascript
+const unchecked = await browser.checkbox('Subscribe').isUnchecked()
+```
+
+**Returns**: `Promise<boolean>`
+
+## Scrolling & Visibility Manipulation
+
+### scroll([alignToTop])
+Scroll element into view.
+
+```javascript
+await browser.element('Submit').scroll()          // Top of viewport
+await browser.element('Footer').scroll(false)     // Bottom of viewport
+```
+
+**Parameters**:
+- `alignToTop` (boolean, optional): Default true
+
+**Returns**: `Promise<boolean>`
 
 ### hide()
-
-Hides an element by setting its opacity to 0.
-
-**Returns:**
-
-- `Promise<boolean>`: True if successful.
-
-**Examples:**
+Hide an element by setting opacity to 0.
 
 ```javascript
-await browser.element('ad').hide()
+await browser.element('Ad').hide()
 ```
+
+**Returns**: `Promise<boolean>`
 
 ### unhide()
-
-Unhides an element by setting its opacity back to its original value.
-
-**Returns:**
-
-- `Promise<boolean>`: True if successful.
-
-**Examples:**
+Show a hidden element (restore opacity).
 
 ```javascript
-await browser.element('ad').unhide()
+await browser.element('Ad').unhide()
 ```
+
+**Returns**: `Promise<boolean>`
+
+## Usage Patterns
+
+### Wait for Async Loading
+```javascript
+// Show loading spinner
+await browser.element('Spinner').isDisplayed()
+
+// Do work...
+
+// Wait for spinner to disappear
+await browser.element('Spinner').isNotDisplayed()
+
+// Assert content appeared
+const success = await browser.element('Success').isDisplayed()
+```
+
+### Conditional Interaction
+```javascript
+// Only click if button is enabled
+if (!await browser.button('Submit').isDisabled()) {
+  await browser.button('Submit').click()
+}
+```
+
+### Checkbox State
+```javascript
+// Check current state
+if (await browser.checkbox('Subscribe').isUnchecked()) {
+  await browser.checkbox('Subscribe').check()
+}
+```
+
+### Scroll and Click
+```javascript
+// Scroll button into view
+await browser.button('Bottom').scroll()
+
+// Then click
+await browser.button('Bottom').click()
+```
+
+## Full API Reference
+
+See [Visibility Control API](API-REFERENCE.md#element-state)
+

@@ -1,50 +1,69 @@
 # Multiple References
 
-This document explains how to use multiple references in element selection, allowing for flexible element targeting when elements might have different names but represent the same functionality.
+Using `or()` to target elements with different possible names. See [Core Concepts](CONCEPTS.md#multiple-references) for explanation.
 
-## Using "or" for Multiple Element Names
-
-In certain cases, elements might be expected to have different names but mean the same thing. The library supports using "or" to specify multiple possible names for the same element.
-
-### Example
+## Quick Example
 
 ```javascript
-// Click on either "checkout" or "submit" button
-await browser.button('checkout').or().button('submit').click()
+// Click either "Checkout" or "Submit" button
+await browser.button('Checkout').or().button('Submit').click()
 
-// Check if either "save" or "apply" button is visible
-const isSaveVisible = await browser
-  .button('save')
+// Check if either button is visible
+const visible = await browser
+  .button('Save')
   .or()
-  .button('apply')
+  .button('Apply')
   .isVisible()
 ```
 
-## Supported Element Types
+## Use Cases
 
-This multiple references functionality works with all element types:
+Use `or()` when elements might have different names depending on context or version:
 
 ```javascript
-// Textbox with multiple possible names
-await browser
-  .textbox('email')
-  .or()
-  .textbox('user_email')
-  .write('user@example.com')
+// Form might use different labels
+await browser.textbox('Email').or().textbox('email_address').write('user@example.com')
 
-// Checkbox with multiple possible names
-await browser.checkbox('remember_me').or().radio('remember').check()
+// Checkbox might be "Remember Me" or "Remember"
+await browser.checkbox('Remember Me').or().checkbox('Remember').check()
 
-// Link with multiple possible names
-await browser.link('home').or().menu('main').click()
+// Link might be "Home" or "Main"
+await browser.link('Home').or().link('Main').click()
 
-// Radio button with multiple possible names
-await browser.radio('male').or().radio('m').check()
+// Save button might be "Save" or "Apply" or "Submit"
+await browser.button('Save').or().button('Apply').or().button('Submit').click()
+```
+
+## Element Selection Priority
+
+When using `or()`, the first matching element in the command order is selected:
+
+```javascript
+// If both exist, "Save" button is clicked (listed first)
+await browser.button('Save').or().button('Apply').click()
+
+// If neither exists, first element displayed on screen is selected
+await browser.button('NonExistent1').or().button('NonExistent2').click()
 ```
 
 ## Best Practices
 
-1. Use multiple references when elements might have different names in different contexts or versions
-2. Keep the number of alternatives reasonable to maintain readability
-3. Ensure alternatives have the same semantic meaning for consistent behavior
-4. When multiple elements are found, the priority is based on the order specified in the command. If elements are already present, the first matching element in the command order is selected. If no elements are present, the first element displayed on the screen is selected.
+1. **List most common first** - Put the most likely element name first
+2. **Keep alternatives reasonable** - Don't chain too many `or()` calls (usually 2-3 max)
+3. **Use sparingly** - Prefer specific selectors when possible
+4. **Document reasons** - Add comments explaining why alternatives are needed
+
+```javascript
+// Good: Two reasonable alternatives
+await browser.button('Next').or().button('Continue').click()
+
+// Avoid: Too many alternatives (hard to maintain)
+await browser.button('A').or().button('B').or().button('C').or().button('D').click()
+```
+
+## See Also
+
+- [Core Concepts - Multiple References](CONCEPTS.md#multiple-references) - Detailed explanation
+- [Locator Strategy](locator-strategy.md) - How elements are matched
+- [Element Types](element-types.md) - Type-specific selectors
+
