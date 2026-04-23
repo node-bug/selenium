@@ -28,7 +28,9 @@ await browser.element('Ad').unhide()
 ## State Checking
 
 ### isVisible()
-Check if element is currently visible in the DOM.
+**Returns a boolean for conditional test execution** - Does not throw errors.
+
+Check if element is currently visible in the DOM without stopping execution.
 
 ```javascript
 const visible = await browser.element('Item').isVisible()
@@ -37,29 +39,47 @@ if (visible) {
 }
 ```
 
-**Returns**: `Promise<boolean>`
+**Returns**: `Promise<boolean>` - `true` if visible, `false` otherwise
+
+**Use when**: You need to conditionally branch test logic based on element visibility.
 
 ### isDisplayed([timeout])
-Wait for element to become visible (wait up to timeout).
+**Assertion that throws an error and stops execution** - Use for validation and verification.
+
+Wait for element to become visible within the timeout. Throws an error if element is not visible when timeout expires.
 
 ```javascript
 await browser.element('Loading').isDisplayed()           // Default timeout
 await browser.button('Submit').isDisplayed(10000)       // 10 second timeout
 ```
 
-**Throws**: Error if not visible within timeout
+**Parameters**:
+- `timeout` (number, optional): Milliseconds to wait for visibility
+
+**Throws**: Error if not visible within timeout - **Test execution stops**
 
 **Returns**: `Promise<boolean>`
 
+**Use when**: You expect an element to appear and want the test to fail if it doesn't.
+
 ### isNotDisplayed([timeout])
-Wait for element to disappear (become hidden).
+**Assertion that throws an error and stops execution** - Use for validation and verification.
+
+Wait for element to disappear (become hidden) within the timeout. Throws an error if element is still visible when timeout expires.
 
 ```javascript
 await browser.element('Modal').isNotDisplayed()
 await browser.element('Spinner').isNotDisplayed(5000)  // 5 second timeout
 ```
 
+**Parameters**:
+- `timeout` (number, optional): Milliseconds to wait for element to disappear
+
+**Throws**: Error if still visible within timeout - **Test execution stops**
+
 **Returns**: `Promise<boolean>`
+
+**Use when**: You expect an element to disappear and want the test to fail if it doesn't.
 
 ### isDisabled([timeout])
 Check if element is disabled.
@@ -126,25 +146,53 @@ await browser.element('Ad').unhide()
 
 ## Usage Patterns
 
-### Wait for Async Loading
+### When to Use isVisible() vs isDisplayed()/isNotDisplayed()
+
+| Method | Use Case | Returns | Throws on Failure |
+|--------|----------|---------|-------------------|
+| `isVisible()` | Check status for conditional logic | `true`/`false` | No |
+| `isDisplayed()` | Verify element appears (assertion) | `boolean` | **Yes** - stops test |
+| `isNotDisplayed()` | Verify element disappears (assertion) | `boolean` | **Yes** - stops test |
+
+### Wait for Async Loading (Using Assertions)
 ```javascript
-// Show loading spinner
+// Assert loading spinner appears
 await browser.element('Spinner').isDisplayed()
 
 // Do work...
 
-// Wait for spinner to disappear
+// Assert spinner disappears
 await browser.element('Spinner').isNotDisplayed()
 
-// Assert content appeared
-const success = await browser.element('Success').isDisplayed()
+// Assert content loaded
+await browser.element('Success').isDisplayed()
 ```
 
-### Conditional Interaction
+### Conditional Interaction (Using Return Values)
 ```javascript
-// Only click if button is enabled
+// Check status and conditionally execute
 if (!await browser.button('Submit').isDisabled()) {
   await browser.button('Submit').click()
+}
+
+// Check visibility to decide next action
+const isVisible = await browser.element('Premium Feature').isVisible()
+if (isVisible) {
+  await browser.element('Premium Feature').interact()
+} else {
+  console.log('Feature not available')
+}
+```
+
+### Common Pattern: Fallback Handling
+```javascript
+// When you need to handle missing elements gracefully
+const hasErrorMessage = await browser.element('Error').isVisible()
+if (hasErrorMessage) {
+  const errorText = await browser.element('Error').get.text()
+  console.error('Form error:', errorText)
+} else {
+  // Proceed with normal flow
 }
 ```
 
