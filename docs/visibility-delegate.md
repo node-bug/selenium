@@ -189,7 +189,7 @@ if (isVisible) {
 // When you need to handle missing elements gracefully
 const hasErrorMessage = await browser.element('Error').isVisible()
 if (hasErrorMessage) {
-  const errorText = await browser.element('Error').get.text()
+  const errorText = await browser.element('Error').get.value()
   console.error('Form error:', errorText)
 } else {
   // Proceed with normal flow

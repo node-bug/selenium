@@ -251,7 +251,7 @@ class WebBrowser extends Browser {
   async focus() {
     return await this.#inputDelegate.focus();
   }
-  
+
   /**
    * Hovers the mouse over an element.
    * 
@@ -310,7 +310,32 @@ class WebBrowser extends Browser {
     return await this.#clickDelegate._clicker(e, x, y);
   }
 
+  /**
+ * Internal helper to unify text/value retrieval logic.
+ */
+  async #retrieveElementText() {
+    this.message = messenger({ stack: this.stack, action: 'getText' });
+    try {
+      const locator = await this._finder();
+      const [textContent, valueAttr, tagName] = await Promise.all([
+        locator.getAttribute('textContent'),
+        locator.getAttribute('value'),
+        locator.tagName
+      ]);
 
+      let result = textContent;
+
+      if ((!result || result.trim() === '') && ['input', 'textarea'].includes(tagName)) {
+        result = valueAttr;
+      }
+
+      return result?.trim() ?? '';
+    } catch (err) {
+      this.handleError(err, 'getting text');
+    } finally {
+      this.stack = [];
+    }
+  }
 
   /**
    * "Namespace" or "Sub-resource" pattern for organized access to retrieval operations.
@@ -319,24 +344,9 @@ class WebBrowser extends Browser {
    */
   get get() {
     return {
-      text: async () => {
-        this.message = messenger({ stack: this.stack, action: 'getText' });
-        try {
-          const locator = await this._finder();
-          let value = await locator.getAttribute('textContent');
-
-          if ((value === null || value.trim() === '') &&
-            ['input', 'textarea'].includes(locator.tagName)) {
-            value = await locator.getAttribute('value');
-          }
-          return value?.trim() ?? '';
-        } catch (err) {
-          this.handleError(err, 'getting text');
-        } finally {
-          this.stack = [];
-        }
-      },
-
+      text: () => this.#retrieveElementText(),
+      value: () => this.#retrieveElementText(),
+      
       attribute: async (name) => {
         this.message = messenger({ stack: this.stack, action: 'getAttribute', data: name });
         try {

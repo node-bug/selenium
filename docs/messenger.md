@@ -28,7 +28,7 @@ Messages follow the pattern:
 - Drag/Drop: `drag`, `drop`
 - Interaction: `hover`, `scroll`, `upload`
 - State checks: `isVisible`, `isDisabled`, `waitVisibility`, `waitInvisibility`, `check`, `uncheck`
-- Data retrieval: `getText`, `getAttribute`, `screenshot`
+- Data retrieval: `getText` (also aliased as `getValue`), `getAttribute`, `screenshot`
 - Visibility: `hide`, `unhide`
 
 ## Element Stack Processing

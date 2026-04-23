@@ -47,7 +47,7 @@ Execute the stack and perform actions. Return value or reset stack.
 - `find()`, `findAll()`
 
 **Data Retrieval**
-- `get.text()`, `get.attribute()`, `get.screenshot()`
+- `get.text()`, `get.value()`, `get.attribute()`, `get.screenshot()`
 
 **Scroll & Visibility**
 - `scroll()`, `hide()`, `unhide()`

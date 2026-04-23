@@ -746,6 +746,15 @@ const text = await browser.element('div').get.text()
 
 **Returns**: `Promise<string>`
 
+### get.value()
+Get element text content (alias for `get.text()`).
+
+```javascript
+const text = await browser.element('div').get.value()
+```
+
+**Returns**: `Promise<string>`
+
 ### get.attribute(attributeName)
 Get element attribute value.
 
