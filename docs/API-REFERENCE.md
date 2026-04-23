@@ -393,7 +393,9 @@ await browser.element('Item').drag().onto().element('Trash').drop()
 ## Element State
 
 ### isVisible()
-Check if element is visible.
+**Returns `true`/`false` for conditional logic** - Does not throw errors.
+
+Check if element is visible in the DOM.
 
 ```javascript
 const visible = await browser.element('Submit').isVisible()
@@ -402,10 +404,12 @@ if (visible) {
 }
 ```
 
-**Returns**: `Promise<boolean>`
+**Returns**: `Promise<boolean>` - `true` if visible, `false` otherwise
 
 ### isDisplayed([timeout])
-Wait for element to become visible.
+**Assertion that throws an error and stops test execution on failure.**
+
+Wait for element to become visible within the timeout. Use this for test validations and verifications.
 
 ```javascript
 await browser.element('Loading').isDisplayed()
@@ -413,14 +417,16 @@ await browser.button('Submit').isDisplayed(10000)  // 10s timeout
 ```
 
 **Parameters**:
-- `timeout` (number, optional): Milliseconds to wait
+- `timeout` (number, optional): Milliseconds to wait for visibility
 
 **Returns**: `Promise<boolean>`
 
-**Throws**: Error if not visible within timeout
+**Throws**: Error if not visible within timeout - **Test execution stops**
 
 ### isNotDisplayed([timeout])
-Wait for element to disappear.
+**Assertion that throws an error and stops test execution on failure.**
+
+Wait for element to disappear within the timeout. Use this for test validations and verifications.
 
 ```javascript
 await browser.element('Modal').isNotDisplayed()
@@ -428,9 +434,11 @@ await browser.element('Spinner').isNotDisplayed(5000)
 ```
 
 **Parameters**:
-- `timeout` (number, optional): Milliseconds to wait
+- `timeout` (number, optional): Milliseconds to wait for element to disappear
 
 **Returns**: `Promise<boolean>`
+
+**Throws**: Error if still visible within timeout - **Test execution stops**
 
 ### isDisabled([timeout])
 Check if element is disabled.

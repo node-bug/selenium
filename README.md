@@ -148,13 +148,18 @@ await browser.file('Choose File').upload('/path/to/file.txt')
 ### Check Element State
 
 ```javascript
+// Get boolean for conditional logic
 const visible = await browser.element('Item').isVisible()
 const disabled = await browser.button('Submit').isDisabled()
 const checked = await browser.checkbox('Subscribe').isChecked()
 
-// Wait for state change
-await browser.element('Loading').isNotDisplayed()  // Wait to disappear
-await browser.button('Ready').isDisplayed()        // Wait to appear
+if (visible) {
+  await browser.element('Item').click()
+}
+
+// Assert and wait for state changes (throws error if not met)
+await browser.element('Loading').isNotDisplayed()  // Assert disappears
+await browser.button('Ready').isDisplayed()        // Assert appears
 ```
 
 ### Get Element Properties
@@ -294,7 +299,8 @@ const url1 = await browser.window().get.url()
 `click()`, `write()`, `hover()`, `drag()`, `upload()`, `focus()`, `clear()`, `check()`, `uncheck()`
 
 ### State Checks
-`isVisible()`, `isDisplayed()`, `isNotDisplayed()`, `isDisabled()`, `isChecked()`, `isUnchecked()`
+- **Conditionals** (return true/false): `isVisible()`, `isDisabled()`, `isChecked()`, `isUnchecked()`
+- **Assertions** (throw errors): `isDisplayed()`, `isNotDisplayed()`
 
 ### Data
 `get.text()`, `get.attribute()`, `get.screenshot()`, `get.size()`, `get.name()`, `get.os()`
@@ -365,7 +371,7 @@ The library automatically handles cleanup on process termination (SIGINT, SIGTER
 4. **Check state before acting** - Verify visibility/disabled state before interaction
 5. **Chain operations** - Build fluent chains for readability
 6. **Use `or()` sparingly** - Multiple alternatives are last resort
-7. **Wait for async states** - Use `isDisplayed()`, `isNotDisplayed()` to wait for changes
+7. **Use correct state check** - `isVisible()` for conditionals (returns boolean), `isDisplayed()`/`isNotDisplayed()` for assertions (throw errors)
 
 ## Contributing
 
