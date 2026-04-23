@@ -8,6 +8,8 @@ The Visibility Delegate is automatically used by the WebBrowser class and is not
 
 ```javascript
 const browser = new WebBrowser()
+await browser.start()
+await browser.goto('https://example.com')
 
 // Scroll an element into view
 await browser.element('submit').scroll()

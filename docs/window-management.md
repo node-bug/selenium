@@ -11,7 +11,8 @@ const browser = new WebBrowser()
 await browser.start()
 
 // Get window instance
-const window = browser.window('Google')
+await browser.goto('https://google.com')
+const window = await browser.window('Google')
 ```
 
 ## Methods

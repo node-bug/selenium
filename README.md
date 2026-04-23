@@ -48,6 +48,7 @@ npm install @nodebug/selenium
 import WebBrowser from '@nodebug/selenium'
 
 const browser = new WebBrowser()
+await browser.start()
 
 // Navigate to a page
 await browser.goto('https://example.com')
@@ -102,6 +103,7 @@ For detailed information about how elements are located and prioritized in this 
 import WebBrowser from '@nodebug/selenium'
 
 const browser = new WebBrowser()
+await browser.start()
 
 // Navigate to a page
 await browser.goto('https://example.com')
