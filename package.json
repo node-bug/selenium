@@ -1,6 +1,6 @@
 {
   "name": "@nodebug/selenium",
-  "version": "5.0.0",
+  "version": "5.0.1",
   "lockfileVersion": 1,
   "requires": true,
   "author": {
@@ -83,9 +83,12 @@
     }
   ],
   "files": [
+    ".config",
+    "app",
+    "docs",
     "index.js",
     "index.d.ts",
-    "README.md",
-    "LICENSE"
+    "LICENSE",
+    "README.md"
   ]
 }
