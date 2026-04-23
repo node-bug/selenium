@@ -303,7 +303,7 @@ const url1 = await browser.window().get.url()
 - **Assertions** (throw errors): `isDisplayed()`, `isNotDisplayed()`
 
 ### Data
-`get.text()`, `get.attribute()`, `get.screenshot()`, `get.size()`, `get.name()`, `get.os()`
+`get.text()`, `get.value()`, `get.attribute()`, `get.screenshot()`, `get.size()`, `get.name()`, `get.os()`
 
 ### Windows
 `window()`, `window().new()`, `window().close()`, `window().switch()`, `window().maximize()`, `window().get.url()`, `window().get.title()`
