@@ -1,83 +1,77 @@
 # Locator Strategy
 
-This document explains how element locators are prioritized for both desktop and mobile web browser testing, following a human-like approach to element identification.
+See [Core Concepts - Element Locator Strategy](CONCEPTS.md#element-locator-strategy-human-like-prioritization) for a complete explanation.
 
-## Element Selection Priority
+## Priority Order
 
-When locating elements, the library prioritizes visible text and attributes in the following order, processing elements as a human would:
+Elements are located by searching attributes in this order:
 
-1. **Text** - Text content of the element
-   - Example: `await browser.button('Submit').click()`
-   - Example: `await browser.checkbox('male').check()`
+1. **Text** - Element's visible text content
+2. **Placeholder** - `placeholder` attribute
+3. **Value** - `value` attribute
+4. **Test IDs** - `data-tid`, `data-testid`, `data-test-id`, `id`, `resource-id`, `data-id`
+5. **Name** - `name` attribute
+6. **ARIA Label** - `aria-label` attribute
+7. **CSS Class** - `class` attribute
+8. **ML Classification** - Machine learning-based label detection
+9. **Tooltip** - `title`, `hint`, `tooltip` attributes
+10. **Image Attributes** - `alt` and `src` attributes
 
-2. **Placeholder** - Placeholder attribute
-   - Example: `await browser.textbox('Enter your email').write('user@example.com')`
+## Example Matches
 
-3. **Value** - Value attribute
-   - Example: `await browser.textbox('john.doe@example.com').get.attribute(value)`
+```javascript
+// Matches by text (priority 1)
+await browser.button('Submit').click()
 
-4. **data-tid/data-testid/data-test-id/Id/resource-id/data-id** - Test identifiers
-   - Example: `await browser.checkbox('remember-me').check()`
+// Matches by placeholder (priority 2)
+await browser.textbox('Enter your email').write('...')
 
-5. **Name** - Name attribute
-   - Example: `await browser.element('country').click()`
+// Matches by value (priority 3)
+await browser.textbox('john@example.com').write('...')
 
-6. **aria-label** - ARIA label attribute
-   - Example: `await browser.link('Go to home page').click()`
+// Matches by data-testid (priority 4)
+await browser.element('auth-submit').click()
 
-7. **CSS Class** - CSS class attribute
-   - Example: `await browser.button('save-button').click()`
+// Matches by name (priority 5)
+await browser.element('country').click()
 
-8. **Label from ML classification** - Machine learning classification of element labels
-   - Example: `await browser.radio('male gender').check()`
+// Matches by aria-label (priority 6)
+await browser.link('Go to home').click()
 
-9. **Hint/Title/Tooltip** - Title or tooltip attributes
-   - Example: `await browser.file('Upload your resume').upload('/path/to/resume.pdf')`
+// Matches by class (priority 7)
+await browser.element('btn-primary').click()
 
-10. **Alt/Src** - Alt or src attributes for images
-    - Example: `await browser.image('Company Logo').click()`
+// Matches by title (priority 9)
+await browser.file('Upload Resume').upload('resume.pdf')
+
+// Matches by alt text (priority 10)
+await browser.image('Logo').click()
+```
 
 ## Exact Matching
 
-By default, locators match partial text. If you need an exact text match, use the `exact()` keyword.
+By default, partial text matches. Use `exact()` for exact matching:
 
-- Example: `await browser.exact().element('male').click()` will only click on an element with the exact text "male" and will not match "Female"
-- Example: `await browser.exact().button('Delete').click()` will click on the exact element labeled "Delete"
+```javascript
+await browser.exact().element('Test').click()   // Won't match 'Testing'
+```
 
-You can combine `exact()` with strict type selection:
+## Form Label Association
 
-- `await browser.exact().checkbox('male').check()`
+For form elements (input, checkbox, radio, select), the library searches associated `<label>` elements:
 
-## Special Handling for Form Elements
+```html
+<label for="email">Email:</label>
+<input id="email" type="text" />
+```
 
-For inputs, edits, dropdowns, selects, and other form elements, the library will also search for corresponding labels to improve element identification accuracy.
+```javascript
+await browser.textbox('Email').write('...')  // Matches the label
+```
 
-- Example: When finding a textbox, the library will look for a label element associated with that input to improve accuracy.
-- Example: `await browser.checkbox('male').check()`
-- Example: `await browser.checkbox('remember-me').isChecked()`
+## See Also
 
-## Desktop vs Mobile Testing
+- [Core Concepts](CONCEPTS.md#element-locator-strategy-human-like-prioritization) - Detailed explanation
+- [Element Types](element-types.md) - Type-specific selectors
+- [API Reference](API-REFERENCE.md#element-selection) - Element selection methods
 
-The same locator strategy applies to both desktop and mobile web browser testing. The human-like approach ensures consistent element identification across different platforms and devices.
-
-This approach makes the library more intuitive and reliable for developers, as it mimics how a human would naturally identify elements on a web page.
-
-## Supported Attributes
-
-The following list contains the supported attributes that tests can interact with. Attributes are searched for without the need to refer to them in the script. The command `browser.element("test element").isDisplayed()` will search through elements with the following attributes:
-
-- `placeholder`
-- `value`
-- `data-test-id`
-- `data-testid`
-- `id`
-- `resource-id`
-- `name`
-- `aria-label`
-- `class`
-- `hint`
-- `title`
-- `tooltip`
-- `alt`
-- `src`
-- `role`

@@ -1,142 +1,69 @@
-# Alerts
+# Alert Handling
 
-The Alert class provides methods for handling browser alerts and prompts in Selenium WebDriver automation.
+JavaScript alert, prompt, and confirmation dialog handling. See [API Reference](API-REFERENCE.md#alert-handling) for complete method signatures.
 
-## Overview
-
-Browser alerts (also known as JavaScript alerts, prompts, or confirm dialogs) are modal dialogs that appear during page execution. The Alert class allows you to:
-
-- Check if an alert is present
-- Accept or dismiss alerts
-- Send text to prompts
-- Get text content from alerts
-
-## Usage
-
-### Basic Alert Handling
+## Quick Examples
 
 ```javascript
-// Check if an alert is present
-const isAlertPresent = await browser.alert().isVisible()
-
-// Accept an alert
-await browser.alert().accept()
-
-// Dismiss an alert
-await browser.alert().dismiss()
-
-// Send text to a prompt
-await browser.alert().write('Hello World')
-```
-
-### Alert with Expected Text
-
-```javascript
-// Check if an alert with specific text is present
-const isAlertPresent = await browser.alert('Confirmation Required').isVisible()
-
-// Accept the alert if it's present
-if (isAlertPresent) {
+// Check if alert exists
+if (await browser.alert().isVisible()) {
   await browser.alert().accept()
 }
-```
 
-### Getting Alert Text
+// Handle specific alert text
+await browser.alert('Confirm Action').accept()
 
-```javascript
-// Get the text content of an alert
-const alertText = await browser.alert().get.text()
-```
+// Send text to prompt
+await browser.alert().write('User input')
 
-## Methods
-
-### `isVisible()`
-
-Check if an alert is visible and matches expected text.
-
-**Returns:** `Promise<boolean>` - True if alert is visible and text matches
-
-**Example:**
-
-```javascript
-await browser.alert().isVisible()
-await browser.alert('Expected Text').isVisible()
-```
-
-### `accept()`
-
-Accept the current alert.
-
-**Returns:** `Promise<void>` - Resolves when the alert is accepted
-
-**Example:**
-
-```javascript
-await browser.alert().accept()
-```
-
-### `dismiss()`
-
-Dismiss the current alert.
-
-**Returns:** `Promise<void>` - Resolves when the alert is dismissed
-
-**Example:**
-
-```javascript
+// Dismiss alert
 await browser.alert().dismiss()
-```
 
-### `write(text)`
-
-Send text to the alert.
-
-**Parameters:**
-
-- `text` (string) - Text to send to the alert
-
-**Returns:** `Promise<void>` - Resolves when text is sent
-
-**Example:**
-
-```javascript
-await browser.alert().write('Hello World')
-```
-
-### `get.text()`
-
-Get the text of the alert.
-
-**Returns:** `Promise<string>` - Text content of the alert
-
-**Example:**
-
-```javascript
+// Get alert text
 const text = await browser.alert().get.text()
 ```
 
-## Integration with Other Features
+## Patterns
 
-The Alert class integrates with the fluent API pattern used throughout the library:
+### Conditional Alert Handling
 
 ```javascript
-// Chain methods together
-await browser.alert('Confirm Action').isVisible().accept()
+const alertPresent = await browser.alert().isVisible()
+if (alertPresent) {
+  const text = await browser.alert().get.text()
+  if (text.includes('Delete')) {
+    await browser.alert().accept()
+  } else {
+    await browser.alert().dismiss()
+  }
+}
+```
 
-// Combine with other browser operations
-await browser.goto('https://example.com')
+### Alert with Text Matching
+
+```javascript
+// Accept only if alert contains expected text
+const confirmed = await browser.alert('Are you sure?').isVisible()
+if (confirmed) {
+  await browser.alert('Are you sure?').accept()
+}
+```
+
+### Prompt Input
+
+```javascript
+// Send user input to prompt
+await browser.alert().write('john@example.com')
 await browser.alert().accept()
 ```
 
 ## Browser Compatibility
 
-The alert functionality works across all supported browsers (Chrome, Firefox, Safari) with the same API. Note that Chrome has a known issue where text entered into alerts may not be visible on screen, but the text is actually sent correctly.
+Works identically across all browsers (Chrome, Firefox, Safari).
 
-## Error Handling
+**Note**: Chrome has a known issue where text entered into alerts may not be visible on screen, but the text is sent correctly.
 
-The Alert class will throw errors when:
+## Full API Reference
 
-- Attempting to accept/dismiss when no alert is present
-- The alert is not found within the timeout period
+See [Alert Handling API](API-REFERENCE.md#alert-handling)
 
-Always check if an alert is present before attempting to interact with it.

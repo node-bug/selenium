@@ -1,154 +1,66 @@
 # Tab Management
 
-This document explains how to manage browser tabs using the WebBrowser library.
+Multi-tab browser operations. See [API Reference](API-REFERENCE.md#tab-management) for complete method signatures and [Core Concepts](CONCEPTS.md#window-vs-tab-management) for window vs tab differences.
 
-## Tab Instance
+## Overview
 
-The `tab()` method returns a Tab instance that provides methods for managing browser tabs.
+Tabs are multiple documents within the same window, sharing context. Use tab operations to open, switch between, and manage multiple tabs.
 
-```javascript
-const browser = new WebBrowser()
-await browser.start()
-
-// Get tab instance
-const tab = browser.tab('Google')
-```
-
-## Methods
-
-### switch()
-
-Switch to a specific tab by title or index.
+## Quick Examples
 
 ```javascript
-// Switch to tab by title
-await browser.tab('Google').switch()
+// Open new tab
+await browser.tab().new()
 
 // Switch to tab by index
 await browser.tab(0).switch()
-```
 
-### new()
-
-Open a new browser tab.
-
-```javascript
-await browser.tab().new()
-```
-
-### close()
-
-Close the current tab.
-
-```javascript
-await browser.tab().close()
-```
-
-### isDisplayed()
-
-Check if a tab is displayed.
-
-```javascript
-const isDisplayed = await browser.tab('Google').isDisplayed()
-```
-
-## Usage Examples
-
-### Opening a new tab
-
-```javascript
-import WebBrowser from '@nodebug/selenium'
-
-const browser = new WebBrowser()
-await browser.start()
-
-// Open a new tab
-await browser.tab().new()
-```
-
-### Switching between tabs
-
-```javascript
-// Switch to a specific tab by title
+// Switch to tab by title
 await browser.tab('Google').switch()
 
-// Switch to a specific tab by index
-await browser.tab(0).switch()
-```
-
-### Working with multiple tabs
-
-```javascript
-// Open a new tab
-await browser.tab().new()
-
-// Switch to the new tab
-await browser.tab(1).switch()
-
-// Perform actions in the new tab
-await browser.goTo('https://example.com')
-
-// Switch back to the original tab
-await browser.tab(0).switch()
-```
-
-## Tab Management API Reference
-
-### tab.new()
-
-Opens a new browser tab.
-
-```javascript
-await browser.tab().new()
-```
-
-### tab.close()
-
-Closes the current tab.
-
-```javascript
-await browser.tab('some tab title').close()
-await browser.tab(3).close()
-```
-
-### tab.isDisplayed()
-
-Checks if a tab with a specific index is displayed and visible.
-
-```javascript
-// Check if tab at index 0 is displayed
-const isDisplayed = await browser.tab(0).isDisplayed()
-
-// Check with custom timeout
-const isDisplayed = await browser.tab(0).isDisplayed(5000)
-```
-
-### tab.switch()
-
-Switches to a tab with a specific index.
-
-```javascript
-// Switch to tab at index 0
-await browser.tab(0).switch()
-
-// Switch with custom timeout
-await browser.tab(0).switch(5000)
-```
-
-### tab.get.url()
-
-Gets the current tab or another tab URL.
-
-```javascript
+// Get tab URL and title
 const url = await browser.tab().get.url()
-const url2 = await browser.tab('some other tab').get.url()
+const title = await browser.tab().get.title()
+
+// Check if displayed
+const displayed = await browser.tab(0).isDisplayed()
+
+// Close tab
+await browser.tab(0).close()
 ```
 
-### tab.get.title()
+## Patterns
 
-Gets the current tab or by index title.
+### Multi-Tab Workflow
 
 ```javascript
-const title = await browser.tab().get.title()
-const title2 = await browser.tab(5).get.title()
+// Current tab
+await browser.goto('https://example.com')
+
+// Open new tab
+await browser.tab().new()
+
+// Navigate in new tab
+await browser.goto('https://other.com')
+
+// Switch between tabs
+await browser.tab(0).switch()    // Back to first tab
+await browser.tab(1).switch()    // To second tab
+
+// Get tab info
+const url = await browser.tab(1).get.url()
 ```
+
+### Tab by Index
+
+```javascript
+// Tabs are indexed by creation order (0, 1, 2, ...)
+await browser.tab(0).switch()    // First tab
+await browser.tab(1).switch()    // Second tab
+await browser.tab(0).close()     // Close first tab
+```
+
+## Full API Reference
+
+See [Tab Management API](API-REFERENCE.md#tab-management)
+

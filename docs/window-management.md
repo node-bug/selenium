@@ -1,201 +1,70 @@
 # Window Management
 
-This document explains how to manage browser windows using the WebBrowser library.
+Multi-window browser operations. See [API Reference](API-REFERENCE.md#window-management) for complete method signatures and [Core Concepts](CONCEPTS.md#window-vs-tab-management) for window vs tab differences.
 
-## Window Instance
+## Overview
 
-The `window()` method returns a Window instance that provides methods for managing browser windows.
+Windows are separate browser instances with independent contexts. Use window operations to open, switch between, and manage multiple windows.
 
-```javascript
-const browser = new WebBrowser()
-await browser.start()
-
-// Get window instance
-await browser.goto('https://google.com')
-const window = await browser.window('Google')
-```
-
-## Methods
-
-### switch()
-
-Switch to a specific window by title or index.
+## Quick Examples
 
 ```javascript
+// Open new window
+await browser.window().new()
+
 // Switch to window by title
 await browser.window('Google').switch()
 
 // Switch to window by index
 await browser.window(0).switch()
-```
 
-### new()
-
-Open a new browser window.
-
-```javascript
-await browser.window().new()
-```
-
-### close()
-
-Close the current window.
-
-```javascript
-await browser.window().close()
-```
-
-### maximize()
-
-Maximize the browser window.
-
-```javascript
-await browser.window().maximize()
-```
-
-### minimize()
-
-Minimize the browser window.
-
-```javascript
-await browser.window().minimize()
-```
-
-### fullscreen()
-
-Switch to fullscreen mode.
-
-```javascript
-await browser.window().fullscreen()
-```
-
-### isDisplayed()
-
-Check if a window is displayed.
-
-```javascript
-const isDisplayed = await browser.window('Google').isDisplayed()
-```
-
-## Usage Examples
-
-### Opening a new window
-
-```javascript
-import WebBrowser from '@nodebug/selenium'
-
-const browser = new WebBrowser()
-await browser.start()
-
-// Open a new window
-await browser.window().new()
-```
-
-### Switching between windows
-
-```javascript
-// Switch to a specific window by title
-await browser.window('Google').switch()
-
-// Switch to a specific window by index
-await browser.window(0).switch()
-```
-
-### Managing window size
-
-```javascript
-// Maximize window
-await browser.window().maximize()
-
-// Minimize window
-await browser.window().minimize()
-
-// Fullscreen
-await browser.window().fullscreen()
-```
-
-## Window Management API Reference
-
-### window().get.url()
-
-Gets the current URL.
-
-```javascript
+// Get window URL and title
 const url = await browser.window().get.url()
-```
-
-### window().get.title()
-
-Gets the page title.
-
-```javascript
 const title = await browser.window().get.title()
-```
 
-### window().maximize()
-
-Maximizes the browser window.
-
-```javascript
+// Window management
 await browser.window().maximize()
-```
-
-### window().minimize()
-
-Minimizes the browser window.
-
-```javascript
-await browser.window('some window title').minimize()
-```
-
-### window().fullscreen()
-
-Switches the browser to fullscreen mode.
-
-```javascript
-await browser.window(index).fullscreen()
-await browser.window('some window title').fullscreen()
+await browser.window().minimize()
 await browser.window().fullscreen()
-```
 
-### window().new()
-
-Opens a new browser window.
-
-```javascript
-await browser.window().new()
-```
-
-### window().close()
-
-Closes the current window.
-
-```javascript
-await browser.window(index).close()
-await browser.window('title').close()
+// Close window
 await browser.window().close()
+
+// Check if displayed
+const displayed = await browser.window('Title').isDisplayed()
 ```
 
-### window().isDisplayed()
+## Patterns
 
-Checks if a window with a specific title is displayed and visible.
+### Multi-Window Workflow
 
 ```javascript
-// Check current window
-const isDisplayed = await browser.window('some title').isDisplayed()
+// Original window
+await browser.goto('https://example.com')
 
-// Check with custom timeout
-const isDisplayed = await browser.window('some title').isDisplayed(5000)
+// Open new window
+await browser.window().new()
+
+// Navigate in new window
+await browser.goto('https://other.com')
+
+// Switch between windows
+await browser.window('Example').switch()
+await browser.window('Other').switch()
+
+// Get info from window
+const url = await browser.window('Example').get.url()
 ```
 
-### window().switch()
-
-Switches to a window with a specific title.
+### Window by Index
 
 ```javascript
-// Switch to window with title
-await browser.window('some title').switch()
-
-// Switch with custom timeout
-await browser.window('some title').switch(5000)
+// Windows are indexed by creation order (0, 1, 2, ...)
+await browser.window(0).switch()    // First window
+await browser.window(1).switch()    // Second window
 ```
+
+## Full API Reference
+
+See [Window Management API](API-REFERENCE.md#window-management)
+
