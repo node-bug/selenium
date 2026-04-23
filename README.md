@@ -16,6 +16,7 @@ A JavaScript library for browser automation with a fluent API, built on top of S
   - [Alerts](#alerts)
   - [Element Methods](#element-methods)
   - [Command Delegates](#command-delegates)
+  - [Fluent Intermediate and Terminal Operations](#operations)
 - [Browser Management](#browser-management)
 - [Examples](#examples)
 - [Testing](#testing)
@@ -35,6 +36,7 @@ A JavaScript library for browser automation with a fluent API, built on top of S
 - Visibility and state checks
 - Method chaining support
 - Human-like element prioritization for text and attributes
+- Intermediate and terminal operations with fluent API
 
 ## Installation
 
@@ -59,6 +61,11 @@ await browser.button('submit').click()
 
 // Check element visibility
 const isVisible = await browser.element('div').isVisible()
+
+// Method chaining with intermediate and terminal operations
+await browser.element('submit').above().button('cancel').click()
+await browser.element('menu').within().link('home').click()
+await browser.element('item').atIndex(2).isVisible()
 ```
 
 ## Configuration
@@ -78,6 +85,15 @@ Create a `.config/selenium.json` file with the desired browser configuration:
 For more information on browser management and configuration options, see the [browser management documentation](docs/browser-management.md).
 
 ## Usage Guide
+
+### Operations
+
+The WebBrowser library uses a fluent API pattern with two types of operations:
+
+- **Intermediate Operations**: Methods that build up the selector stack but do not execute any actions. They return the `WebBrowser` instance to allow for method chaining. These operations are used to refine element selection criteria.
+- **Terminal Operations**: Methods that execute the built-up selector stack and perform actual actions on elements. They typically return a value or perform an action and reset the stack.
+
+For detailed information about operations, see the [operations documentation](docs/operations.md).
 
 ### Element Selection Priority
 
@@ -181,9 +197,12 @@ const browser = new Browser()
 - `click()` - Click on an element
 - `hover()` - Hover over an element
 - `find()` - Find an element
+- `findAll()` - Find all matching elements
 - `clear()` - Clear text from an element
 - `check()` - Check a checkbox
 - `uncheck()` - Uncheck a checkbox
+- `isChecked()` - Check if checkbox is checked
+- `isUnchecked()` - Check if checkbox is unchecked
 - `isVisible()` - Check if element is visible
 - `isDisplayed()` - Check if element is displayed
 - `isNotDisplayed()` - Check if element is not displayed
@@ -577,6 +596,7 @@ For detailed information about specific features, see the documentation:
 - [Input Delegate](docs/input-delegate.md) - Input command delegate
 - [Locator Strategy](docs/locator-strategy.md) - How elements are located and prioritized
 - [Multiple References](docs/multiple-references.md) - Multiple element references
+- [Operations](docs/operations.md) - Intermediate and terminal operations
 - [Spatial References](docs/spatial-references.md) - Spatial references and positioning
 - [Tab Management](docs/tab-management.md) - Tab management methods
 - [Visibility Delegate](docs/visibility-delegate.md) - Visibility command delegate
