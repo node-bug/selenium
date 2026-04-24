@@ -5,6 +5,7 @@
 The WebBrowser library uses a fluent API with two operation types:
 
 ### Intermediate Operations
+
 Build the selector stack without executing actions. They return the `WebBrowser` instance for method chaining.
 
 **Examples**: `element()`, `button()`, `above()`, `below()`, `within()`, `atIndex()`, `exact()`, `hidden()`
@@ -14,6 +15,7 @@ await browser.element('submit').above().button('cancel').click()
 ```
 
 ### Terminal Operations
+
 Execute the selector stack and perform actual actions. They return values or perform actions and clear the stack.
 
 **Examples**: `click()`, `write()`, `isVisible()`, `scroll()`, `upload()`, `get.text()`
@@ -24,10 +26,12 @@ await browser.button('submit').click()
 
 ## Element Locator Strategy: Human-Like Prioritization
 
-Elements are located by searching attributes in priority order, mimicking how humans identify elements:
+Elements are located by searching attributes in priority order, mimicking how humans identify elements. The library also understands spatial context (position relative to other elements).
 
-1. **Text** - Element's text content
-2. **Placeholder** - Placeholder attribute  
+### Attribute Priority (How Elements Are Identified)
+
+1. **Text** - Element's text content (e.g., "Email" for an input with label "Email")
+2. **Placeholder** - Placeholder attribute (e.g., "Enter email...")
 3. **Value** - Value attribute
 4. **Test IDs** - `data-tid`, `data-testid`, `data-test-id`, `id`, `resource-id`, `data-id`
 5. **Name** - Name attribute
@@ -37,7 +41,23 @@ Elements are located by searching attributes in priority order, mimicking how hu
 9. **Tooltip** - `title`, `hint`, `tooltip` attributes
 10. **Image Attributes** - `alt` and `src` attributes
 
+### Spatial Context (How Elements Are Located)
+
+Beyond text matching, the library understands position-based descriptions:
+
+```javascript
+// "Find the password field below the email field"
+await browser.textbox('Password').below().textbox('Email').write('secret')
+
+// "Find the submit button to the right of the cancel button"
+await browser.button('Submit').toRightOf().button('Cancel').click()
+
+// "Find the save button inside the dialog"
+await browser.button('Save').within().dialog('Settings').click()
+```
+
 ### Exact Matching
+
 By default, partial text matches. Use `exact()` for exact matching:
 
 ```javascript
@@ -45,6 +65,7 @@ await browser.exact().element('male').click() // Won't match 'Female'
 ```
 
 ### Label Association
+
 For form elements (input, checkbox, radio, select), the library searches associated `<label>` elements for improved accuracy.
 
 ## Element Types
@@ -61,9 +82,9 @@ Specify element types to differentiate elements with identical text:
 - `label`, `toolbar`, `tab`, `dialog`, `navigation`, `heading`, `slider`, `combobox`, `list`, `listitem`, `menu`, `menuitem`, `alert`, `row`, `column` - Semantic elements
 
 ```javascript
-await browser.button('Search').click()        // Specific type
-await browser.element('Search').click()       // Generic (tries all types)
-await browser.textbox('Email').write('...')   // Type specificity
+await browser.button('Search').click() // Specific type
+await browser.element('Search').click() // Generic (tries all types)
+await browser.textbox('Email').write('...') // Type specificity
 ```
 
 ## Spatial References
@@ -103,10 +124,10 @@ If elements exist, the first matching the order is used. Otherwise, the first di
 - **Tabs** - Multiple documents in same window (shared context)
 
 ```javascript
-browser.window().new()        // New window
-browser.tab().new()           // New tab
-browser.window('Title').switch()  // Switch window
-browser.tab(0).switch()       // Switch tab
+browser.window().new() // New window
+browser.tab().new() // New tab
+browser.window('Title').switch() // Switch window
+browser.tab(0).switch() // Switch tab
 ```
 
 ## Browser Lifecycle
@@ -125,10 +146,10 @@ Chain intermediate operations ending with a terminal operation:
 ```javascript
 // Build selector → Execute action
 await browser
-  .button('Delete')           // Intermediate: select element
-  .below()                    // Intermediate: position filter
-  .element('Section')         // Intermediate: anchor reference
-  .click()                    // Terminal: execute action
+  .button('Delete') // Intermediate: select element
+  .below() // Intermediate: position filter
+  .element('Section') // Intermediate: anchor reference
+  .click() // Terminal: execute action
 ```
 
 Stack is cleared after each terminal operation, preventing state pollution.

@@ -19,7 +19,7 @@ export class InputDelegate {
    * Enter text into an input field or content-editable element
    * 
    * Writes text to an input field, textarea, or content-editable element.
-   * If the field, textarea or content-editable element was not empty, adds text to it.
+   * If the field, textarea or content-editable element was not empty, does not clear but adds text to it.
    * Handles both standard form fields and custom content-editable elements.
    * 
    * @param {string} value - Text to enter

@@ -1,8 +1,14 @@
 # Locator Strategy
 
+The library locates elements like humans do:
+
+1. **By what they say** (text, placeholder, label) - the primary identifier
+2. **By where they are** (position relative to other elements) - spatial context
+3. **By what they are** (type, attributes) - semantic meaning
+
 See [Core Concepts - Element Locator Strategy](CONCEPTS.md#element-locator-strategy-human-like-prioritization) for a complete explanation.
 
-## Priority Order
+## Text-Based Locating (Primary)
 
 Elements are located by searching attributes in this order:
 
@@ -17,7 +23,7 @@ Elements are located by searching attributes in this order:
 9. **Tooltip** - `title`, `hint`, `tooltip` attributes
 10. **Image Attributes** - `alt` and `src` attributes
 
-## Example Matches
+### Example Matches
 
 ```javascript
 // Matches by text (priority 1)
@@ -48,12 +54,29 @@ await browser.file('Upload Resume').upload('resume.pdf')
 await browser.image('Logo').click()
 ```
 
-## Exact Matching
+## Position-Based Locating (Spatial Context)
+
+When multiple elements exist with the same text, use spatial references to narrow down:
+
+```javascript
+// \"The password field below the email field\"
+await browser.textbox('Password').below().textbox('Email').write('secret')
+
+// \"The submit button to the right of the cancel button\"
+await browser.button('Submit').toRightOf().button('Cancel').click()
+
+// \"The delete button inside the confirmation dialog\"
+await browser.button('Delete').within().dialog('Confirm').click()
+```
+
+Supported positions: `above()`, `below()`, `toLeftOf()`, `toRightOf()`, `within()`, `near()`
+
+Learn more: [Spatial References](spatial-references.md)
 
 By default, partial text matches. Use `exact()` for exact matching:
 
 ```javascript
-await browser.exact().element('Test').click()   // Won't match 'Testing'
+await browser.exact().element('Test').click() // Won't match 'Testing'
 ```
 
 ## Form Label Association
@@ -61,12 +84,11 @@ await browser.exact().element('Test').click()   // Won't match 'Testing'
 For form elements (input, checkbox, radio, select), the library searches associated `<label>` elements:
 
 ```html
-<label for="email">Email:</label>
-<input id="email" type="text" />
+<label for="email">Email:</label> <input id="email" type="text" />
 ```
 
 ```javascript
-await browser.textbox('Email').write('...')  // Matches the label
+await browser.textbox('Email').write('...') // Matches the label
 ```
 
 ## See Also
@@ -74,4 +96,3 @@ await browser.textbox('Email').write('...')  // Matches the label
 - [Core Concepts](CONCEPTS.md#element-locator-strategy-human-like-prioritization) - Detailed explanation
 - [Element Types](element-types.md) - Type-specific selectors
 - [API Reference](API-REFERENCE.md#element-selection) - Element selection methods
-
