@@ -1,6 +1,18 @@
 # Spatial References
 
-Locate elements by position relative to other elements (anchor elements). See [Core Concepts](CONCEPTS.md#spatial-references) for detailed explanation.
+Locate elements by describing their position relative to other elements—the way humans naturally think about UI layout.
+
+## Understanding Human-Like Language
+
+The library interprets spatial descriptions just as you'd speak them:
+
+| Human Language                     | Library Code                 | What It Means                            |
+| ---------------------------------- | ---------------------------- | ---------------------------------------- |
+| "The button below delete"          | `.below().element('Delete')` | Find element positioned below the anchor |
+| "The field next to the name label" | `.toRightOf().label('Name')` | Find element to the right of the anchor  |
+| "The button inside the dialog"     | `.within().dialog('Form')`   | Find element contained within the anchor |
+| "The link above the footer"        | `.above().element('Footer')` | Find element positioned above the anchor |
+| "The text to the left of the icon" | `.toLeftOf().image('icon')`  | Find element to the left of the anchor   |
 
 ## Quick Examples
 
@@ -22,7 +34,8 @@ await browser.button('Save').within().dialog('Form').click()
 await browser.element('Item').near().element('Anchor').click()
 
 // Combine multiple spatial references
-await browser.button('Delete')
+await browser
+  .button('Delete')
   .below()
   .element('Section')
   .toRightOf()
@@ -33,6 +46,7 @@ await browser.button('Delete')
 ## Positioning Keywords
 
 ### below() / above()
+
 Element's vertical position relative to anchor.
 
 ```javascript
@@ -41,6 +55,7 @@ await browser.textbox('City').above().label('State').write('TX')
 ```
 
 ### toLeftOf() / toRightOf()
+
 Element's horizontal position relative to anchor.
 
 ```javascript
@@ -49,6 +64,7 @@ await browser.element('Cancel').toRightOf().element('Save').click()
 ```
 
 ### within()
+
 Element is contained within another element (contextual selection).
 
 ```javascript
@@ -60,6 +76,7 @@ await browser.row('User1').within().table('Users').click()
 ```
 
 ### near()
+
 Element is in proximity to another element.
 
 ```javascript
@@ -78,7 +95,8 @@ await browser.textbox('Name').below().element('Label').write('John')
 await browser.textbox('Name').exactly().below().element('Label').write('John')
 
 // Multiple anchors with mixed precision
-await browser.button('Delete')
+await browser
+  .button('Delete')
   .below()
   .element('Section')
   .exactly()
@@ -93,7 +111,8 @@ Chain multiple spatial references for precise targeting:
 
 ```javascript
 // Below Section AND to the right of Label
-await browser.button('Delete')
+await browser
+  .button('Delete')
   .below()
   .element('Section')
   .toRightOf()
@@ -101,7 +120,8 @@ await browser.button('Delete')
   .click()
 
 // Within dialog AND above submit button
-await browser.textbox('Email')
+await browser
+  .textbox('Email')
   .within()
   .dialog('Form')
   .above()
@@ -109,59 +129,48 @@ await browser.textbox('Email')
   .write('user@example.com')
 ```
 
+## Real-World Examples
+
+### Login Form
+
+When you see: "The password field is below the email field"
+
+```javascript
+await browser.textbox('Password').below().textbox('Email').write('mypassword')
+```
+
+### Data Table
+
+When you see: "Delete the button in the row with 'User123'"
+
+```javascript
+await browser.button('Delete').within().row('User123').click()
+```
+
+### Modal Dialog
+
+When you see: "The save button inside the user details dialog"
+
+```javascript
+await browser.button('Save').within().dialog('User Details').click()
+```
+
+### Complex Layout
+
+When you see: "The cancel button to the left of the submit button in the footer"
+
+```javascript
+await browser
+  .button('Cancel')
+  .toLeftOf()
+  .button('Submit')
+  .within()
+  .element('Footer')
+  .click()
+```
+
 ## See Also
 
 - [Core Concepts - Spatial References](CONCEPTS.md#spatial-references) - Detailed explanation
 - [API Reference - Positioning](API-REFERENCE.md#positioning--filtering) - All positioning methods
 - [Multiple References](multiple-references.md) - Using `or()` for alternatives
-
-  .element('sectionTwo')
-  .below()
-  .element('Actions')
-  .toRightOf('rowName')
-  .click()
-```
-
-## Spatial Positioners
-
-The library provides several spatial positioners that can be used to target elements:
-
-### within()
-
-Targets an element located inside another element.
-
-```javascript
-browser.element('menu').within().element('item').click()
-```
-
-This is useful for finding elements within specific containers, like:
-
-- Finding a button inside a specific section
-- Finding an item within a dropdown menu
-- Finding elements within a table row
-
-### near()
-
-Targets an element based on proximity.
-
-```javascript
-browser.element('target').near().element('other').click()
-```
-
-This finds elements that are close to the anchor element, useful when exact positioning isn't critical.
-
-## Combining Spatial and Contextual References
-
-You can combine spatial references with contextual references for more precise element targeting:
-
-```javascript
-browser
-  .element('menu')
-  .within()
-  .element('item')
-  .below()
-  .element('other')
-  .click()
-```
-
-This approach allows for complex element selection that mimics how a human would identify elements on a web page, making your automation scripts more intuitive and easier to write.

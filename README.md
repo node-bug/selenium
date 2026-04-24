@@ -6,11 +6,11 @@ A fluent JavaScript library for browser automation with a human-like element loc
 
 ## Features
 
-- 🎯 **Human-like element selection** - Prioritizes visible text and attributes as humans would
+- 🎯 **Human-like element selection** - Understands "the field next to Email" by matching visible text and spatial context, just like humans locate elements
 - 🔗 **Fluent API** - Method chaining for readable, expressive code
 - 🏗️ **Multi-window/tab support** - Manage multiple browser contexts
 - 🎭 **Multiple element types** - Semantic selectors (button, textbox, checkbox, etc.)
-- 📍 **Spatial references** - Locate elements by position relative to others
+- 📍 **Spatial references** - Locate elements by position relative to others (above, below, left, right, within)
 - ⌨️ **Rich interactions** - Click, drag, type, hover, upload files, handle alerts
 - 📦 **Cross-browser** - Chrome, Firefox, Safari support
 - 🔧 **Flexible configuration** - Config file, environment variables, or CLI
@@ -97,13 +97,30 @@ Learn more: [Core Concepts](docs/CONCEPTS.md#operations-intermediate-vs-terminal
 
 ### Spatial References
 
-Find elements by position relative to others:
+Locate elements by their position relative to others—exactly how humans describe them:
+
+**Natural language:** "Click the delete button below the actions section"  
+**Code:**
 
 ```javascript
-await browser.button('Delete').below().element('Section').click()
+await browser.button('Delete').below().element('Actions').click()
+```
+
+**Natural language:** "Type in the name field to the right of the label"  
+**Code:**
+
+```javascript
 await browser.textbox('Name').toRightOf().label('Name').write('John')
+```
+
+**Natural language:** "Click the home link inside the modal dialog"  
+**Code:**
+
+```javascript
 await browser.link('Home').within().dialog('Modal').click()
 ```
+
+Supported positions: `above()`, `below()`, `toLeftOf()`, `toRightOf()`, `within()`, `near()`
 
 Learn more: [Core Concepts](docs/CONCEPTS.md#spatial-references)
 
@@ -184,6 +201,24 @@ By default, partial matches work. Use `exact()` for exact matching:
 
 ```javascript
 await browser.exact().element('Test').click() // Won't match 'Testing'
+```
+
+### Locating with Spatial Context
+
+Use spatial references when you need to find elements by their position:
+
+```javascript
+// Find the field below the Email label
+await browser.textbox('Password').below().textbox('Email').write('secret123')
+
+// Find delete button in a specific row
+await browser.button('Delete').within().row('John Doe').click()
+
+// Find submit button to the right of cancel
+await browser.button('Submit').toRightOf().button('Cancel').click()
+
+// Find element inside a dialog
+await browser.textbox('Name').within().dialog('User Settings').write('John')
 ```
 
 ## Documentation
