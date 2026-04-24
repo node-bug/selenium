@@ -15,6 +15,7 @@ Messages follow the pattern:
 ```
 
 **Examples:**
+
 - "Clicking on button 'Submit'"
 - "Writing 'user@example.com' into textbox 'Email'"
 - "Waiting for dialog 'Confirm' to be visible"
@@ -27,7 +28,7 @@ Messages follow the pattern:
 - Input: `write`, `focus`, `clear`, `overwrite`
 - Drag/Drop: `drag`, `drop`
 - Interaction: `hover`, `scroll`, `upload`
-- State checks: `isVisible`, `isDisabled`, `waitVisibility`, `waitInvisibility`, `check`, `uncheck`
+- State checks: `isVisible`, `isDisabled`, `waitVisibility`, `waitInvisibility`, `check`, `uncheck`, `on`, `off`, `isDisplayed`, `isNotDisplayed`, `isOn`, `isOff`
 - Data retrieval: `getText` (also aliased as `getValue`), `getAttribute`, `screenshot`
 - Visibility: `hide`, `unhide`
 
@@ -42,6 +43,7 @@ The messenger processes element references in the selector stack:
 ## Log Output
 
 Logs are emitted during action execution and typically captured by:
+
 - Test framework reporters
 - Console output
 - Log files configured in your test environment
@@ -49,6 +51,7 @@ Logs are emitted during action execution and typically captured by:
 ## Usage in Tests
 
 While the messenger is internal, logs help with:
+
 - Debugging test execution
 - Understanding what actions are being performed
 - Identifying failures

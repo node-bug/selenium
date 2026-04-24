@@ -322,7 +322,7 @@ await browser.element('menu').hover()
 
 ### write(text)
 
-Write text to an input field or content-editable element.
+Write text to an input field or content-editable element. If the field, textarea or content-editable element was not empty, does not clear but adds text to it.
 
 ```javascript
 await browser.textbox('Search').write('query')
