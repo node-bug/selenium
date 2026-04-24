@@ -28,6 +28,7 @@ await browser.element('Ad').unhide()
 ## State Checking
 
 ### isVisible()
+
 **Returns a boolean for conditional test execution** - Does not throw errors.
 
 Check if element is currently visible in the DOM without stopping execution.
@@ -44,16 +45,18 @@ if (visible) {
 **Use when**: You need to conditionally branch test logic based on element visibility.
 
 ### isDisplayed([timeout])
+
 **Assertion that throws an error and stops execution** - Use for validation and verification.
 
 Wait for element to become visible within the timeout. Throws an error if element is not visible when timeout expires.
 
 ```javascript
-await browser.element('Loading').isDisplayed()           // Default timeout
-await browser.button('Submit').isDisplayed(10000)       // 10 second timeout
+await browser.element('Loading').isDisplayed() // Default timeout
+await browser.button('Submit').isDisplayed(10000) // 10 second timeout
 ```
 
 **Parameters**:
+
 - `timeout` (number, optional): Milliseconds to wait for visibility
 
 **Throws**: Error if not visible within timeout - **Test execution stops**
@@ -63,16 +66,18 @@ await browser.button('Submit').isDisplayed(10000)       // 10 second timeout
 **Use when**: You expect an element to appear and want the test to fail if it doesn't.
 
 ### isNotDisplayed([timeout])
+
 **Assertion that throws an error and stops execution** - Use for validation and verification.
 
 Wait for element to disappear (become hidden) within the timeout. Throws an error if element is still visible when timeout expires.
 
 ```javascript
 await browser.element('Modal').isNotDisplayed()
-await browser.element('Spinner').isNotDisplayed(5000)  // 5 second timeout
+await browser.element('Spinner').isNotDisplayed(5000) // 5 second timeout
 ```
 
 **Parameters**:
+
 - `timeout` (number, optional): Milliseconds to wait for element to disappear
 
 **Throws**: Error if still visible within timeout - **Test execution stops**
@@ -81,7 +86,8 @@ await browser.element('Spinner').isNotDisplayed(5000)  // 5 second timeout
 
 **Use when**: You expect an element to disappear and want the test to fail if it doesn't.
 
-### isDisabled([timeout])
+### isDisabled()
+
 Check if element is disabled.
 
 ```javascript
@@ -94,6 +100,7 @@ if (!disabled) {
 **Returns**: `Promise<boolean>`
 
 ### isChecked()
+
 Check if checkbox is checked.
 
 ```javascript
@@ -103,6 +110,7 @@ const checked = await browser.checkbox('Subscribe').isChecked()
 **Returns**: `Promise<boolean>`
 
 ### isUnchecked()
+
 Check if checkbox is unchecked.
 
 ```javascript
@@ -114,19 +122,22 @@ const unchecked = await browser.checkbox('Subscribe').isUnchecked()
 ## Scrolling & Visibility Manipulation
 
 ### scroll([alignToTop])
+
 Scroll element into view.
 
 ```javascript
-await browser.element('Submit').scroll()          // Top of viewport
-await browser.element('Footer').scroll(false)     // Bottom of viewport
+await browser.element('Submit').scroll() // Top of viewport
+await browser.element('Footer').scroll(false) // Bottom of viewport
 ```
 
 **Parameters**:
+
 - `alignToTop` (boolean, optional): Default true
 
 **Returns**: `Promise<boolean>`
 
 ### hide()
+
 Hide an element by setting opacity to 0.
 
 ```javascript
@@ -136,6 +147,7 @@ await browser.element('Ad').hide()
 **Returns**: `Promise<boolean>`
 
 ### unhide()
+
 Show a hidden element (restore opacity).
 
 ```javascript
@@ -148,13 +160,14 @@ await browser.element('Ad').unhide()
 
 ### When to Use isVisible() vs isDisplayed()/isNotDisplayed()
 
-| Method | Use Case | Returns | Throws on Failure |
-|--------|----------|---------|-------------------|
-| `isVisible()` | Check status for conditional logic | `true`/`false` | No |
-| `isDisplayed()` | Verify element appears (assertion) | `boolean` | **Yes** - stops test |
-| `isNotDisplayed()` | Verify element disappears (assertion) | `boolean` | **Yes** - stops test |
+| Method             | Use Case                              | Returns        | Throws on Failure    |
+| ------------------ | ------------------------------------- | -------------- | -------------------- |
+| `isVisible()`      | Check status for conditional logic    | `true`/`false` | No                   |
+| `isDisplayed()`    | Verify element appears (assertion)    | `boolean`      | **Yes** - stops test |
+| `isNotDisplayed()` | Verify element disappears (assertion) | `boolean`      | **Yes** - stops test |
 
 ### Wait for Async Loading (Using Assertions)
+
 ```javascript
 // Assert loading spinner appears
 await browser.element('Spinner').isDisplayed()
@@ -169,9 +182,10 @@ await browser.element('Success').isDisplayed()
 ```
 
 ### Conditional Interaction (Using Return Values)
+
 ```javascript
 // Check status and conditionally execute
-if (!await browser.button('Submit').isDisabled()) {
+if (!(await browser.button('Submit').isDisabled())) {
   await browser.button('Submit').click()
 }
 
@@ -185,6 +199,7 @@ if (isVisible) {
 ```
 
 ### Common Pattern: Fallback Handling
+
 ```javascript
 // When you need to handle missing elements gracefully
 const hasErrorMessage = await browser.element('Error').isVisible()
@@ -197,6 +212,7 @@ if (hasErrorMessage) {
 ```
 
 ### Checkbox State
+
 ```javascript
 // Check current state
 if (await browser.checkbox('Subscribe').isUnchecked()) {
@@ -205,6 +221,7 @@ if (await browser.checkbox('Subscribe').isUnchecked()) {
 ```
 
 ### Scroll and Click
+
 ```javascript
 // Scroll button into view
 await browser.button('Bottom').scroll()
@@ -216,4 +233,3 @@ await browser.button('Bottom').click()
 ## Full API Reference
 
 See [Visibility Control API](API-REFERENCE.md#element-state)
-
