@@ -225,14 +225,23 @@ describe('InputDelegate (ESM)', () => {
   // ---------------- OVERWRITE ----------------
   describe('overwrite()', () => {
     test('calls finder and clear', async () => {
+      mockElement.tagName = 'input';
+      mockElement.clear.mockResolvedValue();
+      mockElement.getAttribute.mockResolvedValue('');
+      mockElement.sendKeys.mockResolvedValue();
+
       await inputDelegate.overwrite('test');
 
-      expect(mockBrowser._finder).toHaveBeenCalledWith(null, 'write');
-      expect(mockBrowser.clear).toHaveBeenCalled();
+      // overwrite() calls this.clear() internally, which calls _finder,
+      // then re-finds the element and sends keys
+      expect(mockBrowser._finder).toHaveBeenCalledTimes(2);
+      expect(mockElement.clear).toHaveBeenCalled();
     });
 
     test('sends text after clear', async () => {
       mockElement.tagName = 'input';
+      mockElement.clear.mockResolvedValue();
+      mockElement.getAttribute.mockResolvedValue('');
       mockElement.sendKeys.mockResolvedValue();
 
       await inputDelegate.overwrite('test');
@@ -242,7 +251,8 @@ describe('InputDelegate (ESM)', () => {
 
     test('handles error from overwrite', async () => {
       const error = new Error('fail');
-      mockBrowser.clear.mockRejectedValue(error);
+      // overwrite() calls this.clear() which uses _finder, so mock _finder to reject
+      mockBrowser._finder.mockRejectedValue(error);
 
       await inputDelegate.overwrite('test');
 

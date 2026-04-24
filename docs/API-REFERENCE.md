@@ -507,7 +507,7 @@ await browser.element('Spinner').isNotDisplayed(5000)
 
 **Throws**: Error if still visible within timeout - **Test execution stops**
 
-### isDisabled([timeout])
+### isDisabled()
 
 Check if element is disabled.
 
@@ -517,10 +517,6 @@ if (!disabled) {
   await browser.button('Submit').click()
 }
 ```
-
-**Parameters**:
-
-- `timeout` (number, optional): Milliseconds to wait
 
 **Returns**: `Promise<boolean>`
 

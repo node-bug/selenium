@@ -130,13 +130,13 @@ export class InputDelegate {
     const browser = this.browser;
     browser.message = messenger({ stack: browser.stack, action: 'overwrite', data: value });
     try {
-      let locator = await browser._finder(null, 'write');
-
-      // Perform clear logic
-      await browser.clear();
+      // to maintain stack after clear
+      let ogStack = browser.stack
+      await this.clear();
+      browser.stack = ogStack
 
       // Re-find in case the clear triggered a DOM refresh (common in React)
-      locator = await browser._finder(null, 'write');
+      let locator = await browser._finder(null, 'write');
       await locator.sendKeys(value);
     } catch (err) {
       browser.handleError(err, 'overwriting text');

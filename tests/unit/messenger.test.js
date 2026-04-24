@@ -293,7 +293,7 @@ describe('messenger', () => {
     };
 
     const result = messenger(action);
-    expect(result).toBe("Overwriting with 'New Value' in textbox 'input'");
+    expect(result).toBe("Clearing and writing text 'New Value' into textbox 'input'");
   });
 
   test('should handle getAttribute action with data', () => {
