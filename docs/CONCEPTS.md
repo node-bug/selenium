@@ -53,7 +53,8 @@ Specify element types to differentiate elements with identical text:
 
 - `button`, `link`, `image` - Interactive elements
 - `textbox` (aliases: `input`, `field`, `edit`, `email`, `search`) - Text inputs
-- `checkbox` (aliases: `toggle`, `switch`) - Checkboxes
+- `checkbox` - Checkboxes
+- `switch` - Switches
 - `radio` (alias: `radiobutton`) - Radio buttons
 - `dropdown` (alias: `select`) - Dropdowns
 - `file` (alias: `inputfile`) - File inputs

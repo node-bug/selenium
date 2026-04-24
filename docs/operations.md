@@ -7,7 +7,7 @@ See [Core Concepts - Operations](CONCEPTS.md#operations-intermediate-vs-terminal
 Build the selector stack without executing. Return `WebBrowser` for chaining.
 
 **Element Selectors**
-- `element()`, `button()`, `textbox()`, `checkbox()`, `radio()`, `link()`, `image()`, `file()`, `label()`, `toolbar()`, `tab()`, `dialog()`, `navigation()`, `heading()`, `slider()`, `combobox()`, `list()`, `listitem()`, `menu()`, `menuitem()`, `row()`, `column()`, `alert()`
+- `element()`, `button()`, `textbox()`, `checkbox()`, `switch()`,`radio()`, `link()`, `image()`, `file()`, `label()`, `toolbar()`, `tab()`, `dialog()`, `navigation()`, `heading()`, `slider()`, `combobox()`, `list()`, `listitem()`, `menu()`, `menuitem()`, `row()`, `column()`, `alert()`
 
 **Positioning**
 - `above()`, `below()`, `toLeftOf()`, `toRightOf()`, `within()`, `near()`
@@ -42,6 +42,9 @@ Execute the stack and perform actions. Return value or reset stack.
 
 **Checkbox Operations**
 - `check()`, `uncheck()`, `isChecked()`, `isUnchecked()`
+
+**Switch Operations**
+- `on()`, `off()`, `isOn()`, `isOff()`
 
 **Element Retrieval**
 - `find()`, `findAll()`

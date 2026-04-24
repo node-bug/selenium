@@ -8,7 +8,8 @@ Semantic element type selectors for precise element targeting. See [API Referenc
 |------|---------|-------|
 | `button` | - | `browser.button('Submit').click()` |
 | `textbox` | `input`, `field`, `edit`, `email`, `search` | `browser.textbox('Email').write('...')` |
-| `checkbox` | `toggle`, `switch` | `browser.checkbox('Subscribe').check()` |
+| `checkbox` | - | `browser.checkbox('Subscribe').check()` |
+| `switch` | - | `browser.switch('Subscribe').on()` |
 | `radio` | `radiobutton` | `browser.radio('Male').check()` |
 | `dropdown` | `select` | `browser.dropdown('Country').select('US')` |
 | `link` | - | `browser.link('Home').click()` |

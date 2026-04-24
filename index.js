@@ -8,6 +8,7 @@ import { ClickDelegate } from './app/command-delegates/click-delegate.js';
 import { InputDelegate } from './app/command-delegates/input-delegate.js';
 import { VisibilityDelegate } from './app/command-delegates/visibility-delegate.js';
 import { CheckboxDelegate } from './app/command-delegates/checkbox-delegate.js';
+import { SwitchDelegate } from './app/command-delegates/switch-delegate.js';
 
 const selenium = config('selenium');
 
@@ -30,6 +31,7 @@ class WebBrowser extends Browser {
   #inputDelegate;
   #visibilityDelegate;
   #checkboxDelegate;
+  #switchDelegate;
 
   constructor() {
     super()
@@ -39,6 +41,7 @@ class WebBrowser extends Browser {
     this.#inputDelegate = new InputDelegate(this);
     this.#visibilityDelegate = new VisibilityDelegate(this);
     this.#checkboxDelegate = new CheckboxDelegate(this);
+    this.#switchDelegate = new SwitchDelegate(this);
 
     Object.keys(this.locatorStrategy.definitions).forEach(type => {
       this[type] = (data) => {
@@ -469,6 +472,62 @@ class WebBrowser extends Browser {
    */
   async uncheck() {
     return await this.#checkboxDelegate.uncheck();
+  }
+
+  /**
+   * Turns a switch element on.
+   * 
+   * Clicks the switch if it's not already on. Falls back to JavaScript
+   * click if Selenium click fails.
+   * 
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.switch('dark mode').on();
+   */
+  async on() {
+    return await this.#switchDelegate.on();
+  }
+
+  /**
+   * Turns a switch element off.
+   * 
+   * Clicks the switch if it's not already off. Falls back to JavaScript
+   * click if Selenium click fails.
+   * 
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.switch('dark mode').off();
+   */
+  async off() {
+    return await this.#switchDelegate.off();
+  }
+
+  /**
+   * Checks if a switch is currently on.
+   * 
+   * @returns {Promise<boolean>} True if switch is on
+   * @example
+   * const isOn = await browser.switch('dark mode').isOn();
+   * if (isOn) {
+   *   await browser.switch('dark mode').off();
+   * }
+   */
+  async isOn() {
+    return await this.#switchDelegate.isOn();
+  }
+
+  /**
+   * Checks if a switch is currently off.
+   * 
+   * @returns {Promise<boolean>} True if switch is off
+   * @example
+   * const isOff = await browser.switch('dark mode').isOff();
+   * if (isOff) {
+   *   await browser.switch('dark mode').on();
+   * }
+   */
+  async isOff() {
+    return await this.#switchDelegate.isOff();
   }
 
   /**
