@@ -127,6 +127,7 @@ class WebBrowser extends Browser {
    * Enter text into an input field or content-editable element
    * 
    * Writes text to an input field, textarea, or content-editable element.
+   * If the field, textarea or content-editable element was not empty, adds text to it.
    * Handles both standard form fields and custom content-editable elements.
    * 
    * @param {string} value - Text to enter
@@ -602,12 +603,6 @@ class WebBrowser extends Browser {
   #element(data) {
     return new SelectorStackBuilder(this).element(data);
   }
-
-  // // Internal method used by the builder to return to the main class flow
-  // pushElement(member) {
-  //   this.stack.push(member);
-  //   return this; // Return 'this' (WebBrowser) so we can call .click(), .write(), etc.
-  // }
 
   // --- Spatial / Relative Positioners ---
 

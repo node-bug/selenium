@@ -87,10 +87,10 @@ Chain intermediate operations ending with a terminal operation:
 ```javascript
 // Intermediate operations build selector, don't execute
 await browser
-  .button('Delete')           // Select button
-  .below()                    // Position filter
-  .element('Actions')         // Anchor reference
-  .click()                    // Terminal operation (execute)
+  .button('Delete') // Select button
+  .below() // Position filter
+  .element('Actions') // Anchor reference
+  .click() // Terminal operation (execute)
 ```
 
 Learn more: [Core Concepts](docs/CONCEPTS.md#operations-intermediate-vs-terminal)
@@ -158,8 +158,8 @@ if (visible) {
 }
 
 // Assert and wait for state changes (throws error if not met)
-await browser.element('Loading').isNotDisplayed()  // Assert disappears
-await browser.button('Ready').isDisplayed()        // Assert appears
+await browser.element('Loading').isNotDisplayed() // Assert disappears
+await browser.button('Ready').isDisplayed() // Assert appears
 ```
 
 ### Get Element Properties
@@ -183,7 +183,7 @@ await browser.button('Save').or().button('Apply').click()
 By default, partial matches work. Use `exact()` for exact matching:
 
 ```javascript
-await browser.exact().element('Test').click()  // Won't match 'Testing'
+await browser.exact().element('Test').click() // Won't match 'Testing'
 ```
 
 ## Documentation
@@ -232,10 +232,7 @@ await browser.close()
 
 ```javascript
 // Click delete in specific row
-await browser.button('Delete')
-  .within()
-  .row('User123')
-  .click()
+await browser.button('Delete').within().row('User123').click()
 
 // Confirm delete
 await browser.button('Confirm').click()
@@ -245,16 +242,10 @@ await browser.button('Confirm').click()
 
 ```javascript
 // Fill form in modal
-await browser.textbox('Name')
-  .within()
-  .dialog('User Details')
-  .write('John Doe')
+await browser.textbox('Name').within().dialog('User Details').write('John Doe')
 
 // Submit
-await browser.button('Save')
-  .within()
-  .dialog('User Details')
-  .click()
+await browser.button('Save').within().dialog('User Details').click()
 
 // Verify modal closed
 const visible = await browser.dialog('User Details').isVisible()
@@ -278,43 +269,53 @@ const url1 = await browser.window().get.url()
 
 ## Browser Support
 
-| Browser | Status |
-|---------|--------|
-| Chrome | ✅ Fully supported |
+| Browser | Status             |
+| ------- | ------------------ |
+| Chrome  | ✅ Fully supported |
 | Firefox | ✅ Fully supported |
-| Safari | ✅ Fully supported |
+| Safari  | ✅ Fully supported |
 
 ## API Overview
 
 ### Session Management
+
 `start()`, `close()`, `reset()`, `sleep(ms)`
 
 ### Navigation
+
 `goto(url)`, `refresh()`, `goBack()`, `goForward()`
 
 ### Element Selection
+
 `element()`, `button()`, `textbox()`, `checkbox()`, `radio()`, `link()`, `image()`, `file()`, `dropdown()`, and 15+ more
 
 ### Interaction
-`click()`, `write()`, `hover()`, `drag()`, `upload()`, `focus()`, `clear()`, `check()`, `uncheck()`
+
+`click()`, `write()`, `overwrite()`, `hover()`, `drag()`, `upload()`, `focus()`, `clear()`, `check()`, `uncheck()`, `on()`, `off()`
 
 ### State Checks
-- **Conditionals** (return true/false): `isVisible()`, `isDisabled()`, `isChecked()`, `isUnchecked()`
-- **Assertions** (throw errors): `isDisplayed()`, `isNotDisplayed()`
+
+- **Conditionals** (return true/false): `isVisible()`, `isDisabled()`
+- **Assertions** (throw errors): `isDisplayed()`, `isNotDisplayed()`, `isChecked()`, `isUnchecked()`, `isOn()`, `isOff()`
 
 ### Data
+
 `get.text()`, `get.value()`, `get.attribute()`, `get.screenshot()`, `get.size()`, `get.name()`, `get.os()`
 
 ### Windows
+
 `window()`, `window().new()`, `window().close()`, `window().switch()`, `window().maximize()`, `window().get.url()`, `window().get.title()`
 
 ### Tabs
+
 `tab()`, `tab().new()`, `tab().close()`, `tab().switch()`, `tab().get.url()`, `tab().get.title()`
 
 ### Alerts
+
 `alert()`, `alert().accept()`, `alert().dismiss()`, `alert().write()`, `alert().get.text()`
 
 ### Positioning
+
 `atIndex()`, `above()`, `below()`, `toLeftOf()`, `toRightOf()`, `within()`, `near()`, `or()`, `exact()`, `hidden()`
 
 See [API Reference](docs/API-REFERENCE.md) for complete documentation.
@@ -356,9 +357,9 @@ See [Configuration Guide](docs/CONFIGURATION.md) for all options.
 ```javascript
 const browser = new WebBrowser()
 
-await browser.start()      // Initialize session
+await browser.start() // Initialize session
 // ... perform operations ...
-await browser.close()      // Cleanup
+await browser.close() // Cleanup
 ```
 
 The library automatically handles cleanup on process termination (SIGINT, SIGTERM).
