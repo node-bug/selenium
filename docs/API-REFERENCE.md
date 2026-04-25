@@ -162,7 +162,6 @@ All return `WebBrowser` for chaining:
 - `file(selector)` - File input (alias: `inputfile()`)
 - `label(selector)` - Label element
 - `toolbar(selector)` - Toolbar
-- `tab(selector)` - Tab element
 - `dialog(selector)` - Dialog
 - `navigation(selector)` - Navigation
 - `heading(selector)` - Heading
@@ -208,11 +207,13 @@ const elements = await browser.element('text').findAll()
 
 ### click([x, y])
 
-Click an element.
+Click an element. Supports modifier keys via chaining (`ctrl`, `shift`, `alt`, `meta`).
 
 ```javascript
 await browser.button('Submit').click()
 await browser.element('menu').click(10, 20) // Click at coordinates
+await browser.button('link').ctrl.click() // Ctrl+click
+await browser.element('item').shift.alt.click() // Shift+Alt+click
 ```
 
 **Parameters**:
@@ -221,6 +222,8 @@ await browser.element('menu').click(10, 20) // Click at coordinates
 - `y` (number, optional): Y coordinate
 
 **Returns**: `Promise<boolean>`
+
+**Modifiers**: Chain `ctrl`, `shift`, `alt`, or `meta` before the element selector to hold modifier keys during the click. Modifiers are automatically released after the click.
 
 ### doubleClick()
 
@@ -288,25 +291,6 @@ await browser.element('button').multipleClick(3) // Click 3 times
 **Parameters**:
 
 - `times` (number, optional): Number of clicks (default: 2)
-
-**Returns**: `Promise<boolean>`
-
-### clickWithModifier(options)
-
-Click with modifier keys.
-
-```javascript
-await browser.link('Delete').clickWithModifier({ ctrl: true })
-await browser.element('item').clickWithModifier({ shift: true, alt: true })
-```
-
-**Parameters**:
-
-- `options` (Object, optional):
-  - `shift` (boolean)
-  - `ctrl` (boolean)
-  - `alt` (boolean)
-  - `meta` (boolean)
 
 **Returns**: `Promise<boolean>`
 

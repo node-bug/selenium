@@ -79,7 +79,7 @@ Specify element types to differentiate elements with identical text:
 - `radio` (alias: `radiobutton`) - Radio buttons
 - `dropdown` (alias: `select`) - Dropdowns
 - `file` (alias: `inputfile`) - File inputs
-- `label`, `toolbar`, `tab`, `dialog`, `navigation`, `heading`, `slider`, `combobox`, `list`, `listitem`, `menu`, `menuitem`, `alert`, `row`, `column` - Semantic elements
+- `label`, `toolbar`, `dialog`, `navigation`, `heading`, `slider`, `combobox`, `list`, `listitem`, `menu`, `menuitem`, `alert`, `row`, `column` - Semantic elements
 
 ```javascript
 await browser.button('Search').click() // Specific type

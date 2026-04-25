@@ -193,9 +193,14 @@ export class LocatorStrategy extends ElementTypes {
    */
   async resolveElements(stack) {
     const ELEMENT_TYPES = new Set([
-      'element', 'button', 'radio', 'textbox', 'checkbox',
-      'dropdown', 'option', 'image', 'row', 'column',
-      'toolbar', 'link', 'dialog', 'file'
+      'link', 'navigation', 'heading',
+      'button', 'checkbox', 'switch', 'radio', 'slider', 'combobox',
+      'textbox', 'file',
+      'list', 'listitem', 'menu', 'menuitem',
+      'toolbar', 'dialog',
+      'row', 'column',
+      'image',
+      'element'
     ]);
 
     // Map through the stack and resolve each item

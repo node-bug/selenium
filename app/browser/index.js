@@ -38,16 +38,16 @@ class Browser {
     this._tabInstance = new Tab();
     this._alertInstance = new Alert();
 
-    this.window = (title) => {
-      this._windowInstance.title(title);
+    this.window = (value) => {
+      this._windowInstance.identifier(value);
       return this._windowInstance;
     };
-    this.tab = (title) => {
-      this._tabInstance.title(title);
+    this.tab = (value) => {
+      this._tabInstance.identifier(value);
       return this._tabInstance;
     };
-    this.alert = (alertText) => {
-      this._alertInstance.text(alertText);
+    this.alert = (identifier) => {
+      this._alertInstance.text(identifier);
       return this._alertInstance;
     }
 
@@ -402,6 +402,12 @@ class Browser {
 
   get get() {
     return {
+      title: async () => {
+        return this._windowInstance.get.title()
+      },
+      url: async () => {
+        return this._windowInstance.get.url()
+      },
       name: async () => {
         const capabilities = await this.driver.getCapabilities()
         return capabilities.get('browserName').replace(/\s/g, '')

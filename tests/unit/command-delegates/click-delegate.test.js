@@ -4,6 +4,16 @@ import { jest } from '@jest/globals';
 const mockDriver = {
   executeScript: jest.fn(),
   actions: jest.fn(),
+  getCapabilities: jest.fn().mockResolvedValue({
+    get: jest.fn().mockReturnValue('Mac')
+  }),
+};
+
+const KEY_MAP = {
+  CONTROL: '\uE009',
+  SHIFT: '\uE008',
+  ALT: '\uE00A',
+  META: '\uE03D',
 };
 
 jest.unstable_mockModule('selenium-webdriver', () => ({
@@ -11,12 +21,14 @@ jest.unstable_mockModule('selenium-webdriver', () => ({
   By: {},
   until: {},
   WebDriver: jest.fn(() => mockDriver),
+  Key: KEY_MAP,
 }));
 
 jest.unstable_mockModule('@nodebug/logger', () => ({
   log: {
     info: jest.fn(),
     error: jest.fn(),
+    warn: jest.fn(),
   },
 }));
 
@@ -70,6 +82,7 @@ describe('ClickDelegate (ESM)', () => {
       locatorStrategy: { build: jest.fn() },
       handleError: jest.fn(),
       message: null,
+      _tempMods: { control: false, shift: false, alt: false, meta: false },
 
       // REQUIRED
       _finder: jest.fn().mockResolvedValue(mockElement),
@@ -179,36 +192,12 @@ describe('ClickDelegate (ESM)', () => {
     });
   });
 
-  // ---------------- MODIFIER CLICK ----------------
-  describe('clickWithModifier()', () => {
-    test('works', async () => {
-      await clickDelegate.clickWithModifier({ shift: true, ctrl: true });
-
-      expect(actionsMock.keyDown).toHaveBeenCalled();
-      expect(actionsMock.click).toHaveBeenCalled();
-    });
-
-    test('handles error', async () => {
-      const error = new Error('fail');
-
-      actionsMock.keyDown.mockImplementation(() => {
-        throw error;
-      });
-
-      await clickDelegate.clickWithModifier({ shift: true });
-
-      expect(mockBrowser.handleError).toHaveBeenCalledWith(
-        error,
-        'clicking with modifier keys'
-      );
-    });
-  });
-
   // ---------------- _CLICKER (REAL LOGIC) ----------------
   describe('_clicker()', () => {
     beforeEach(() => {
       // IMPORTANT: use real implementation
       delete mockBrowser._clicker;
+      mockBrowser._tempMods = { control: false, shift: false, alt: false, meta: false };
       clickDelegate = new ClickDelegate(mockBrowser);
     });
 
@@ -243,6 +232,100 @@ describe('ClickDelegate (ESM)', () => {
       await expect(
         clickDelegate._clicker(mockElement)
       ).rejects.toEqual(error);
+    });
+
+    test('simple click without modifiers uses element click', async () => {
+      mockBrowser._tempMods = { control: false, shift: false, alt: false, meta: false };
+      await clickDelegate._clicker(mockElement);
+
+      expect(mockElement.click).toHaveBeenCalled();
+      expect(actionsMock.keyDown).not.toHaveBeenCalled();
+    });
+
+    test('click with Control modifier uses Actions API', async () => {
+      mockBrowser._tempMods = { control: true, shift: false, alt: false, meta: false };
+      await clickDelegate._clicker(mockElement);
+
+      expect(actionsMock.keyDown).toHaveBeenCalledWith(expect.anything());
+      expect(actionsMock.click).toHaveBeenCalledWith(mockElement);
+      expect(actionsMock.keyUp).toHaveBeenCalled();
+      expect(actionsMock.perform).toHaveBeenCalled();
+    });
+
+    test('click with Shift modifier uses Actions API', async () => {
+      mockBrowser._tempMods = { control: false, shift: true, alt: false, mseta: false };
+      await clickDelegate._clicker(mockElement);
+
+      expect(actionsMock.keyDown).toHaveBeenCalled();
+      expect(actionsMock.click).toHaveBeenCalledWith(mockElement);
+      expect(actionsMock.keyUp).toHaveBeenCalled();
+    });
+
+    test('click with Alt modifier uses Actions API', async () => {
+      mockBrowser._tempMods = { control: false, shift: false, alt: true, meta: false };
+      await clickDelegate._clicker(mockElement);
+
+      expect(actionsMock.keyDown).toHaveBeenCalled();
+      expect(actionsMock.click).toHaveBeenCalledWith(mockElement);
+      expect(actionsMock.keyUp).toHaveBeenCalled();
+    });
+
+    test('click with Meta modifier uses Actions API', async () => {
+      mockBrowser._tempMods = { control: false, shift: false, alt: false, meta: true };
+      await clickDelegate._clicker(mockElement);
+
+      expect(actionsMock.keyDown).toHaveBeenCalled();
+      expect(actionsMock.click).toHaveBeenCalledWith(mockElement);
+      expect(actionsMock.keyUp).toHaveBeenCalled();
+    });
+
+    test('click with multiple modifiers presses and releases all keys', async () => {
+      mockBrowser._tempMods = { control: true, shift: true, alt: false, meta: false };
+      await clickDelegate._clicker(mockElement);
+
+      expect(actionsMock.keyDown).toHaveBeenCalledTimes(2);
+      expect(actionsMock.keyUp).toHaveBeenCalledTimes(2);
+      expect(actionsMock.click).toHaveBeenCalledWith(mockElement);
+      expect(actionsMock.perform).toHaveBeenCalled();
+    });
+
+    test('click with modifiers and coordinates uses Actions API with move', async () => {
+      mockBrowser._tempMods = { control: true, shift: false, alt: false, meta: false };
+      await clickDelegate._clicker(mockElement, 10, 10);
+
+      expect(actionsMock.keyDown).toHaveBeenCalled();
+      expect(actionsMock.move).toHaveBeenCalled();
+      expect(actionsMock.click).toHaveBeenCalled();
+      expect(actionsMock.keyUp).toHaveBeenCalled();
+      expect(actionsMock.perform).toHaveBeenCalled();
+    });
+
+    test('modifiers are pressed before click and released after', async () => {
+      mockBrowser._tempMods = { control: true, shift: true, alt: false, meta: false };
+
+      const callOrder = [];
+      actionsMock.keyDown.mockImplementation(() => {
+        callOrder.push('keyDown');
+        return actionsMock;
+      });
+      actionsMock.click.mockImplementation(() => {
+        callOrder.push('click');
+        return actionsMock;
+      });
+      actionsMock.keyUp.mockImplementation(() => {
+        callOrder.push('keyUp');
+        return actionsMock;
+      });
+
+      await clickDelegate._clicker(mockElement);
+
+      expect(callOrder[0]).toBe('keyDown');
+      expect(callOrder[callOrder.length - 1]).toBe('keyUp');
+      const clickIndex = callOrder.indexOf('click');
+      const keyDownIndex = callOrder.indexOf('keyDown');
+      const keyUpIndex = callOrder.lastIndexOf('keyUp');
+      expect(clickIndex).toBeGreaterThan(keyDownIndex);
+      expect(clickIndex).toBeLessThan(keyUpIndex);
     });
   });
 });
