@@ -27,6 +27,7 @@ const selenium = config('selenium');
  */
 class WebBrowser extends Browser {
   #message = '';
+  #tempMods = { control: false, shift: false, alt: false, meta: false };
   #clickDelegate;
   #inputDelegate;
   #visibilityDelegate;
@@ -245,6 +246,62 @@ class WebBrowser extends Browser {
   }
 
   /**
+   * Getter for temporary modifiers state (used by delegates).
+   * @private
+   */
+  get _tempMods() { return { ...this.#tempMods }; }
+
+  /**
+   * Resets temporary modifiers and returns the browser for chaining.
+   * @private
+   */
+  _resetMods() {
+    this.#tempMods = { control: false, shift: false, alt: false, meta: false };
+    return this;
+  }
+
+  /**
+   * Setter for Shift modifier — flags Shift for the next keyboard/click action.
+   * 
+   * @returns {WebBrowser} The browser instance for chaining
+   * @example
+   * await browser.shift.press('a'); // Shift+A
+   * await browser.ctrl.shift.press('c'); // Ctrl+Shift+C
+   */
+  get shift() { this.#tempMods.shift = true; return this; }
+
+  /**
+   * Setter for Control modifier — flags Control for the next keyboard/click action.
+   * 
+   * @returns {WebBrowser} The browser instance for chaining
+   * @example
+   * await browser.ctrl.press('c'); // Ctrl+C
+   * await browser.ctrl.shift.press('c'); // Ctrl+Shift+C
+   */
+  get ctrl() { this.#tempMods.control = true; return this; }
+  get control() { this.#tempMods.control = true; return this; }
+
+  /**
+   * Setter for Alt modifier — flags Alt for the next keyboard/click action.
+   * 
+   * @returns {WebBrowser} The browser instance for chaining
+   * @example
+   * await browser.alt.press('Tab'); // Alt+Tab
+   */
+  get alt() { this.#tempMods.alt = true; return this; }
+
+  /**
+   * Setter for Meta modifier — flags Meta for the next keyboard/click action.
+   * 
+   * @returns {WebBrowser} The browser instance for chaining
+   * @example
+   * await browser.meta.press('w'); // Cmd+W on Mac
+   */
+  get meta() { this.#tempMods.meta = true; return this; }
+  get win() { this.#tempMods.meta = true; return this; }
+  get command() { this.#tempMods.meta = true; return this; }
+
+  /**
    * Sets focus on an element using JavaScript.
    * 
    * @returns {Promise<boolean>} True if successful
@@ -282,6 +339,34 @@ class WebBrowser extends Browser {
    */
   async doubleClick() {
     return await this.#clickDelegate.doubleClick();
+  }
+
+  /**
+   * Performs a triple-click on the element.
+   * 
+   * Uses Selenium WebDriver Actions API to simulate a three consecutive clicks.
+   * 
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.element('text').tripleClick();
+   * await browser.button('edit').tripleClick();
+   */
+  async tripleClick() {
+    return await this.#clickDelegate.tripleClick();
+  }
+
+  /**
+   * Perform consecutive multiple-clicks on the element.
+   * 
+   * Uses Selenium WebDriver Actions API to simulate mutliple consecutive clicks.
+   * 
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.element('text').multipleClick(5);
+   * await browser.button('edit').multipleClick(10);
+   */
+  async multipleClick(times) {
+    return await this.#clickDelegate.multipleClick(times);
   }
 
   /**
@@ -347,10 +432,14 @@ class WebBrowser extends Browser {
    * Usage: await browser.element('id').get.text()
    */
   get get() {
+    const superget = super.get
     return {
+      ...superget,
+
       text: () => this.#retrieveElementText(),
+
       value: () => this.#retrieveElementText(),
-      
+
       attribute: async (name) => {
         this.message = messenger({ stack: this.stack, action: 'getAttribute', data: name });
         try {
@@ -362,7 +451,7 @@ class WebBrowser extends Browser {
           this.stack = [];
         }
       },
-
+      
       screenshot: async () => {
         let dataUrl = null;
         if (this.stack.length > 0) {
@@ -382,7 +471,7 @@ class WebBrowser extends Browser {
 
         this.stack = [];
         return dataUrl;
-      }
+      },
     };
   }
 

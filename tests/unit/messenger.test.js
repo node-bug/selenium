@@ -164,7 +164,7 @@ describe('messenger', () => {
 
   test('should handle multipleclick with times', () => {
     const action = {
-      action: 'multipleclick',
+      action: 'click',
       times: 3,
       stack: [
         { type: 'element', id: 'button' }
@@ -172,20 +172,7 @@ describe('messenger', () => {
     };
 
     const result = messenger(action);
-    expect(result).toBe("element 'button' 3 times");
-  });
-
-  test('should handle clickwithmodifier with options', () => {
-    const action = {
-      action: 'clickwithmodifier',
-      options: { ctrl: true, shift: false },
-      stack: [
-        { type: 'element', id: 'link' }
-      ]
-    };
-
-    const result = messenger(action);
-    expect(result).toBe("element 'link' with modifiers: {\"ctrl\":true,\"shift\":false}");
+    expect(result).toBe("Clicking on element 'button' 3 times");
   });
 
   test('should handle unknown action gracefully', () => {

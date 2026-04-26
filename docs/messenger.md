@@ -24,7 +24,7 @@ Messages follow the pattern:
 ## Actions Logged
 
 - Navigation: `find`, `findAll`
-- Click variants: `click`, `doubleclick`, `rightclick`, `longpress`, `multipleclick`, `clickwithmodifier`
+- Click variants: `click`, `doubleclick`, `rightclick`, `longpress`, `multipleclick`
 - Input: `write`, `focus`, `clear`, `overwrite`
 - Drag/Drop: `drag`, `drop`
 - Interaction: `hover`, `scroll`, `upload`

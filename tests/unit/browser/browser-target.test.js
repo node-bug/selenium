@@ -153,47 +153,12 @@ describe('BrowserTarget (ESM)', () => {
     });
   });
 
-  describe('title()', () => {
+  describe('identifier()', () => {
     test('sets the target title and returns the instance for chaining', () => {
-      const result = browserTarget.title('Test Title');
+      const result = browserTarget.identifier('Test Title');
       
       expect(result).toBe(browserTarget);
       expect(browserTarget._targetTitle).toBe('Test Title');
-    });
-  });
-
-  describe('smartPrepare()', () => {
-    test('sets the pending title for smart focus', () => {
-      browserTarget.smartPrepare('Google');
-      
-      expect(browserTarget._pendingTitle).toBe('Google');
-    });
-  });
-
-  describe('_ensureFocus()', () => {
-    test('does nothing when no pending title', async () => {
-      await browserTarget._ensureFocus();
-      
-      expect(mockDriver.getTitle).not.toHaveBeenCalled();
-    });
-
-    test('switches to window by index when pending title is a number', async () => {
-      browserTarget._pendingTitle = 1;
-      mockDriver.getAllWindowHandles.mockResolvedValue(['handle1', 'handle2']);
-      
-      await browserTarget._ensureFocus();
-      
-      expect(mockSwitchTo.window).toHaveBeenCalledWith('handle2');
-    });
-
-    test('switches to window by title when pending title is a string', async () => {
-      browserTarget._pendingTitle = 'Different Title';
-      mockDriver.getTitle.mockResolvedValue('Google');
-      jest.spyOn(browserTarget, 'switch').mockResolvedValue(true);
-      
-      await browserTarget._ensureFocus();
-      
-      expect(browserTarget.switch).toHaveBeenCalled();
     });
   });
 

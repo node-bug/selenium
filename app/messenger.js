@@ -43,7 +43,7 @@ const ACTION_MAP = {
 const ELEMENT_TYPES = new Set([
   'link', 'navigation', 'heading', 'button', 'checkbox', 
   'radio', 'slider', 'combobox', 'textbox', 'file', 'list', 
-  'listitem', 'menu', 'menuitem', 'tab', 'toolbar', 'dialog', 
+  'listitem', 'menu', 'menuitem', 'toolbar', 'dialog', 
   'row', 'column', 'image', 'element', 'switch'
 ]);
 
@@ -86,9 +86,19 @@ export default function messenger(a) {
     waitVisibility: ' to be visible',
     waitInvisibility: ' to not be visible',
     isDisabled: ' is disabled',
-    click: (a.x !== null && a.y !== null && a.x !== undefined && a.y !== undefined) ? ` at location x:${a.x} y:${a.y}` : '',
-    multipleclick: (a.times !== undefined) ? ` ${a.times} times` : '',
-    clickwithmodifier: (a.options !== undefined) ? ` with modifiers: ${JSON.stringify(a.options)}` : '',
+    click: (a) => {
+      let suffix = '';
+      if (a.modifiers && a.modifiers.length > 0) {
+        suffix += ` with modifiers ${a.modifiers.map(m => m.toUpperCase()).join('+')}`;
+      }
+      if (a.x !== null && a.y !== null && a.x !== undefined && a.y !== undefined) {
+        suffix += ` at location x:${a.x} y:${a.y}`;
+      }
+      if (a.times !== undefined) {
+        suffix += ` ${a.times} times`;
+      }
+      return suffix || '';
+    },
     on: ' to on',
     off: ' to off',
     isOn: ' is ON',
@@ -98,7 +108,8 @@ export default function messenger(a) {
   };
 
   if (suffixes[a.action]) {
-    message += suffixes[a.action];
+    const suffixEntry = suffixes[a.action];
+    message += (typeof suffixEntry === 'function') ? suffixEntry(a) : suffixEntry;
   }
 
   log.info(message);

@@ -21,7 +21,7 @@ describe('ElementTypes', () => {
     });
 
     it('should have expected element types in definitions', () => {
-      const expectedTypes = ['link', 'navigation', 'heading', 'button', 'checkbox', 'radio', 'slider', 'combobox', 'textbox', 'file', 'list', 'listitem', 'menu', 'menuitem', 'tab', 'toolbar', 'dialog', 'row', 'column', 'image', 'element'];
+      const expectedTypes = ['link', 'navigation', 'heading', 'button', 'checkbox', 'radio', 'slider', 'combobox', 'textbox', 'file', 'list', 'listitem', 'menu', 'menuitem', 'toolbar', 'dialog', 'row', 'column', 'image', 'element'];
       expectedTypes.forEach(type => {
         expect(elementTypes.definitions).toHaveProperty(type);
       });

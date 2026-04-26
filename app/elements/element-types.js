@@ -31,7 +31,6 @@ export class ElementTypes {
       menuitem: `@role='menuitem'`,
 
       // Containers & Layout
-      tab: `@role='tab'`,
       toolbar: `@role='toolbar'`,
       dialog: `@role='dialog'`,
 

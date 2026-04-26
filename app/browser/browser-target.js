@@ -13,7 +13,6 @@ const selenium = config('selenium');
  * @property {Object} driver - Selenium WebDriver instance
  * @property {string} _label - Label for the target type (Window/Tab)
  * @property {string} _targetTitle - Target title for switching
- * @property {string} _pendingTitle - Title that needs to be active before next command
  */
 export class BrowserTarget {
     /**
@@ -53,75 +52,6 @@ export class BrowserTarget {
     get driver() { return this._driver; }
 
     /**
-     * Getters for target properties
-     * 
-     * @returns {Object} Object with getter methods for title and URL
-     */
-    get get() {
-        return {
-            /**
-             * Get the title of the current target
-             * 
-             * @returns {Promise<string>} Title of the current target
-             * @example
-             * const title = await browser.window().get.title();
-             */
-            title: async () => {
-                try {
-                    await this._ensureFocus(); // 'this' correctly points to the Window/Tab
-                    return await this._driver.getTitle();
-                } catch (err) {
-                    log.error(`Unrecognized error while getting the ${this._label.toLowerCase()} title : ${err.message}`);
-                    throw err;
-                }
-            },
-            /**
-             * Get the URL of the current target
-             * 
-             * @returns {Promise<string>} URL of the current target
-             * @example
-             * const url = await browser.window().get.url();
-             */
-            url: async () => {
-                try {
-                    await this._ensureFocus(); // Ensuring focus before fetching URL
-                    return await this._driver.getCurrentUrl();
-                } catch (err) {
-                    log.error(`Unrecognized error while getting the current URL : ${err.message}`);
-                    throw err;
-                }
-            },
-            /**
-             * Get console errors from the current target (window or tab)
-             * @returns {Promise<Array>} Array of console error entries
-             * @example
-             * const errors = await browser.window().get.consoleErrors();
-             */
-            consoleErrors: async () => {
-                try {
-                    const title = await this.get.title()
-                    log.info(`Getting console errors on ${this._label.toLowerCase()} '${title}'`)
-
-                    const entries = []
-                    const logs = []
-
-                    const promises = ['browser'].map(async (type) => {
-                        entries.push(...(await this.driver.manage().logs().get(type)))
-                    })
-
-                    await Promise.all(promises)
-                    logs.push(...entries.filter((entry) => entry.level.name === 'SEVERE'))
-                    log.info(`Found ${logs.length} console error(s) on ${this._label.toLowerCase()} '${title}'`)
-                    return logs
-                } catch (err) {
-                    log.error(`Error getting console errors: ${err.message}`)
-                    throw err
-                }
-            }
-        };
-    }
-
-    /**
      * Get the default timeout value
      * 
      * @returns {number} Timeout value in milliseconds
@@ -141,47 +71,9 @@ export class BrowserTarget {
      * @param {string|number} value - Target title or index
      * @returns {this} Returns the BrowserTarget instance for chaining
      */
-    title(value) {
+    identifier(value) {
         this._targetTitle = value;
         return this;
-    }
-
-    /**
-     * Stores a title that MUST be active before the next command.
-     * 
-     * @param {string} title - Title that needs to be active
-     * @example
-     * browser.window().smartPrepare('Google');
-     * await browser.window().get.title(); // Will ensure focus on Google window
-     */
-    smartPrepare(title) {
-        this._pendingTitle = title;
-    }
-
-    /**
-     * Internal helper to ensure we are on the right target 
-     * before executing get.url(), maximize(), etc.
-     * 
-     * @private
-     * @returns {Promise<void>} Resolves when focus is ensured
-     */
-    async _ensureFocus() {
-        if (!this._pendingTitle) return;
-
-        // INDEX BASED SMART FOCUS
-        if (typeof this._pendingTitle === 'number') {
-            log.debug(`SmartSwitch: Ensuring focus on ${this._label} index ${this._pendingTitle}`);
-            await this.title(this._pendingTitle).switch();
-        }
-        // NAME BASED SMART FOCUS
-        else {
-            const currentTitle = await this.driver.getTitle();
-            if (!currentTitle.includes(this._pendingTitle)) {
-                log.debug(`SmartSwitch: Current title '${currentTitle}' does not match '${this._pendingTitle}'. Switching...`);
-                await this.title(this._pendingTitle).switch();
-            }
-        }
-        this._pendingTitle = undefined;
     }
 
     /**
@@ -192,8 +84,13 @@ export class BrowserTarget {
      * @param {number} [customTimeout] - Custom timeout value
      * @returns {Promise<boolean>} True if target was found
      */
-    async _findTarget(shouldSwitch, customTimeout) {
+    async _findTarget(shouldSwitch, customTimeout = undefined) {
         const timeout = customTimeout ?? this.timeout;
+        if([null, undefined].includes(this._targetTitle))
+        {
+            log.debug(`No ${this._label} target index or name specified. Using current ${this._label}.`)
+            return true
+        }
 
         // 1. FAST PATH FOR INDEX-BASED SWITCHING
         try {
@@ -202,8 +99,7 @@ export class BrowserTarget {
                 if (this._targetTitle >= handles.length || this._targetTitle < 0) {
                     log.info(`${this._label} with index ${this._targetTitle} was not found on screen after '${timeout} ms' timeout`);
                     if (shouldSwitch) {
-                        log.error(`Failed to switch to ${this._label} with index ${this._targetTitle} after '${timeout} ms' timeout`);
-                        throw new Error(`Failed to switch to ${this._label} with index ${this._targetTitle} after '${timeout} ms' timeout`);
+                        throw new Error(`Failed to switch to ${this._label} with index ${this._targetTitle}`);
                     }
                     return false;
                 } else {
@@ -225,7 +121,7 @@ export class BrowserTarget {
                 if (err.name === 'NoSuchWindowError') {
                     log.error(`The active ${this._label} was closed. Is that expected?`);
                 } else {
-                    log.error(`Unrecognized error while switching ${this._label}. ${err}`);
+                    log.error(`Error while switching ${this._label}. ${err}`);
                     throw err;
                 }
             }
@@ -238,7 +134,9 @@ export class BrowserTarget {
                     const handles = await this.driver.getAllWindowHandles();
                     for (const handle of handles) {
                         await this.driver.switchTo().window(handle);
-                        const currentTitle = await this.get.title();
+                        // Call driver directly to avoid recursive _findTarget calls
+                        // (this.get.title() would call _findTarget again, causing infinite recursion)
+                        const currentTitle = await this._driver.getTitle();
 
                         if (currentTitle.includes(this._targetTitle)) {
                             if (shouldSwitch) {
@@ -251,7 +149,7 @@ export class BrowserTarget {
                         }
                     }
                 } catch (err) {
-                    log.error(`Unrecognized error while checking ${this._label} is displayed : ${err.message}`);
+                    log.error(`Error while checking ${this._label} is displayed : ${err.message}`);
                     throw err;
                 }
                 await new Promise(r => setTimeout(r, 200));
@@ -278,7 +176,7 @@ export class BrowserTarget {
      * await browser.window().close();
      */
     async close() {
-        log.info(`Closing ${this._label} with title '${await this.get.title()}'`);
+        log.info(`Closing ${this._label} with title '${await this.driver.getTitle()}'`);
         await this.driver.close();
         const handles = await this.driver.getAllWindowHandles();
         if (handles.length <= 0) {
@@ -286,7 +184,7 @@ export class BrowserTarget {
         } else {
             await this.driver.switchTo().window(handles[0]);
         }
-        log.info(`Currently active ${this._label} is '${await this.get.title()}'`);
+        log.info(`Currently active ${this._label} is '${await this.driver.getTitle()}'`);
         return true;
     }
 
@@ -312,5 +210,78 @@ export class BrowserTarget {
         const found = await this._findTarget(true, t);
         if (!found) throw new Error(`Target "${this._targetTitle}" not found`);
         return true;
+    }
+
+    /**
+     * Getters for target properties
+     * 
+     * @returns {Object} Object with getter methods for title and URL
+     */
+    get get() {
+        return {
+            /**
+             * Get the title of the current target
+             * 
+             * @returns {Promise<string>} Title of the current target
+             * @example
+             * const title = await browser.window().get.title();
+             */
+            title: async () => {
+                try {
+                    await this._findTarget(true); // 'this' correctly points to the Window/Tab
+                    const title = await this._driver.getTitle();
+                    log.info(`Getting the ${this._label.toLowerCase()} title. Title is '${title}'`)
+                    return title
+                } catch (err) {
+                    log.error(`Error while getting the ${this._label.toLowerCase()} title : ${err.message}`);
+                    throw err;
+                }
+            },
+            /**
+             * Get the URL of the current target
+             * 
+             * @returns {Promise<string>} URL of the current target
+             * @example
+             * const url = await browser.window().get.url();
+             */
+            url: async () => {
+                try {
+                    await this._findTarget(true); // Ensuring focus before fetching URL
+                    const url = await this._driver.getCurrentUrl();
+                    log.info(`Getting the ${this._label.toLowerCase()} url. Url is '${url}'`)
+                    return url
+                } catch (err) {
+                    log.error(`Error while getting the current URL. ${err.message}`);
+                    throw err;
+                }
+            },
+            /**
+             * Get console errors from the current target (window or tab)
+             * @returns {Promise<Array>} Array of console error entries
+             * @example
+             * const errors = await browser.window().get.consoleErrors();
+             */
+            consoleErrors: async () => {
+                try {
+                    const title = await this.driver.getTitle()
+                    log.info(`Getting console errors on ${this._label.toLowerCase()} '${title}'`)
+
+                    const entries = []
+                    const logs = []
+
+                    const promises = ['browser'].map(async (type) => {
+                        entries.push(...(await this.driver.manage().logs().get(type)))
+                    })
+
+                    await Promise.all(promises)
+                    logs.push(...entries.filter((entry) => entry.level.name === 'SEVERE'))
+                    log.info(`Found ${logs.length} console error(s) on ${this._label.toLowerCase()} '${title}'`)
+                    return logs
+                } catch (err) {
+                    log.error(`Error getting console errors: ${err.message}`)
+                    throw err
+                }
+            }
+        };
     }
 }
