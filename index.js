@@ -702,7 +702,10 @@ class WebBrowser extends Browser {
    * @example
    * browser.element('target').above().element('other').click();
    */
-  above() { return this.relativePositioner('above'); }
+  above() {
+    this.stack.push({ type: 'location', located: 'above' });
+    return this;
+  }
 
   /**
    * Targets an element below the currently referenced element.
@@ -711,7 +714,10 @@ class WebBrowser extends Browser {
    * @example
    * browser.element('target').below().element('other').click();
    */
-  below() { return this.relativePositioner('below'); }
+  below() {
+    this.stack.push({ type: 'location', located: 'below' });
+    return this;
+  }
 
   /**
    * Targets an element to the left of the currently referenced element.
@@ -720,7 +726,10 @@ class WebBrowser extends Browser {
    * @example
    * browser.element('target').toLeftOf().element('other').click();
    */
-  toLeftOf() { return this.relativePositioner('toLeftOf'); }
+  toLeftOf() {
+    this.stack.push({ type: 'location', located: 'toLeftOf' });
+    return this;
+  }
 
   /**
    * Targets an element to the right of the currently referenced element.
@@ -729,7 +738,9 @@ class WebBrowser extends Browser {
    * @example
    * browser.element('target').toRightOf().element('other').click();
    */
-  toRightOf() { return this.relativePositioner('toRightOf'); }
+  toRightOf() { 
+    this.stack.push({ type: 'location', located: 'toRightOf' });
+    return this; }
 
   /**
    * Targets an element located inside another element.
@@ -909,6 +920,110 @@ class WebBrowser extends Browser {
    */
   async overwrite(value) {
     return await this.#inputDelegate.overwrite(value);
+  }
+
+  /**
+   * Presses a keyboard key, optionally with modifier keys.
+   * 
+   * Sends a key press to the currently focused element using Selenium's Actions API.
+   * Supports modifier keys via chaining: `browser.ctrl.press('c')` for Ctrl+C.
+   * 
+   * @param {string} key - The key to press (e.g., 'Enter', 'Tab', 'Escape', 'a', 'c')
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.press('Enter');
+   * await browser.press('Tab');
+   * await browser.press('Escape');
+   * await browser.ctrl.press('c'); // Ctrl+C
+   * await browser.ctrl.shift.press('c'); // Ctrl+Shift+C
+   * await browser.alt.press('Tab'); // Alt+Tab
+   * await browser.meta.press('w'); // Cmd+W on Mac
+   */
+  async press(key) {
+    return await this.#inputDelegate.press(key);
+  }
+
+  /**
+   * Types a string character-by-character on the currently focused element.
+   *
+   * Each character is sent individually via Selenium's Actions API, with optional
+   * modifier keys held during the entire sequence. This is a terminal operation —
+   * the stack is cleared after execution.
+   *
+   * @param {string} text - The string to type character by character
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.element('username').type('myusername');
+   * await browser.ctrl.type('a'); // Ctrl+a
+   * await browser.shift.type('abc'); // Types 'ABC'
+   * await browser.ctrl.shift.type('abc'); // Ctrl+Shift held during typing
+   */
+  async type(text) {
+    return await this.#inputDelegate.type(text);
+  }
+
+  /**
+   * Presses the Left Arrow key a specified number of times.
+   *
+   * @param {number} [count=1] - Number of times to press the left arrow key
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.left();       // Press left arrow once
+   * await browser.left(5);      // Press left arrow 5 times
+   */
+  async left(count = 1) {
+    for (let i = 0; i < count; i++) {
+      await this.press('left');
+    }
+    return true;
+  }
+
+  /**
+   * Presses the Right Arrow key a specified number of times.
+   *
+   * @param {number} [count=1] - Number of times to press the right arrow key
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.right();       // Press right arrow once
+   * await browser.right(3);      // Press right arrow 3 times
+   */
+  async right(count = 1) {
+    for (let i = 0; i < count; i++) {
+      await this.press('right');
+    }
+    return true;
+  }
+
+  /**
+   * Presses the Up Arrow key a specified number of times.
+   *
+   * @param {number} [count=1] - Number of times to press the up arrow key
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.up();       // Press up arrow once
+   * await browser.up(2);      // Press up arrow 2 times
+   */
+  async up(count = 1) {
+    for (let i = 0; i < count; i++) {
+      await this.press('up');
+    }
+    return true;
+  }
+
+  /**
+   * Presses the Down Arrow key a specified number of times.
+   *
+   * @param {number} [count=1] - Number of times to press the down arrow key
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.down();       // Press down arrow once
+   * await browser.down(4);      // Press down arrow 4 times
+   */
+  async down(count = 1) {
+    for (let i = 0; i < count; i++) {
+      await this.press('down');
+    }
+    return true;
   }
 }
 

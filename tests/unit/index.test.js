@@ -48,6 +48,7 @@ jest.unstable_mockModule('../../app/command-delegates/input-delegate.js', () => 
         focus: jest.fn(),
         clear: jest.fn(),
         overwrite: jest.fn(),
+        press: jest.fn().mockResolvedValue(true),
     })),
 }));
 
@@ -401,5 +402,84 @@ describe('WebBrowser', () => {
         await expect(browser.drop()).rejects.toThrow(
             /Invalid drag-and-drop/
         );
+    });
+
+    describe('arrow key methods', () => {
+        beforeEach(() => {
+            // Tests use public methods directly via the browser instance
+        });
+
+        test('left() presses left arrow once by default', async () => {
+            const pressSpy = jest.spyOn(Object.getPrototypeOf(browser), 'press').mockResolvedValue(true);
+            await browser.left();
+            expect(pressSpy).toHaveBeenCalledTimes(1);
+            expect(pressSpy).toHaveBeenCalledWith('left');
+            pressSpy.mockRestore();
+        });
+
+        test('left(n) presses left arrow n times', async () => {
+            const pressSpy = jest.spyOn(Object.getPrototypeOf(browser), 'press').mockResolvedValue(true);
+            await browser.left(5);
+            expect(pressSpy).toHaveBeenCalledTimes(5);
+            pressSpy.mockRestore();
+        });
+
+        test('right() presses right arrow once by default', async () => {
+            const pressSpy = jest.spyOn(Object.getPrototypeOf(browser), 'press').mockResolvedValue(true);
+            await browser.right();
+            expect(pressSpy).toHaveBeenCalledTimes(1);
+            expect(pressSpy).toHaveBeenCalledWith('right');
+            pressSpy.mockRestore();
+        });
+
+        test('right(n) presses right arrow n times', async () => {
+            const pressSpy = jest.spyOn(Object.getPrototypeOf(browser), 'press').mockResolvedValue(true);
+            await browser.right(3);
+            expect(pressSpy).toHaveBeenCalledTimes(3);
+            pressSpy.mockRestore();
+        });
+
+        test('up() presses up arrow once by default', async () => {
+            const pressSpy = jest.spyOn(Object.getPrototypeOf(browser), 'press').mockResolvedValue(true);
+            await browser.up();
+            expect(pressSpy).toHaveBeenCalledTimes(1);
+            expect(pressSpy).toHaveBeenCalledWith('up');
+            pressSpy.mockRestore();
+        });
+
+        test('up(n) presses up arrow n times', async () => {
+            const pressSpy = jest.spyOn(Object.getPrototypeOf(browser), 'press').mockResolvedValue(true);
+            await browser.up(4);
+            expect(pressSpy).toHaveBeenCalledTimes(4);
+            pressSpy.mockRestore();
+        });
+
+        test('down() presses down arrow once by default', async () => {
+            const pressSpy = jest.spyOn(Object.getPrototypeOf(browser), 'press').mockResolvedValue(true);
+            await browser.down();
+            expect(pressSpy).toHaveBeenCalledTimes(1);
+            expect(pressSpy).toHaveBeenCalledWith('down');
+            pressSpy.mockRestore();
+        });
+
+        test('down(n) presses down arrow n times', async () => {
+            const pressSpy = jest.spyOn(Object.getPrototypeOf(browser), 'press').mockResolvedValue(true);
+            await browser.down(2);
+            expect(pressSpy).toHaveBeenCalledTimes(2);
+            pressSpy.mockRestore();
+        });
+
+        test('arrow key methods return true', async () => {
+            const pressSpy = jest.spyOn(Object.getPrototypeOf(browser), 'press').mockResolvedValue(true);
+            const leftResult = await browser.left();
+            const rightResult = await browser.right();
+            const upResult = await browser.up();
+            const downResult = await browser.down();
+            expect(leftResult).toBe(true);
+            expect(rightResult).toBe(true);
+            expect(upResult).toBe(true);
+            expect(downResult).toBe(true);
+            pressSpy.mockRestore();
+        });
     });
 });

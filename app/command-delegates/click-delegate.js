@@ -57,6 +57,7 @@ export class ClickDelegate {
     } catch (err) {
       browser.handleError(err, 'clicking');
     } finally {
+      browser._resetMods()
       browser.stack = [];
     }
     return true;
@@ -258,7 +259,6 @@ export class ClickDelegate {
     // Use Actions API for modifier keys or coordinate clicks
     try {
       const actions = browser.actions();
-
       // Press modifier keys
       if (mods.control) actions.keyDown(Key.CONTROL);
       if (mods.shift) actions.keyDown(Key.SHIFT);
@@ -281,11 +281,9 @@ export class ClickDelegate {
       } else {
         actions.click(e);
       }
-
       await actions.perform();
     } finally {
       const actions = browser.actions();
-      // Release modifier keys
       if (mods.meta) if (platformName === 'mac') actions.keyUp(Key.COMMAND); else actions.keyUp(Key.META);
       if (mods.alt) actions.keyUp(Key.ALT);
       if (mods.shift) actions.keyUp(Key.SHIFT);

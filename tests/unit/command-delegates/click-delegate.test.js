@@ -83,6 +83,7 @@ describe('ClickDelegate (ESM)', () => {
       handleError: jest.fn(),
       message: null,
       _tempMods: { control: false, shift: false, alt: false, meta: false },
+      _resetMods: jest.fn(),
 
       // REQUIRED
       _finder: jest.fn().mockResolvedValue(mockElement),

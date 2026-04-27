@@ -22,11 +22,13 @@ export class SelectorStackBuilder {
   }
 
   exact() {
-    return this.#setFlag('exact', true);
+    this.#setFlag('exact', true);
+    return this.parent;
   }
 
   hidden() {
-    return this.#setFlag('hidden', true);
+    this.#setFlag('hidden', true);
+    return this.parent;
   }
 
   element(data) {

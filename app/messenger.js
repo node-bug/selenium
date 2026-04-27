@@ -17,6 +17,8 @@ const ACTION_MAP = {
   write: (a) => `Writing '${a.data}' into `,
   clear: () => 'Clearing text in ',
   overwrite: (a) => `Clearing and writing text '${a.data}' into `,
+  press: (a) => `Pressing key '${a.data}' in `,
+  type: (a) => `Typing '${a.data}' into `,
   select: (a) => `Selecting '${a.data}' from dropdown `,
   isVisible: () => 'Checking ',
   isDisabled: () => 'Checking ',
@@ -98,6 +100,18 @@ export default function messenger(a) {
         suffix += ` ${a.times} times`;
       }
       return suffix || '';
+    },
+    press: (a) => {
+      if (a.modifiers && a.modifiers.length > 0) {
+        return ` with modifiers ${a.modifiers.map(m => m.toUpperCase()).join('+')}`;
+      }
+      return '';
+    },
+    type: (a) => {
+      if (a.modifiers && a.modifiers.length > 0) {
+        return ` with modifiers ${a.modifiers.map(m => m.toUpperCase()).join('+')}`;
+      }
+      return '';
     },
     on: ' to on',
     off: ' to off',
