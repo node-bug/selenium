@@ -40,7 +40,7 @@ Execute the stack and perform actions. Return value or reset stack.
 
 **Input Operations**
 
-- `write()`, `clear()`, `overwrite()`, `focus()`
+- `write()`, `clear()`, `overwrite()`, `focus()`, `press()`, `type()`, `left()`, `right()`, `up()`, `down()`
 
 **File Operations**
 

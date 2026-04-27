@@ -353,6 +353,107 @@ await browser.textbox('Email').focus()
 
 **Returns**: `Promise<boolean>`
 
+### press(key)
+
+Press a keyboard key on the currently focused element.
+
+```javascript
+await browser.press('Enter')
+await browser.press('Tab')
+await browser.press('Escape')
+await browser.ctrl.press('c') // Ctrl+C
+await browser.ctrl.shift.press('c') // Ctrl+Shift+C
+await browser.alt.press('Tab') // Alt+Tab
+await browser.meta.press('w') // Cmd+W on Mac
+```
+
+**Parameters**:
+
+- `key` (string): Key to press (e.g., `'Enter'`, `'Tab'`, `'Escape'`, `'a'`, `'left'`, `'right'`, `'up'`, `'down'`)
+
+**Returns**: `Promise<boolean>`
+
+### type(text)
+
+Type a string character-by-character on the currently focused element. Each character is sent individually via Selenium's Actions API, with optional modifier keys held during the entire sequence. This is a terminal operation — the stack is cleared after execution.
+
+```javascript
+await browser.element('username').type('myusername')
+await browser.ctrl.type('a') // Types 'a' while holding Ctrl
+await browser.shift.type('abc') // Types 'abc' while holding Shift
+await browser.ctrl.shift.type('abc') // Types 'abc' while holding Ctrl+Shift
+await browser.alt.type('abc') // Types 'abc' while holding Alt
+await browser.meta.type('abc') // Types 'abc' while holding Cmd (Mac) / Win (Windows)
+```
+
+**Parameters**:
+
+- `text` (string): The string to type character by character
+
+**Returns**: `Promise<boolean>`
+
+**Modifiers**: Chain `ctrl`, `shift`, `alt`, or `meta` before the element selector to hold modifier keys during typing. Modifiers are automatically released after the operation.
+
+### left([count])
+
+Press the Left Arrow key a specified number of times.
+
+```javascript
+await browser.left() // Press left arrow once
+await browser.left(5) // Press left arrow 5 times
+```
+
+**Parameters**:
+
+- `count` (number, optional): Number of times to press (default: 1)
+
+**Returns**: `Promise<boolean>`
+
+### right([count])
+
+Press the Right Arrow key a specified number of times.
+
+```javascript
+await browser.right() // Press right arrow once
+await browser.right(3) // Press right arrow 3 times
+```
+
+**Parameters**:
+
+- `count` (number, optional): Number of times to press (default: 1)
+
+**Returns**: `Promise<boolean>`
+
+### up([count])
+
+Press the Up Arrow key a specified number of times.
+
+```javascript
+await browser.up() // Press up arrow once
+await browser.up(2) // Press up arrow 2 times
+```
+
+**Parameters**:
+
+- `count` (number, optional): Number of times to press (default: 1)
+
+**Returns**: `Promise<boolean>`
+
+### down([count])
+
+Press the Down Arrow key a specified number of times.
+
+```javascript
+await browser.down() // Press down arrow once
+await browser.down(4) // Press down arrow 4 times
+```
+
+**Parameters**:
+
+- `count` (number, optional): Number of times to press (default: 1)
+
+**Returns**: `Promise<boolean>`
+
 ### upload(filePath)
 
 Upload a file.
