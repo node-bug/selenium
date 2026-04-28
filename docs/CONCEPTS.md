@@ -73,12 +73,12 @@ For form elements (input, checkbox, radio, select), the library searches associa
 Specify element types to differentiate elements with identical text:
 
 - `button`, `link`, `image` - Interactive elements
-- `textbox` (aliases: `input`, `field`, `edit`, `email`, `search`) - Text inputs
+- `textbox` (works for `input`, `field`, `edit`, `email`, `search`) - Text inputs
 - `checkbox` - Checkboxes
 - `switch` - Switches
-- `radio` (alias: `radiobutton`) - Radio buttons
-- `dropdown` (alias: `select`) - Dropdowns
-- `file` (alias: `inputfile`) - File inputs
+- `radio` (works for `radiobutton`) - Radio buttons
+- `dropdown` (works for `select`) - Dropdowns
+- `file` (works for `inputfile`) - File inputs
 - `label`, `toolbar`, `dialog`, `navigation`, `heading`, `slider`, `combobox`, `list`, `listitem`, `menu`, `menuitem`, `alert`, `row`, `column` - Semantic elements
 
 ```javascript
