@@ -177,7 +177,6 @@ export class InputDelegate {
     const platformName = (await browser.driver.getCapabilities()).get('platformName').replace(/\s/g, '');
     try {
       if (browser.stack.length > 0) await this.focus();
-
       const actions = browser.actions();
 
       if (mods.control) actions.keyDown(Key.CONTROL);
@@ -222,7 +221,7 @@ export class InputDelegate {
       const normalizedKey = key.toLowerCase();
       const resolvedKey = keyMap[normalizedKey] || key;
       actions.sendKeys(resolvedKey);
-
+      
       await actions.perform();
     } catch (err) {
       browser.handleError(err, `pressing key '${key}'`);
