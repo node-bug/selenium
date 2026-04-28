@@ -31,9 +31,9 @@ describe('SelectorStackBuilder', () => {
       expect(mockStack[0]).toEqual({ exact: true, hidden: false });
     });
 
-    test('should return this for chaining', () => {
+    test('should return parent for chaining', () => {
       const result = selectorStackBuilder.exact();
-      expect(result).toBe(selectorStackBuilder);
+      expect(result).toBe(mockParent);
     });
   });
 
@@ -43,9 +43,9 @@ describe('SelectorStackBuilder', () => {
       expect(mockStack[0]).toEqual({ exact: false, hidden: true });
     });
 
-    test('should return this for chaining', () => {
+    test('should return parent for chaining', () => {
       const result = selectorStackBuilder.hidden();
-      expect(result).toBe(selectorStackBuilder);
+      expect(result).toBe(mockParent);
     });
   });
 
@@ -66,7 +66,8 @@ describe('SelectorStackBuilder', () => {
     });
 
     test('should handle exact flag when adding element', () => {
-      selectorStackBuilder.exact().element('test-id');
+      selectorStackBuilder.exact();
+      selectorStackBuilder.element('test-id');
       
       expect(mockStack[0]).toEqual({
         type: 'element',
@@ -79,7 +80,8 @@ describe('SelectorStackBuilder', () => {
     });
 
     test('should handle hidden flag when adding element', () => {
-      selectorStackBuilder.hidden().element('test-id');
+      selectorStackBuilder.hidden();
+      selectorStackBuilder.element('test-id');
       
       expect(mockStack[0]).toEqual({
         type: 'element',
@@ -92,7 +94,9 @@ describe('SelectorStackBuilder', () => {
     });
 
     test('should handle both exact and hidden flags when adding element', () => {
-      selectorStackBuilder.exact().hidden().element('test-id');
+      selectorStackBuilder.exact();
+      selectorStackBuilder.hidden();
+      selectorStackBuilder.element('test-id');
       
       expect(mockStack[0]).toEqual({
         type: 'element',

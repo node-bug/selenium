@@ -702,7 +702,10 @@ class WebBrowser extends Browser {
    * @example
    * browser.element('target').above().element('other').click();
    */
-  above() { return this.relativePositioner('above'); }
+  above() {
+    this.stack.push({ type: 'location', located: 'above' });
+    return this;
+  }
 
   /**
    * Targets an element below the currently referenced element.
@@ -711,7 +714,10 @@ class WebBrowser extends Browser {
    * @example
    * browser.element('target').below().element('other').click();
    */
-  below() { return this.relativePositioner('below'); }
+  below() {
+    this.stack.push({ type: 'location', located: 'below' });
+    return this;
+  }
 
   /**
    * Targets an element to the left of the currently referenced element.
@@ -720,7 +726,10 @@ class WebBrowser extends Browser {
    * @example
    * browser.element('target').toLeftOf().element('other').click();
    */
-  toLeftOf() { return this.relativePositioner('toLeftOf'); }
+  toLeftOf() {
+    this.stack.push({ type: 'location', located: 'toLeftOf' });
+    return this;
+  }
 
   /**
    * Targets an element to the right of the currently referenced element.
@@ -729,7 +738,9 @@ class WebBrowser extends Browser {
    * @example
    * browser.element('target').toRightOf().element('other').click();
    */
-  toRightOf() { return this.relativePositioner('toRightOf'); }
+  toRightOf() { 
+    this.stack.push({ type: 'location', located: 'toRightOf' });
+    return this; }
 
   /**
    * Targets an element located inside another element.
@@ -930,6 +941,25 @@ class WebBrowser extends Browser {
    */
   async press(key) {
     return await this.#inputDelegate.press(key);
+  }
+
+  /**
+   * Types a string character-by-character on the currently focused element.
+   *
+   * Each character is sent individually via Selenium's Actions API, with optional
+   * modifier keys held during the entire sequence. This is a terminal operation —
+   * the stack is cleared after execution.
+   *
+   * @param {string} text - The string to type character by character
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.element('username').type('myusername');
+   * await browser.ctrl.type('a'); // Ctrl+a
+   * await browser.shift.type('abc'); // Types 'ABC'
+   * await browser.ctrl.shift.type('abc'); // Ctrl+Shift held during typing
+   */
+  async type(text) {
+    return await this.#inputDelegate.type(text);
   }
 
   /**

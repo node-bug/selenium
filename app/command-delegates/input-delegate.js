@@ -166,14 +166,18 @@ export class InputDelegate {
   async press(key) {
     const browser = this.browser;
     const mods = browser._tempMods;
+
     const modifiers = [];
     if (mods.control) modifiers.push('ctrl');
     if (mods.shift) modifiers.push('shift');
     if (mods.alt) modifiers.push('alt');
     if (mods.meta) modifiers.push('meta');
     browser.message = messenger({ stack: browser.stack, action: 'press', data: key, modifiers });
+
+    const platformName = (await browser.driver.getCapabilities()).get('platformName').replace(/\s/g, '');
     try {
-      const platformName = (await browser.driver.getCapabilities()).get('platformName').replace(/\s/g, '');
+      if (browser.stack.length > 0) await this.focus();
+      
       const actions = browser.actions();
 
       // Press modifier keys
@@ -222,12 +226,21 @@ export class InputDelegate {
 
       const normalizedKey = key.toLowerCase();
       const resolvedKey = keyMap[normalizedKey] || key;
-
       actions.sendKeys(resolvedKey);
+      
       await actions.perform();
     } catch (err) {
       browser.handleError(err, `pressing key '${key}'`);
     } finally {
+      if (mods.control || mods.shift || mods.alt || mods.meta) {
+        const actions = browser.actions();
+        if (mods.control) actions.keyUp(Key.CONTROL);
+        if (mods.shift) actions.keyUp(Key.SHIFT);
+        if (mods.alt) actions.keyUp(Key.ALT);
+        if (mods.meta) if (platformName === 'mac') actions.keyUp(Key.COMMAND); else actions.keyUp(Key.META);
+        await actions.perform()
+      }
+      browser._resetMods()
       browser.stack = [];
     }
     return true;
@@ -250,34 +263,40 @@ export class InputDelegate {
   async type(value) {
     const browser = this.browser;
     const mods = browser._tempMods;
+
     const modifiers = [];
     if (mods.control) modifiers.push('ctrl');
     if (mods.shift) modifiers.push('shift');
     if (mods.alt) modifiers.push('alt');
     if (mods.meta) modifiers.push('meta');
     browser.message = messenger({ stack: browser.stack, action: 'type', data: value, modifiers });
+
+    const platformName = (await browser.driver.getCapabilities()).get('platformName').replace(/\s/g, '');
     try {
-      const platformName = (await browser.driver.getCapabilities()).get('platformName').replace(/\s/g, '');
+      if (browser.stack.length > 0) await this.focus();
+
       const actions = browser.actions();
 
-      // Press modifier keys
       if (mods.control) actions.keyDown(Key.CONTROL);
       if (mods.shift) actions.keyDown(Key.SHIFT);
       if (mods.alt) actions.keyDown(Key.ALT);
-      if (mods.meta) {
-        if (platformName === 'mac') actions.keyDown(Key.COMMAND);
-        else actions.keyDown(Key.META);
-      }
+      if (mods.meta) if (platformName === 'mac') actions.keyDown(Key.COMMAND); else actions.keyDown(Key.META);
 
-      // Type each character individually
-      for (const char of value) {
-        actions.sendKeys(char);
-      }
+      actions.sendKeys(value);
 
       await actions.perform();
     } catch (err) {
       browser.handleError(err, `typing '${value}'`);
     } finally {
+      if (mods.control || mods.shift || mods.alt || mods.meta) {
+        const actions = browser.actions();
+        if (mods.control) actions.keyUp(Key.CONTROL);
+        if (mods.shift) actions.keyUp(Key.SHIFT);
+        if (mods.alt) actions.keyUp(Key.ALT);
+        if (mods.meta) if (platformName === 'mac') actions.keyUp(Key.COMMAND); else actions.keyUp(Key.META);
+        await actions.perform();
+      }
+      browser._resetMods()
       browser.stack = [];
     }
     return true;

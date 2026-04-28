@@ -111,6 +111,7 @@ describe('InputDelegate (ESM)', () => {
       handleError: jest.fn(),
       message: null,
       _tempMods: { control: false, shift: false, alt: false, meta: false },
+      _resetMods: jest.fn(),
 
       // REQUIRED
       _finder: jest.fn().mockResolvedValue(mockElement),
@@ -559,9 +560,7 @@ describe('InputDelegate (ESM)', () => {
     test('types a multi-character string', async () => {
       await inputDelegate.type('abc');
 
-      expect(actionsMock.sendKeys).toHaveBeenCalledWith('a');
-      expect(actionsMock.sendKeys).toHaveBeenCalledWith('b');
-      expect(actionsMock.sendKeys).toHaveBeenCalledWith('c');
+      expect(actionsMock.sendKeys).toHaveBeenCalledWith('abc');
       expect(actionsMock.perform).toHaveBeenCalledTimes(1);
     });
 
@@ -571,9 +570,7 @@ describe('InputDelegate (ESM)', () => {
       await inputDelegate.type('abc');
 
       expect(actionsMock.keyDown).toHaveBeenCalledWith('\uE008');
-      expect(actionsMock.sendKeys).toHaveBeenCalledWith('a');
-      expect(actionsMock.sendKeys).toHaveBeenCalledWith('b');
-      expect(actionsMock.sendKeys).toHaveBeenCalledWith('c');
+      expect(actionsMock.sendKeys).toHaveBeenCalledWith('abc');
     });
 
     test('types with ctrl modifier', async () => {
@@ -582,9 +579,7 @@ describe('InputDelegate (ESM)', () => {
       await inputDelegate.type('abc');
 
       expect(actionsMock.keyDown).toHaveBeenCalledWith('\uE009');
-      expect(actionsMock.sendKeys).toHaveBeenCalledWith('a');
-      expect(actionsMock.sendKeys).toHaveBeenCalledWith('b');
-      expect(actionsMock.sendKeys).toHaveBeenCalledWith('c');
+      expect(actionsMock.sendKeys).toHaveBeenCalledWith('abc');
     });
 
     test('types with alt modifier', async () => {
@@ -593,9 +588,7 @@ describe('InputDelegate (ESM)', () => {
       await inputDelegate.type('abc');
 
       expect(actionsMock.keyDown).toHaveBeenCalledWith('\uE00A');
-      expect(actionsMock.sendKeys).toHaveBeenCalledWith('a');
-      expect(actionsMock.sendKeys).toHaveBeenCalledWith('b');
-      expect(actionsMock.sendKeys).toHaveBeenCalledWith('c');
+      expect(actionsMock.sendKeys).toHaveBeenCalledWith('abc');
     });
 
     test('types with meta modifier on Mac uses COMMAND', async () => {
@@ -604,9 +597,7 @@ describe('InputDelegate (ESM)', () => {
       await inputDelegate.type('abc');
 
       expect(actionsMock.keyDown).toHaveBeenCalledWith('\uE03D');
-      expect(actionsMock.sendKeys).toHaveBeenCalledWith('a');
-      expect(actionsMock.sendKeys).toHaveBeenCalledWith('b');
-      expect(actionsMock.sendKeys).toHaveBeenCalledWith('c');
+      expect(actionsMock.sendKeys).toHaveBeenCalledWith('abc');
     });
 
     test('types with meta modifier on Windows uses META', async () => {
@@ -618,9 +609,7 @@ describe('InputDelegate (ESM)', () => {
       await inputDelegate.type('abc');
 
       expect(actionsMock.keyDown).toHaveBeenCalledWith('\uE033');
-      expect(actionsMock.sendKeys).toHaveBeenCalledWith('a');
-      expect(actionsMock.sendKeys).toHaveBeenCalledWith('b');
-      expect(actionsMock.sendKeys).toHaveBeenCalledWith('c');
+      expect(actionsMock.sendKeys).toHaveBeenCalledWith('abc');
     });
 
     test('types with multiple modifiers Ctrl+Shift', async () => {
@@ -630,9 +619,7 @@ describe('InputDelegate (ESM)', () => {
 
       expect(actionsMock.keyDown).toHaveBeenCalledWith('\uE009');
       expect(actionsMock.keyDown).toHaveBeenCalledWith('\uE008');
-      expect(actionsMock.sendKeys).toHaveBeenCalledWith('a');
-      expect(actionsMock.sendKeys).toHaveBeenCalledWith('b');
-      expect(actionsMock.sendKeys).toHaveBeenCalledWith('c');
+      expect(actionsMock.sendKeys).toHaveBeenCalledWith('abc');
     });
 
     test('sets browser message with modifiers', async () => {
