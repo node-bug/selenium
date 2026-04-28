@@ -172,7 +172,7 @@ export class InputDelegate {
     if (mods.shift) modifiers.push('shift');
     if (mods.alt) modifiers.push('alt');
     if (mods.meta) modifiers.push('meta');
-    browser.message = messenger({ stack: browser.stack, action: 'press', data: value, modifiers });
+    browser.message = messenger({ stack: browser.stack, action: 'press', data: key, modifiers });
 
     const platformName = (await browser.driver.getCapabilities()).get('platformName').replace(/\s/g, '');
     try {
