@@ -184,6 +184,39 @@ export class LocatorStrategy extends ElementTypes {
         }
       });
     }
+
+    if (found.length < 1) {
+      const frames = await this.driver.findElements(By.xpath('//iframe'));
+      const frameIndices = [-1, ...frames.keys()]; // -1 represents default content
+
+      for (const i of frameIndices) {
+        await this._withContext(i, async () => {
+          const xpaths = this.getSelectors(elementData.id, elementData.exact);
+          const targetXpath = xpaths['element'];
+
+          let elements = await this.driver.findElements(By.xpath(targetXpath));
+          for (const [index, element] of elements.entries()) {
+            elements[index] = await this.nearestElement(element, elementData.type)
+          }
+
+          if (elements.length > 0) {
+            // 1. Tag the elements with the frame index first
+            elements.forEach(el => el.frame = i);
+
+            // 2. Pass the WHOLE array to addQualifiers (much faster, 1 driver call)
+            const qualified = await this.addQualifiers(elements);
+
+            // 3. Define the filter
+            const filter = elementData.hidden
+              ? (e) => e.rect.height < 1 || e.rect.width < 1
+              : (e) => e.rect.height > 0 && e.rect.width > 0;
+
+            // 4. Filter and push
+            found.push(...qualified.filter(filter));
+          }
+        });
+      }
+    }
     return found;
   }
 
@@ -213,7 +246,7 @@ export class LocatorStrategy extends ElementTypes {
 
       if (ELEMENT_TYPES.has(newItem.type) && (!newItem.matches || newItem.matches.length === 0)) {
         // FindElements handles the cross-iframe scanning logic
-        newItem.matches = await this.findElements(newItem);
+        newItem.matches = await this.findElements(newItem)
       }
 
       resolvedStack.push(newItem);

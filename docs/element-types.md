@@ -43,7 +43,7 @@ await browser.button('Next').click()
 // Input textbox specifically
 await browser.textbox('Email').write('user@example.com')
 
-// Select checkbox specifically (not radio with same text)
+// Check checkbox specifically (not radio with same text)
 await browser.checkbox('Remember').check()
 ```
 

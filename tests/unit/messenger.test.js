@@ -97,7 +97,7 @@ describe('messenger', () => {
     };
 
     const result = messenger(action);
-    expect(result).toBe("Checking 'exists' is visible");
+    expect(result).toBe("Checking if 'exists' is visible");
   });
 
   test('should handle isVisible action with suffix', () => {
@@ -109,7 +109,7 @@ describe('messenger', () => {
     };
 
     const result = messenger(action);
-    expect(result).toBe("Checking element 'message' is visible");
+    expect(result).toBe("Checking if element 'message' is visible");
   });
 
   test('should handle waitVisibility action with suffix', () => {
@@ -145,7 +145,7 @@ describe('messenger', () => {
     };
 
     const result = messenger(action);
-    expect(result).toBe("Checking button 'submit' is disabled");
+    expect(result).toBe("Checking if button 'submit' is disabled");
   });
 
   test('should handle click with coordinates', () => {
@@ -241,8 +241,8 @@ describe('messenger', () => {
       { action: 'hover', expected: 'Hovering on ' },
       { action: 'clear', expected: 'Clearing text in ' },
       { action: 'select', expected: 'Selecting ' },
-      { action: 'check', expected: 'Checking checkbox ' },
-      { action: 'uncheck', expected: 'Unchecking checkbox ' },
+      { action: 'check', expected: 'Checking ' },
+      { action: 'uncheck', expected: 'Unchecking ' },
       { action: 'screenshot', expected: 'Capturing screenshot of ' },
       { action: 'getText', expected: 'Getting text of ' },
       { action: 'getAttribute', expected: 'Getting attribute ' },
