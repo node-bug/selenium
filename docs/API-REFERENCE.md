@@ -152,14 +152,14 @@ await browser.element('text').click()
 All return `WebBrowser` for chaining:
 
 - `button(selector)` - Button element
-- `textbox(selector)` - Text input (aliases: `input()`, `field()`, `edit()`, `email()`, `search()`)
+- `textbox(selector)` - Text input (can be used for `input`, `field`, `edit`, `email`, `search` types)
 - `checkbox(selector)` - Checkbox
 - `switch(selector)` - Switch
-- `radio(selector)` - Radio button (alias: `radiobutton()`)
-- `dropdown(selector)` - Dropdown (alias: `select()`)
+- `radio(selector)` - Radio button (can be used for `radiobutton` type)
+- `dropdown(selector)` - Dropdown (can be used for `select` type)
 - `link(selector)` - Link element
-- `image(selector)` - Image (alias: `img()`)
-- `file(selector)` - File input (alias: `inputfile()`)
+- `image(selector)` - Image (also handles `img` type)
+- `file(selector)` - File input (can be used for `inputfile` type)
 - `label(selector)` - Label element
 - `toolbar(selector)` - Toolbar
 - `dialog(selector)` - Dialog
