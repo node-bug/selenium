@@ -156,7 +156,7 @@ All return `WebBrowser` for chaining:
 - `checkbox(selector)` - Checkbox
 - `switch(selector)` - Switch
 - `radio(selector)` - Radio button (can be used for `radiobutton` type)
-- `dropdown(selector)` - Dropdown (can be used for `select` type)
+- `dropdown(selector)` - Dropdown (can be used for `select`, `combobox` type)
 - `link(selector)` - Link element
 - `image(selector)` - Image (also handles `img` type)
 - `file(selector)` - File input (can be used for `inputfile` type)
@@ -166,7 +166,6 @@ All return `WebBrowser` for chaining:
 - `navigation(selector)` - Navigation
 - `heading(selector)` - Heading
 - `slider(selector)` - Slider
-- `combobox(selector)` - Combobox
 - `list(selector)` - List
 - `listitem(selector)` - List item
 - `menu(selector)` - Menu

@@ -4,14 +4,14 @@ Semantic element type selectors for precise element targeting. See [API Referenc
 
 ## Quick Reference
 
-| Type | Can also be used for | |
+| Type | Can also be used for | Usage |
 | ------------ | ------------------------------------------- | |
 | `button` | - | `browser.button('Submit').click()` |
 | `textbox` | `input`, `field`, `edit`, `email`, `search` | `browser.textbox('Email').write('...')` |
 | `checkbox` | - | `browser.checkbox('Subscribe').check()` |
 | `switch` | - | `browser.switch('Subscribe').on()` |
 | `radio` | `radiobutton` | `browser.radio('Male').check()` |
-| `dropdown` | `select` | `browser.dropdown('Country').select('US')` |
+| `dropdown` | `select`, `combobox` | `browser.dropdown('Country').select('US')` |
 | `link` | - | `browser.link('Home').click()` |
 | `image` | `img` | `browser.image('Logo').click()` |
 | `file` | `inputfile` | `browser.file('Upload').upload('file.txt')` |
@@ -21,7 +21,6 @@ Semantic element type selectors for precise element targeting. See [API Referenc
 | `navigation` | - | `browser.navigation('Menu').click()` |
 | `heading` | - | `browser.heading('Title').click()` |
 | `slider` | - | `browser.slider('Volume').set(50)` |
-| `combobox` | - | `browser.combobox('Options').select('One')` |
 | `list` | - | `browser.list('Items').click()` |
 | `listitem` | - | `browser.listitem('Item1').click()` |
 | `menu` | - | `browser.menu('File').click()` |

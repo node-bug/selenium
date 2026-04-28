@@ -44,7 +44,7 @@ const ACTION_MAP = {
 // 2. Define valid element types
 const ELEMENT_TYPES = new Set([
   'link', 'navigation', 'heading', 'button', 'checkbox', 
-  'radio', 'slider', 'combobox', 'textbox', 'file', 'list', 
+  'radio', 'slider', 'dropdown', 'textbox', 'file', 'list', 
   'listitem', 'menu', 'menuitem', 'toolbar', 'dialog', 
   'row', 'column', 'image', 'element', 'switch'
 ]);

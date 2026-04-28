@@ -77,9 +77,9 @@ Specify element types to differentiate elements with identical text:
 - `checkbox` - Checkboxes
 - `switch` - Switches
 - `radio` (works for `radiobutton`) - Radio buttons
-- `dropdown` (works for `select`) - Dropdowns
+- `dropdown` (works for `select`, `combobox`) - Dropdowns
 - `file` (works for `inputfile`) - File inputs
-- `label`, `toolbar`, `dialog`, `navigation`, `heading`, `slider`, `combobox`, `list`, `listitem`, `menu`, `menuitem`, `alert`, `row`, `column` - Semantic elements
+- `label`, `toolbar`, `dialog`, `navigation`, `heading`, `slider`, `list`, `listitem`, `menu`, `menuitem`, `alert`, `row`, `column` - Semantic elements
 
 ```javascript
 await browser.button('Search').click() // Specific type

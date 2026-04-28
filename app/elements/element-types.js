@@ -18,7 +18,7 @@ export class ElementTypes {
       switch: `@role='switch'`,
       radio: `(self::input and @type='radio') or @role='radio'`,
       slider: `@role='slider'`,
-      combobox: `@role='combobox' or self::select`,
+      dropdown: `@role='combobox' or self::select`,
 
       // Forms & Inputs
       textbox: `self::textarea or (self::input and (@type='text' or @type='password' or @type='search' or @type='email')) or @role='textbox'`,
