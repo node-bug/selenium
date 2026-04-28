@@ -166,14 +166,18 @@ export class InputDelegate {
   async press(key) {
     const browser = this.browser;
     const mods = browser._tempMods;
+
     const modifiers = [];
     if (mods.control) modifiers.push('ctrl');
     if (mods.shift) modifiers.push('shift');
     if (mods.alt) modifiers.push('alt');
     if (mods.meta) modifiers.push('meta');
-    browser.message = messenger({ stack: browser.stack, action: 'press', data: key, modifiers });
+    browser.message = messenger({ stack: browser.stack, action: 'press', data: value, modifiers });
+
+    const platformName = (await browser.driver.getCapabilities()).get('platformName').replace(/\s/g, '');
     try {
-      const platformName = (await browser.driver.getCapabilities()).get('platformName').replace(/\s/g, '');
+      if (browser.stack.length > 0) await this.focus();
+      
       const actions = browser.actions();
 
       // Press modifier keys
@@ -222,8 +226,8 @@ export class InputDelegate {
 
       const normalizedKey = key.toLowerCase();
       const resolvedKey = keyMap[normalizedKey] || key;
-
       actions.sendKeys(resolvedKey);
+      
       await actions.perform();
     } catch (err) {
       browser.handleError(err, `pressing key '${key}'`);
