@@ -179,12 +179,9 @@ describe('VisibilityDelegate (ESM)', () => {
       const error = new Error('not found');
       mockBrowser._finder.mockRejectedValue(error);
 
-      await visibilityDelegate.isDisplayed();
-
-      expect(mockBrowser.handleError).toHaveBeenCalledWith(
-        error,
-        'waiting for visibility'
-      );
+      // isDisplayed re-throws the error from _finder without calling handleError
+      await expect(visibilityDelegate.isDisplayed()).rejects.toThrow('not found');
+      expect(mockBrowser.handleError).not.toHaveBeenCalled();
     });
 
     test('uses custom timeout when provided', async () => {

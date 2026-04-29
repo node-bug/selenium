@@ -87,7 +87,7 @@ Chain intermediate operations ending with a terminal operation:
 ```javascript
 // Intermediate operations build selector, don't execute
 await browser
-  .button('Delete') // Select button
+  .button('Delete') // select button
   .below() // Position filter
   .element('Actions') // Anchor reference
   .click() // Terminal operation (execute)

@@ -169,9 +169,16 @@ describe('CheckboxDelegate (ESM)', () => {
       expect(log.info).toHaveBeenCalledWith(expect.stringContaining('checked'));
     });
 
-    test('should handle errors in isChecked', async () => {
+    test('should throw error if not selected', async () => {
+      mockLocator.isSelected.mockResolvedValue(false);
+
+      await expect(delegate.isChecked()).rejects.toThrow('Checkbox is not checked');
+    });
+
+    test('should handle errors from _finder', async () => {
       mockBrowser._finder.mockRejectedValue(new Error('Selection failed'));
-      await delegate.isChecked();
+      // When _finder fails, handleError is called, then result stays false so assertion throws
+      await expect(delegate.isChecked()).rejects.toThrow('Checkbox is not checked');
       expect(mockBrowser.handleError).toHaveBeenCalledWith(expect.any(Error), 'checking if checkbox is checked');
     });
   });
@@ -179,21 +186,24 @@ describe('CheckboxDelegate (ESM)', () => {
   // ---------------- IS UNCHECKED ----------------
   describe('isUnchecked()', () => {
     test('should return true if NOT selected', async () => {
-    mockLocator.isSelected.mockResolvedValue(false);
-    
-    const result = await delegate.isUnchecked();
+      mockLocator.isSelected.mockResolvedValue(false);
 
-    expect(result).toBe(true);
-    // This will now pass because messenger returns a string containing 'isUnchecked'
-    expect(mockBrowser.message).toContain('isUnchecked');
-    
-    // Also verify the logger was called as per the source code
-    expect(log.info).toHaveBeenCalledWith(expect.stringContaining('Checkbox is unchecked'));
-  });
+      const result = await delegate.isUnchecked();
 
-    test('should handle errors in isUnchecked', async () => {
+      expect(result).toBe(true);
+      expect(log.info).toHaveBeenCalledWith(expect.stringContaining('not checked'));
+    });
+
+    test('should throw error if selected', async () => {
+      mockLocator.isSelected.mockResolvedValue(true);
+
+      await expect(delegate.isUnchecked()).rejects.toThrow('Checkbox is checked');
+    });
+
+    test('should handle errors from _finder', async () => {
       mockBrowser._finder.mockRejectedValue(new Error('Selection failed'));
-      await delegate.isUnchecked();
+      // When _finder fails, handleError is called, then result stays false so assertion throws
+      await expect(delegate.isUnchecked()).rejects.toThrow('Checkbox is checked');
       expect(mockBrowser.handleError).toHaveBeenCalledWith(expect.any(Error), 'checking if checkbox is unchecked');
     });
   });

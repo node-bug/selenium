@@ -99,8 +99,6 @@ export class VisibilityDelegate {
       await browser._finder(t);
       log.info('Element is visible on page');
       return true;
-    } catch (err) {
-      browser.handleError(err, 'waiting for visibility');
     } finally {
       browser.stack = [];
     }

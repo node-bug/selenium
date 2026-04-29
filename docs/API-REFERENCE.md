@@ -7,6 +7,7 @@ Complete method reference for WebBrowser. See [Core Concepts](CONCEPTS.md) for u
 - [Browser Control](#browser-control) - Session management
 - [Element Selection](#element-selection) - Finding elements
 - [Element Interaction](#element-interaction) - Clicking, typing, etc.
+- [Dropdown Operations](#dropdown-operations) - Select/dropdown handling
 - [Element State](#element-state) - Visibility, disabled, etc.
 - [Window Management](#window-management) - Multi-window operations
 - [Tab Management](#tab-management) - Multi-tab operations
@@ -152,21 +153,20 @@ await browser.element('text').click()
 All return `WebBrowser` for chaining:
 
 - `button(selector)` - Button element
-- `textbox(selector)` - Text input (aliases: `input()`, `field()`, `edit()`, `email()`, `search()`)
+- `textbox(selector)` - Text input (can be used for `input`, `field`, `edit`, `email`, `search` types)
 - `checkbox(selector)` - Checkbox
 - `switch(selector)` - Switch
-- `radio(selector)` - Radio button (alias: `radiobutton()`)
-- `dropdown(selector)` - Dropdown (alias: `select()`)
+- `radio(selector)` - Radio button (can be used for `radiobutton` type)
+- `dropdown(selector)` - Dropdown (can be used for `select`, `combobox` type)
 - `link(selector)` - Link element
-- `image(selector)` - Image (alias: `img()`)
-- `file(selector)` - File input (alias: `inputfile()`)
+- `image(selector)` - Image (also handles `img` type)
+- `file(selector)` - File input (can be used for `inputfile` type)
 - `label(selector)` - Label element
 - `toolbar(selector)` - Toolbar
 - `dialog(selector)` - Dialog
 - `navigation(selector)` - Navigation
 - `heading(selector)` - Heading
 - `slider(selector)` - Slider
-- `combobox(selector)` - Combobox
 - `list(selector)` - List
 - `listitem(selector)` - List item
 - `menu(selector)` - Menu
@@ -538,6 +538,92 @@ await browser.element('Item').drag().onto().element('Trash').drop()
 ```
 
 **Returns**: `Promise<boolean>`
+
+---
+
+## Dropdown Operations
+
+Handle `<select>` elements and custom combobox widgets. Use `dropdown()` to select the dropdown element, then chain one of the methods below.
+
+### option(value)
+
+Specify an option to select. Accepts text, value, or a numeric index (0-based).
+
+```javascript
+// By text (partial match, case-insensitive)
+await browser.dropdown('Country').option('United States').select()
+
+// By value
+await browser.dropdown('Country').option('US').select()
+
+// By index (0-based)
+await browser.dropdown('Country').option(0).select() // First option
+await browser.dropdown('Country').option(2).select() // Third option
+```
+
+**Parameters**:
+
+- `value` (string|number): Option text, value, or index
+
+**Returns**: `WebBrowser` - For chaining
+
+### select()
+
+Select the previously specified option. Supports both native `<select>` elements and custom combobox widgets.
+
+```javascript
+await browser.dropdown('Country').option('United States').select()
+await browser.dropdown('Country').option(0).select()
+```
+
+**Returns**: `Promise<boolean>`
+
+**Throws**: Error if dropdown not found, option not found, or index out of range.
+
+### get.text()
+
+Get the text of the currently selected option.
+
+```javascript
+const text = await browser.dropdown('Country').get.text()
+console.log(text) // e.g., 'United States'
+```
+
+**Returns**: `Promise<string>` - The text of the selected option
+
+**Throws**: Error if dropdown not found or no option is selected.
+
+### get.value()
+
+Get the value of the currently selected option.
+
+```javascript
+const value = await browser.dropdown('Country').get.v()
+console.log(value) // e.g., 'us'
+```
+
+**Returns**: `Promise<string>` - The value of the selected option
+
+**Throws**: Error if dropdown not found or no option is selected.
+
+### isSelected()
+
+**Assertion that throws an error and stops test execution on failure.**
+
+Assert that a specific option is currently selected. Accepts text, value, or index.
+
+```javascript
+// Assert by text
+await browser.dropdown('Country').option('United States').isSelected()
+
+// Assert by value
+await browser.dropdown('Country').option('US').isSelected()
+
+// Assert by index
+await browser.dropdown('Country').option(0).isSelected()
+```
+
+**Throws**: Error if the specified option is not selected.
 
 ---
 
@@ -1037,7 +1123,7 @@ These are intermediate operations for refining element selection:
 
 ### atIndex(index)
 
-Select specific element occurrence (0-based).
+Get specific element occurrence (0-based).
 
 ```javascript
 await browser.element('Item').atIndex(0).click()
@@ -1054,7 +1140,7 @@ await browser.exact().element('male').click() // Won't match 'Female'
 
 ### hidden()
 
-Select hidden elements.
+Get hidden elements.
 
 ```javascript
 await browser.element('tooltip').hidden().click()

@@ -8,7 +8,7 @@ Build the selector stack without executing. Return `WebBrowser` for chaining.
 
 **Element Selectors**
 
-- `element()`, `button()`, `textbox()`, `checkbox()`, `switch()`,`radio()`, `link()`, `image()`, `file()`, `label()`, `toolbar()`, `dialog()`, `navigation()`, `heading()`, `slider()`, `combobox()`, `list()`, `listitem()`, `menu()`, `menuitem()`, `row()`, `column()`, `alert()`
+- `element()`, `button()`, `textbox()`, `checkbox()`, `switch()`,`radio()`, `link()`, `image()`, `file()`, `label()`, `toolbar()`, `dialog()`, `navigation()`, `heading()`, `slider()`, `dropdown()`, `list()`, `listitem()`, `menu()`, `menuitem()`, `row()`, `column()`, `alert()`
 
 **Positioning**
 

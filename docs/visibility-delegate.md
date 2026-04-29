@@ -101,15 +101,19 @@ if (!disabled) {
 
 ### isChecked()
 
+**Assertion that throws an error and stops test execution on failure.**
+
 Check if checkbox is checked.
 
 ```javascript
 const checked = await browser.checkbox('Subscribe').isChecked()
 ```
 
-**Returns**: `Promise<boolean>`
+**Throws**: Error if checkbox is not checked - **Test execution stops**
 
 ### isUnchecked()
+
+**Assertion that throws an error and stops test execution on failure.**
 
 Check if checkbox is unchecked.
 
@@ -117,7 +121,7 @@ Check if checkbox is unchecked.
 const unchecked = await browser.checkbox('Subscribe').isUnchecked()
 ```
 
-**Returns**: `Promise<boolean>`
+**Throws**: Error if checkbox is checked - **Test execution stops**
 
 ## Scrolling & Visibility Manipulation
 
@@ -214,10 +218,12 @@ if (hasErrorMessage) {
 ### Checkbox State
 
 ```javascript
-// Check current state
-if (await browser.checkbox('Subscribe').isUnchecked()) {
-  await browser.checkbox('Subscribe').check()
-}
+// Assert checkbox is unchecked, then check it
+await browser.checkbox('Subscribe').isUnchecked()
+await browser.checkbox('Subscribe').check()
+
+// Assert checkbox is now checked
+await browser.checkbox('Subscribe').isChecked()
 ```
 
 ### Scroll and Click

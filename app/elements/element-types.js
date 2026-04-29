@@ -18,7 +18,8 @@ export class ElementTypes {
       switch: `@role='switch'`,
       radio: `(self::input and @type='radio') or @role='radio'`,
       slider: `@role='slider'`,
-      combobox: `@role='combobox' or self::select`,
+      // dropdown: `@role='combobox' or self::select`,
+      dropdown: `@role='combobox' or self::select or .//option`,
 
       // Forms & Inputs
       textbox: `self::textarea or (self::input and (@type='text' or @type='password' or @type='search' or @type='email')) or @role='textbox'`,
@@ -80,7 +81,7 @@ export class ElementTypes {
 
     const baseCondition = conditions.join(' or ');
 
-    // Recursive check to ensure we select the innermost element containing the text
+    // Recursive check to ensure we get the innermost element containing the text
     const recursionPreventer = exact
       ? `not(.//*[normalize-space(.)=${val}])`
       : `not(.//*[contains(normalize-space(.),${val})])`;

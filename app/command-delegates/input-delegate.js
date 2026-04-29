@@ -177,17 +177,12 @@ export class InputDelegate {
     const platformName = (await browser.driver.getCapabilities()).get('platformName').replace(/\s/g, '');
     try {
       if (browser.stack.length > 0) await this.focus();
-      
       const actions = browser.actions();
 
-      // Press modifier keys
       if (mods.control) actions.keyDown(Key.CONTROL);
       if (mods.shift) actions.keyDown(Key.SHIFT);
       if (mods.alt) actions.keyDown(Key.ALT);
-      if (mods.meta) {
-        if (platformName === 'mac') actions.keyDown(Key.COMMAND);
-        else actions.keyDown(Key.META);
-      }
+      if (mods.meta) if (platformName === 'mac') actions.keyDown(Key.COMMAND); else actions.keyDown(Key.META);
 
       // Normalize key name to Selenium Key constant if applicable
       const keyMap = {
@@ -223,7 +218,6 @@ export class InputDelegate {
         'f11': Key.F11,
         'f12': Key.F12,
       };
-
       const normalizedKey = key.toLowerCase();
       const resolvedKey = keyMap[normalizedKey] || key;
       actions.sendKeys(resolvedKey);

@@ -9,6 +9,7 @@ import { InputDelegate } from './app/command-delegates/input-delegate.js';
 import { VisibilityDelegate } from './app/command-delegates/visibility-delegate.js';
 import { CheckboxDelegate } from './app/command-delegates/checkbox-delegate.js';
 import { SwitchDelegate } from './app/command-delegates/switch-delegate.js';
+import { SelectDelegate } from './app/command-delegates/select-delegate.js';
 
 const selenium = config('selenium');
 
@@ -33,6 +34,7 @@ class WebBrowser extends Browser {
   #visibilityDelegate;
   #checkboxDelegate;
   #switchDelegate;
+  #selectDelegate;
 
   constructor() {
     super()
@@ -43,6 +45,7 @@ class WebBrowser extends Browser {
     this.#visibilityDelegate = new VisibilityDelegate(this);
     this.#checkboxDelegate = new CheckboxDelegate(this);
     this.#switchDelegate = new SwitchDelegate(this);
+    this.#selectDelegate = new SelectDelegate(this);
 
     Object.keys(this.locatorStrategy.definitions).forEach(type => {
       this[type] = (data) => {
@@ -122,23 +125,6 @@ class WebBrowser extends Browser {
     }
 
     throw new Error(`Element not found after ${timeout}ms timeout`);
-  }
-
-  /**
-   * Enter text into an input field or content-editable element
-   * 
-   * Writes text to an input field, textarea, or content-editable element.
-   * If the field, textarea or content-editable element was not empty, adds text to it.
-   * Handles both standard form fields and custom content-editable elements.
-   * 
-   * @param {string} value - Text to enter
-   * @returns {Promise<boolean>} True if successful
-   * @example
-   * await browser.element('username').write('myusername');
-   * await browser.textbox('search').write('query');
-   */
-  async write(value) {
-    return await this.#inputDelegate.write(value);
   }
 
   /**
@@ -402,9 +388,11 @@ class WebBrowser extends Browser {
   /**
  * Internal helper to unify text/value retrieval logic.
  */
-  async #retrieveElementText() {
-    this.message = messenger({ stack: this.stack, action: 'getText' });
+  async #retrieveElementText(valueType) {
+    if (valueType === 'Text') this.message = messenger({ stack: this.stack, action: 'getText' });
+    if (valueType === 'Value') this.message = messenger({ stack: this.stack, action: 'getValue' });
     try {
+      let ogStack = this.stack;
       const locator = await this._finder();
       const [textContent, valueAttr, tagName] = await Promise.all([
         locator.getAttribute('textContent'),
@@ -412,12 +400,20 @@ class WebBrowser extends Browser {
         locator.tagName
       ]);
 
+      if (tagName === 'select') {
+        this.stack = ogStack
+        const selectedOption = await this.#selectDelegate.getSelectedOption()
+        if(valueType === 'Text') return selectedOption.text
+        if(valueType === 'Value') return selectedOption.value
+      }
+
       let result = textContent;
 
       if ((!result || result.trim() === '') && ['input', 'textarea'].includes(tagName)) {
         result = valueAttr;
       }
 
+      log.info(`${valueType} is ${result}`)
       return result?.trim() ?? '';
     } catch (err) {
       this.handleError(err, 'getting text');
@@ -436,9 +432,9 @@ class WebBrowser extends Browser {
     return {
       ...superget,
 
-      text: () => this.#retrieveElementText(),
+      text: () => this.#retrieveElementText('Text'),
 
-      value: () => this.#retrieveElementText(),
+      value: () => this.#retrieveElementText('Value'),
 
       attribute: async (name) => {
         this.message = messenger({ stack: this.stack, action: 'getAttribute', data: name });
@@ -451,7 +447,7 @@ class WebBrowser extends Browser {
           this.stack = [];
         }
       },
-      
+
       screenshot: async () => {
         let dataUrl = null;
         if (this.stack.length > 0) {
@@ -475,8 +471,6 @@ class WebBrowser extends Browser {
     };
   }
 
-
-
   /**
    * Checks if an element is currently in the DOM and visible.
    * Does not throw an error if not found; returns boolean.
@@ -494,7 +488,7 @@ class WebBrowser extends Browser {
   }
 
   /**
-   * Waits for an element to be visible.
+   * Asserts for an element to be visible.
    * Throws an error if the element does not appear within the timeout.
    * 
    * @param {number} [t] - Custom timeout in milliseconds
@@ -509,7 +503,8 @@ class WebBrowser extends Browser {
   }
 
   /**
-   * Waits for an element to disappear or become hidden.
+   * Asserts for an element to disappear or become hidden.
+   * Throws an error if the element is still displayed after the timeout.
    * 
    * @param {number} [t] - Custom timeout in milliseconds
    * @returns {Promise<boolean>} True if element becomes invisible
@@ -565,6 +560,28 @@ class WebBrowser extends Browser {
   }
 
   /**
+   * Asserts if a checkbox is currently checked.
+   * 
+   * @returns {Promise<boolean>} True if checkbox is checked
+   * @example
+   * await browser.switch('dark mode').isChecked();
+   */
+  async isChecked() {
+    return await this.#checkboxDelegate.isChecked();
+  }
+
+  /**
+   * Asserts if a checkbox is currently unchecked.
+   * 
+   * @returns {Promise<boolean>} True if checkbox is unchecked
+   * @example
+   * const isOff = await browser.switch('dark mode').isUnchecked();
+   */
+  async isUnchecked() {
+    return await this.#checkboxDelegate.isUnchecked();
+  }
+
+  /**
    * Turns a switch element on.
    * 
    * Clicks the switch if it's not already on. Falls back to JavaScript
@@ -593,31 +610,78 @@ class WebBrowser extends Browser {
   }
 
   /**
-   * Checks if a switch is currently on.
+   * Asserts that a switch is currently on.
    * 
-   * @returns {Promise<boolean>} True if switch is on
+   * Returns true if the switch is on, otherwise throws an error.
+   * 
+   * @returns {Promise<boolean>} Returns true if switch is on
+   * @throws {Error} Throws if switch is off
    * @example
-   * const isOn = await browser.switch('dark mode').isOn();
-   * if (isOn) {
-   *   await browser.switch('dark mode').off();
-   * }
+   * await browser.switch('dark mode').isOn();
    */
   async isOn() {
     return await this.#switchDelegate.isOn();
   }
 
   /**
-   * Checks if a switch is currently off.
+   * Asserts that a switch is currently off.
    * 
-   * @returns {Promise<boolean>} True if switch is off
+   * Returns true if the switch is off, otherwise throws an error.
+   * 
+   * @returns {Promise<boolean>} Returns true if switch is off
+   * @throws {Error} Throws if switch is on
    * @example
-   * const isOff = await browser.switch('dark mode').isOff();
-   * if (isOff) {
-   *   await browser.switch('dark mode').on();
-   * }
+   * await browser.switch('dark mode').isOff();
    */
   async isOff() {
     return await this.#switchDelegate.isOff();
+  }
+
+  /**
+   * Selects an option from a dropdown or combobox by its visible text.
+   *
+   * @param {string} optionText - The visible text, value or index of the option to select
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.dropdown('Country').select('United States');
+   * await browser.dropdown('some combo').select('Option 1');
+   */
+  option(value) {
+    this.#selectDelegate.option(value);
+    return this
+  }
+
+  /**
+   * Selects an option provided by option from a dropdown or combobox .
+   *
+   * Supports both native <select> elements and custom combobox widgets
+   * (role='combobox'). For native selects, uses Selenium's Select class.
+   * For custom comboboxes, clicks to open the dropdown and finds the
+   * matching option by text content.
+   *
+   * @param {string} optionText - The visible text, value or index of the option to select
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.dropdown('Country').option('United States').select();
+   * await browser.dropdown('some combo').option('Option 1').isSelected();
+   */
+  async select() {
+    return await this.#selectDelegate.select();
+  }
+
+  /**
+   * Checks if the option from a dropdown or combobox the currently selected.
+   *
+   * Supports both native <select> elements and custom combobox widgets
+   * (role='combobox').
+   *
+   * @returns {Promise<boolean>} True if object with `text` or `value` or `index`
+   * is currently selected else throws error.
+   * @example
+   * await browser.dropdown('Country').isSelected();
+   */
+  async isSelected() {
+    return await this.#selectDelegate.isSelected();
   }
 
   /**
@@ -738,9 +802,10 @@ class WebBrowser extends Browser {
    * @example
    * browser.element('target').toRightOf().element('other').click();
    */
-  toRightOf() { 
+  toRightOf() {
     this.stack.push({ type: 'location', located: 'toRightOf' });
-    return this; }
+    return this;
+  }
 
   /**
    * Targets an element located inside another element.
@@ -793,9 +858,9 @@ class WebBrowser extends Browser {
   }
 
   /**
-   * Selects a specific occurrence from a list of matching elements (1-based index).
+   * Gets a specific occurrence from a list of matching elements (1-based index).
    * 
-   * @param {number} index - 1-based index of element to select
+   * @param {number} index - 1-based index of element to get
    * @returns {this} Returns the WebBrowser instance for chaining
    * @throws {TypeError} If index is not a number
    * @example
@@ -890,6 +955,23 @@ class WebBrowser extends Browser {
   onto() {
     this.stack.push({ type: 'action', perform: 'onto' });
     return this;
+  }
+
+  /**
+   * Enter text into an input field or content-editable element
+   * 
+   * Writes text to an input field, textarea, or content-editable element.
+   * If the field, textarea or content-editable element was not empty, adds text to it.
+   * Handles both standard form fields and custom content-editable elements.
+   * 
+   * @param {string} value - Text to enter
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.element('username').write('myusername');
+   * await browser.textbox('search').write('query');
+   */
+  async write(value) {
+    return await this.#inputDelegate.write(value);
   }
 
   /**
