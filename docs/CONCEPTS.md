@@ -10,10 +10,10 @@ The library uses a two-step operation model:
 
 Build the selector stack without executing actions. They return the `WebBrowser` instance for method chaining.
 
-**Examples**: `element()`, `button()`, `above()`, `below()`, `within()`, `atIndex()`, `exact()`, `hidden()`
+**Examples**: `element()`, `button()`, `above`, `below`, `within`, `atIndex()`, `exact`, `hidden`
 
 ```javascript
-await browser.element('submit').above().button('cancel').click()
+await browser.element('submit').above.button('cancel').click()
 ```
 
 **Effect**: Adds information to selector stack (no action performed)
@@ -62,27 +62,27 @@ Beyond text matching, the library understands **spatial context** (position rela
 
 ```javascript
 // "Find the password field below the email field"
-await browser.textbox('Password').below().textbox('Email').write('secret')
+await browser.textbox('Password').below.textbox('Email').write('secret')
 
 // "Find the submit button to the right of the cancel button"
-await browser.button('Submit').toRightOf().button('Cancel').click()
+await browser.button('Submit').toRightOf.button('Cancel').click()
 
 // "Find the save button inside the dialog"
-await browser.button('Save').within().dialog('Settings').click()
+await browser.button('Save').within.dialog('Settings').click()
 ```
 
 See [Selectors Guide - Spatial References](SELECTORS.md#spatial-references) for all positioning options.
 
 ## Exact vs Partial Matching
 
-By default, text matching is **partial**. Use `exact()` for strict matching:
+By default, text matching is **partial**. Use `exact` for strict matching:
 
 ```javascript
 // Partial match: matches "Female", "Male", "Female-Plus"
 await browser.element('Male').click()
 
 // Only matches "Male" exactly
-await browser.exact().element('Male').click()
+await browser.exact.element('Male').click()
 ```
 
 ## Element Types
@@ -99,13 +99,13 @@ Available types include: `button`, `textbox`, `checkbox`, `switch`, `radio`, `dr
 
 See [Selectors Guide - Element Types](SELECTORS.md#element-types) for complete list.
 
-## Multiple References with or()
+## Multiple References with or
 
 Target elements with different possible names:
 
 ```javascript
 // Click either "Checkout" or "Submit" button
-await browser.button('Checkout').or().button('Submit').click()
+await browser.button('Checkout').or.button('Submit').click()
 ```
 
 If both exist, the first is selected. Otherwise, the first displayed on screen is used.
@@ -177,7 +177,7 @@ Build complex interactions using method chaining: **Intermediate → Intermediat
 // Build selector stack, execute at terminal
 await browser
   .button('Delete') // Intermediate: Select element type
-  .below() // Intermediate: Add spatial filter
+  .below // Intermediate: Add spatial filter
   .element('Section') // Intermediate: Set anchor reference
   .click() // Terminal: Execute action (clears stack)
 ```
@@ -196,7 +196,7 @@ await browser
 | **Operations**       | Execute in stages     | Intermediate build, Terminal execute |
 | **Locator Strategy** | Find elements humanly | Text → Position → Type               |
 | **Element Types**    | Disambiguate elements | Specify `button`, `textbox`, etc.    |
-| **Spatial Context**  | Relative positioning  | `below()`, `toRightOf()`, `within()` |
+| **Spatial Context**  | Relative positioning  | `below`, `toRightOf`, `within`       |
 | **Method Chaining**  | Fluent API            | Chain operations logically           |
 | **Lifecycle**        | Session management    | Create → Start → Use → Close         |
 

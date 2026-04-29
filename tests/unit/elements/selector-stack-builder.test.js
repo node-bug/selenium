@@ -31,9 +31,9 @@ describe('SelectorStackBuilder', () => {
       expect(mockStack[0]).toEqual({ exact: true, hidden: false });
     });
 
-    test('should return parent for chaining', () => {
+    test('should return undefined (no chaining on flag setters)', () => {
       const result = selectorStackBuilder.exact();
-      expect(result).toBe(mockParent);
+      expect(result).toBeUndefined();
     });
   });
 
@@ -43,9 +43,9 @@ describe('SelectorStackBuilder', () => {
       expect(mockStack[0]).toEqual({ exact: false, hidden: true });
     });
 
-    test('should return parent for chaining', () => {
+    test('should return undefined (no chaining on flag setters)', () => {
       const result = selectorStackBuilder.hidden();
-      expect(result).toBe(mockParent);
+      expect(result).toBeUndefined();
     });
   });
 

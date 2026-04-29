@@ -403,8 +403,8 @@ class WebBrowser extends Browser {
       if (tagName === 'select') {
         this.stack = ogStack
         const selectedOption = await this.#selectDelegate.getSelectedOption()
-        if(valueType === 'Text') return selectedOption.text
-        if(valueType === 'Value') return selectedOption.value
+        if (valueType === 'Text') return selectedOption.text
+        if (valueType === 'Value') return selectedOption.value
       }
 
       let result = textContent;
@@ -751,13 +751,9 @@ class WebBrowser extends Browser {
   }
 
   // Entry points that return a new builder
-  exact() {
-    return new SelectorStackBuilder(this).exact();
-  }
+  get exact() { return new SelectorStackBuilder(this).exact(); }
 
-  hidden() {
-    return new SelectorStackBuilder(this).hidden();
-  }
+  get hidden() { return new SelectorStackBuilder(this).hidden(); }
 
   // Default element call without modifiers
   // avoid state pollution by not pushing directly to stack here
@@ -772,9 +768,9 @@ class WebBrowser extends Browser {
    * 
    * @returns {this} Returns the WebBrowser instance for chaining
    * @example
-   * browser.element('target').above().element('other').click();
+   * browser.element('target').above.element('other').click();
    */
-  above() {
+  get above() {
     this.stack.push({ type: 'location', located: 'above' });
     return this;
   }
@@ -784,9 +780,9 @@ class WebBrowser extends Browser {
    * 
    * @returns {this} Returns the WebBrowser instance for chaining
    * @example
-   * browser.element('target').below().element('other').click();
+   * browser.element('target').below.element('other').click();
    */
-  below() {
+  get below() {
     this.stack.push({ type: 'location', located: 'below' });
     return this;
   }
@@ -796,9 +792,9 @@ class WebBrowser extends Browser {
    * 
    * @returns {this} Returns the WebBrowser instance for chaining
    * @example
-   * browser.element('target').toLeftOf().element('other').click();
+   * browser.element('target').toLeftOf.element('other').click();
    */
-  toLeftOf() {
+  get toLeftOf() {
     this.stack.push({ type: 'location', located: 'toLeftOf' });
     return this;
   }
@@ -808,9 +804,9 @@ class WebBrowser extends Browser {
    * 
    * @returns {this} Returns the WebBrowser instance for chaining
    * @example
-   * browser.element('target').toRightOf().element('other').click();
+   * browser.element('target').toRightOf.element('other').click();
    */
-  toRightOf() {
+  get toRightOf() {
     this.stack.push({ type: 'location', located: 'toRightOf' });
     return this;
   }
@@ -820,9 +816,9 @@ class WebBrowser extends Browser {
    * 
    * @returns {this} Returns the WebBrowser instance for chaining
    * @example
-   * browser.element('menu').within().element('item').click();
+   * browser.element('menu').within.element('item').click();
    */
-  within() {
+  get within() {
     this.stack.push({ type: 'location', located: 'within' });
     return this;
   }
@@ -832,9 +828,9 @@ class WebBrowser extends Browser {
    * 
    * @returns {this} Returns the WebBrowser instance for chaining
    * @example
-   * browser.element('target').near().element('other').click();
+   * browser.element('target').near.element('other').click();
    */
-  near() {
+  get near() {
     this.stack.push({ type: 'location', located: 'near' });
     return this;
   }
@@ -846,9 +842,9 @@ class WebBrowser extends Browser {
    * 
    * @returns {this} Returns the WebBrowser instance for chaining
    * @example
-   * browser.element('text').exactly().toLeftOf().element('other').click();
+   * browser.element('text').exactly.toLeftOf.element('other').click();
    */
-  exactly() {
+  get exactly() {
     this.stack.push({ exactly: true });
     return this;
   }
@@ -858,9 +854,9 @@ class WebBrowser extends Browser {
    * 
    * @returns {this} Returns the WebBrowser instance for chaining
    * @example
-   * browser.element('text1').or().element('text2').click();
+   * browser.element('text1').or.element('text2').click();
    */
-  or() {
+  get or() {
     this.stack.push({ type: 'condition', operator: 'or' });
     return this;
   }
@@ -960,7 +956,7 @@ class WebBrowser extends Browser {
    * @example
    * browser.element('drag-item').drag().onto().element('drop-target').drop();
    */
-  onto() {
+  get onto() {
     this.stack.push({ type: 'action', perform: 'onto' });
     return this;
   }

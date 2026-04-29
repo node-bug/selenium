@@ -125,7 +125,7 @@ This directory contains comprehensive documentation for the WebBrowser automatio
 - Text-based selection
 - Exact vs partial matching
 - Spatial references (all keywords)
-- Multiple alternatives with or()
+- Multiple alternatives with `or`
 - Form label association
 - Element indexing
 - Finding multiple elements

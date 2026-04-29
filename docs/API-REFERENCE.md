@@ -1129,68 +1129,68 @@ await browser.element('Item').atIndex(0).click()
 await browser.textbox('Email').atIndex(2).write('...')
 ```
 
-### exact()
+### exact
 
 Exact text matching instead of partial.
 
 ```javascript
-await browser.exact().element('male').click() // Won't match 'Female'
+await browser.exact.element('male').click() // Won't match 'Female'
 ```
 
-### hidden()
+### hidden
 
 Get hidden elements.
 
 ```javascript
-await browser.element('tooltip').hidden().click()
+await browser.hidden.element('tooltip').click()
 ```
 
-### above() / below()
+### above / below
 
 Spatial positioning relative to anchor.
 
 ```javascript
-await browser.button('Delete').above().element('Section').click()
+await browser.button('Delete').above.element('Section').click()
 ```
 
-### toLeftOf() / toRightOf()
+### toLeftOf / toRightOf
 
 Horizontal spatial positioning.
 
 ```javascript
-await browser.element('target').toLeftOf().element('anchor').click()
+await browser.element('target').toLeftOf.element('anchor').click()
 ```
 
-### within()
+### within
 
 Element containment.
 
 ```javascript
-await browser.button('Submit').within().dialog('Form').click()
+await browser.button('Submit').within.dialog('Form').click()
 ```
 
-### near()
+### near
 
 Proximity-based selection.
 
 ```javascript
-await browser.element('Item').near().element('Anchor').click()
+await browser.element('Item').near.element('Anchor').click()
 ```
 
-### or()
+### or
 
 Multiple possible names.
 
 ```javascript
-await browser.button('Save').or().button('Apply').click()
+await browser.button('Save').or.button('Apply').click()
 ```
 
-### exactly()
+### exactly
 
 Precise positioning (vs approximate).
 
 ```javascript
-await browser.textbox('Name').exactly().below().element('Label').write('...')
+await browser.textbox('Name').exactly.below.element('Label').write('...')
 ```
 
 ---

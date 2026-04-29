@@ -57,10 +57,10 @@ await browser.button('Submit').click()
 await browser.textbox('Email').write('user@example.com')
 
 // By position (below an anchor element)
-await browser.textbox('Password').below().textbox('Email').write('secret')
+await browser.textbox('Password').below.textbox('Email').write('secret')
 
 // By multiple alternatives
-await browser.button('Save').or().button('Apply').click()
+await browser.button('Save').or.button('Apply').click()
 ```
 
 ### Two Operation Types
@@ -69,7 +69,7 @@ await browser.button('Save').or().button('Apply').click()
 
 ```javascript
 .button('Submit')    // Intermediate
-.below()             // Intermediate
+.below             // Intermediate
 .element('Form')     // Intermediate
 ```
 
@@ -86,7 +86,7 @@ await browser.button('Save').or().button('Apply').click()
 ```javascript
 await browser
   .button('Delete') // Select element
-  .below() // Add position filter
+  .below // Add position filter
   .element('Actions') // Set anchor
   .click() // Execute action
 ```
