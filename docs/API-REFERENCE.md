@@ -152,28 +152,27 @@ await browser.element('text').click()
 
 All return `WebBrowser` for chaining:
 
-- `button(selector)` - Button element
-- `textbox(selector)` - Text input (can be used for `input`, `field`, `edit`, `email`, `search` types)
-- `checkbox(selector)` - Checkbox
-- `switch(selector)` - Switch
-- `radio(selector)` - Radio button (can be used for `radiobutton` type)
-- `dropdown(selector)` - Dropdown (can be used for `select`, `combobox` type)
 - `link(selector)` - Link element
-- `image(selector)` - Image (also handles `img` type)
-- `file(selector)` - File input (can be used for `inputfile` type)
-- `label(selector)` - Label element
-- `toolbar(selector)` - Toolbar
-- `dialog(selector)` - Dialog
 - `navigation(selector)` - Navigation
 - `heading(selector)` - Heading
+- `button(selector)` - Button element
+- `checkbox(selector)` - Checkbox
+- `switch(selector)` - Switch
+- `radio(selector)` - Radio button
 - `slider(selector)` - Slider
+- `dropdown(selector)` - Dropdown
+- `textbox(selector)` - Text input
+- `file(selector)` - File input
 - `list(selector)` - List
 - `listitem(selector)` - List item
 - `menu(selector)` - Menu
 - `menuitem(selector)` - Menu item
+- `toolbar(selector)` - Toolbar
+- `dialog(selector)` - Dialog
 - `row(selector)` - Table row
 - `column(selector)` - Table column
-- `alert(selector)` - Alert (optional text)
+- `image(selector)` - Image
+- `element(selector)` - Generic element
 
 ```javascript
 await browser.button('Submit').click()

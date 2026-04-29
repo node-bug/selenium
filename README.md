@@ -110,7 +110,11 @@ await browser.button('Delete').below().element('Actions').click()
 **Code:**
 
 ```javascript
-await browser.textbox('Name').toRightOf().label('Name').write('John')
+await browser
+  .textbox('Name')
+  .toRightOf()
+  .element('Personal Details')
+  .write('John')
 ```
 
 **Natural language:** "Click the home link inside the modal dialog"  

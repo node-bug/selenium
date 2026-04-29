@@ -14,20 +14,29 @@ The library locates elements like humans do:
 
 Specify element types to differentiate elements with identical text:
 
-| Type                                                                                                                     | Aliases                                     | Usage                                               |
-| ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------- | --------------------------------------------------- |
-| `button`                                                                                                                 | -                                           | `browser.button('Submit').click()`                  |
-| `textbox`                                                                                                                | `input`, `field`, `edit`, `email`, `search` | `browser.textbox('Email').write('...')`             |
-| `checkbox`                                                                                                               | -                                           | `browser.checkbox('Subscribe').check()`             |
-| `switch`                                                                                                                 | -                                           | `browser.switch('Dark Mode').on()`                  |
-| `radio`                                                                                                                  | `radiobutton`                               | `browser.radio('Male').check()`                     |
-| `dropdown`                                                                                                               | `select`, `combobox`                        | `browser.dropdown('Country').option('US').select()` |
-| `link`                                                                                                                   | -                                           | `browser.link('Home').click()`                      |
-| `image`                                                                                                                  | `img`                                       | `browser.image('Logo').click()`                     |
-| `file`                                                                                                                   | `inputfile`                                 | `browser.file('Upload').upload('file.txt')`         |
-| `label`                                                                                                                  | -                                           | `browser.label('Name').click()`                     |
-| `toolbar`, `dialog`, `navigation`, `heading`, `slider`, `list`, `listitem`, `menu`, `menuitem`, `alert`, `row`, `column` | -                                           | `browser.dialog('Confirm').click()`                 |
-| `element`                                                                                                                | -                                           | `browser.element('Any').click()` (generic)          |
+| Type         | Usage                                               |
+| ------------ | --------------------------------------------------- |
+| `link`       | `browser.link('Home').click()`                      |
+| `navigation` | `browser.navigation('Main').click()`                |
+| `heading`    | `browser.heading('Title').click()`                  |
+| `button`     | `browser.button('Submit').click()`                  |
+| `checkbox`   | `browser.checkbox('Subscribe').check()`             |
+| `switch`     | `browser.switch('Dark Mode').on()`                  |
+| `radio`      | `browser.radio('Male').check()`                     |
+| `slider`     | `browser.slider('Volume').set(50)`                  |
+| `dropdown`   | `browser.dropdown('Country').option('US').select()` |
+| `textbox`    | `browser.textbox('Email').write('...')`             |
+| `file`       | `browser.file('Upload').upload('file.txt')`         |
+| `list`       | `browser.list('Menu').click()`                      |
+| `listitem`   | `browser.listitem('Item').click()`                  |
+| `menu`       | `browser.menu('File').click()`                      |
+| `menuitem`   | `browser.menuitem('Save').click()`                  |
+| `toolbar`    | `browser.toolbar('Format').click()`                 |
+| `dialog`     | `browser.dialog('Confirm').click()`                 |
+| `row`        | `browser.row('5').click()`                          |
+| `column`     | `browser.column('Name').click()`                    |
+| `image`      | `browser.image('Logo').click()`                     |
+| `element`    | `browser.element('Any').click()` (generic)          |
 
 ### When to Use Type-Specific Selectors
 
@@ -64,9 +73,8 @@ Elements are located by searching attributes in priority order:
 5. **Name** - `name` attribute
 6. **ARIA Label** - `aria-label` attribute
 7. **CSS Class** - `class` attribute
-8. **ML Classification** - Machine learning-based label detection
-9. **Tooltip** - `title`, `hint`, `tooltip` attributes
-10. **Image Attributes** - `alt` and `src` attributes
+8. **Tooltip** - `title`, `hint`, `tooltip` attributes
+9. **Image Attributes** - `alt` and `src` attributes
 
 ### Examples by Priority
 

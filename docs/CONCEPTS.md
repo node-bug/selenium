@@ -51,9 +51,8 @@ The library searches these attributes in order:
 5. **Name** - `name` attribute
 6. **ARIA Label** - `aria-label` attribute
 7. **CSS Class** - `class` attribute
-8. **ML Classification** - Machine learning-based label detection
-9. **Tooltip** - `title`, `hint`, `tooltip` attributes
-10. **Image Attributes** - `alt` and `src` attributes
+8. **Tooltip** - `title`, `hint`, `tooltip` attributes
+9. **Image Attributes** - `alt` and `src` attributes
 
 See [Selectors Guide](SELECTORS.md#text-based-selection) for detailed examples.
 
@@ -98,7 +97,7 @@ await browser.textbox('Email').write('...') // Type specificity
 
 Available types include: `button`, `textbox`, `checkbox`, `switch`, `radio`, `dropdown`, `link`, `image`, `file`, and semantic elements like `dialog`, `heading`, `menu`, etc.
 
-See [Selectors Guide - Element Types](SELECTORS.md#element-types) for complete list and aliases.
+See [Selectors Guide - Element Types](SELECTORS.md#element-types) for complete list.
 
 ## Multiple References with or()
 
