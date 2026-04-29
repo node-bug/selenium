@@ -2,7 +2,7 @@
 
 A fluent JavaScript library for browser automation with a human-like element location strategy, built on Selenium WebDriver.
 
-**Quick Links**: [Installation](#installation) | [Quick Start](#quick-start) | [Core Concepts](docs/CONCEPTS.md) | [API Reference](docs/API-REFERENCE.md) | [Configuration](docs/CONFIGURATION.md)
+**Quick Links**: [Installation](#installation) | [Quick Start](#quick-start) | [Getting Started](docs/GETTING-STARTED.md) | [Core Concepts](docs/CONCEPTS.md) | [API Reference](docs/API-REFERENCE.md) | [All Docs](docs/README.md)
 
 ## Features
 
@@ -78,7 +78,7 @@ await browser.element('Text').click()
 await browser.textbox('data-testid-email').write('...')
 ```
 
-Learn more: [Core Concepts](docs/CONCEPTS.md#element-locator-strategy-human-like-prioritization)
+Learn more: [Selectors Guide](docs/SELECTORS.md#text-based-selection) | [Core Concepts](docs/CONCEPTS.md)
 
 ### Fluent Operations
 
@@ -122,7 +122,7 @@ await browser.link('Home').within().dialog('Modal').click()
 
 Supported positions: `above()`, `below()`, `toLeftOf()`, `toRightOf()`, `within()`, `near()`
 
-Learn more: [Core Concepts](docs/CONCEPTS.md#spatial-references)
+Learn more: [Selectors Guide - Spatial References](docs/SELECTORS.md#spatial-references)
 
 ### Multi-Window & Multi-Tab
 
@@ -138,7 +138,7 @@ await browser.tab(0).switch()
 await browser.tab().close()
 ```
 
-Learn more: [Core Concepts](docs/CONCEPTS.md#window-vs-tab-management)
+Learn more: [Advanced Guide](docs/ADVANCED.md) | [Core Concepts](docs/CONCEPTS.md#window-vs-tab-management)
 
 ## Common Tasks
 
@@ -168,7 +168,7 @@ await browser.file('Choose File').upload('/path/to/file.txt')
 // Get boolean for conditional logic
 const visible = await browser.element('Item').isVisible()
 const disabled = await browser.button('Submit').isDisabled()
-const checked = await browser.checkbox('Subscribe').isChecked()
+await browser.checkbox('Subscribe').isChecked()
 
 if (visible) {
   await browser.element('Item').click()
@@ -223,20 +223,24 @@ await browser.textbox('Name').within().dialog('User Settings').write('John')
 
 ## Documentation
 
-- **[Core Concepts](docs/CONCEPTS.md)** - Understand operations, locator strategy, spatial references
-- **[API Reference](docs/API-REFERENCE.md)** - Complete method reference
-- **[Configuration](docs/CONFIGURATION.md)** - Browser and session setup
-- **[Window Operations](docs/window-management.md)** - Multi-window patterns
-- **[Tab Operations](docs/tab-management.md)** - Multi-tab patterns
-- **[Alert Handling](docs/alerts.md)** - JavaScript alert/prompt handling
-- **[Click Interactions](docs/click-delegate.md)** - Various click types (double, right, long press, etc.)
-- **[Input Operations](docs/input-delegate.md)** - Text entry, focus, clear, overwrite
-- **[Visibility Control](docs/visibility-delegate.md)** - Visibility checks, scrolling, hiding
-- **[Element Types](docs/element-types.md)** - Complete list of supported element selectors
-- **[Locator Strategy](docs/locator-strategy.md)** - How elements are prioritized and matched
-- **[Spatial References](docs/spatial-references.md)** - Position-based element selection
-- **[Multiple References](docs/multiple-references.md)** - Using `or()` for alternative names
-- **[Messenger](docs/messenger.md)** - Log message generation
+**Start Here:**
+
+- **[Getting Started](docs/GETTING-STARTED.md)** - Installation, first test, quick examples
+- **[Documentation Index](docs/README.md)** - Navigate all guides
+
+**Learning Path:**
+
+- **[Core Concepts](docs/CONCEPTS.md)** - Understand operations, element locators, architecture
+- **[Selectors Guide](docs/SELECTORS.md)** - Find elements (text, position, type)
+- **[Interactions Guide](docs/INTERACTIONS.md)** - Clicks, input, keyboard, drag-drop
+- **[Forms Guide](docs/FORMS.md)** - Checkboxes, switches, dropdowns
+- **[Browser Guide](docs/BROWSER.md)** - Navigation, windows, tabs, configuration
+- **[Advanced Guide](docs/ADVANCED.md)** - Multi-window, multi-tab, alerts
+
+**Reference:**
+
+- **[API Reference](docs/API-REFERENCE.md)** - Complete method signatures
+- **[Configuration](docs/CONFIGURATION.md)** - Browser setup options
 
 ## Examples
 

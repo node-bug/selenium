@@ -562,7 +562,10 @@ class WebBrowser extends Browser {
   /**
    * Asserts if a checkbox is currently checked.
    * 
+   * Returns true if the checkbox is checked, otherwise throws an error.
+   * 
    * @returns {Promise<boolean>} True if checkbox is checked
+   * @throws {Error} Throws if checkbox is not checked
    * @example
    * await browser.switch('dark mode').isChecked();
    */
@@ -573,7 +576,10 @@ class WebBrowser extends Browser {
   /**
    * Asserts if a checkbox is currently unchecked.
    * 
+   * Returns true if the checkbox is unchecked, otherwise throws an error.
+   * 
    * @returns {Promise<boolean>} True if checkbox is unchecked
+   * @throws {Error} Throws if checkbox is checked
    * @example
    * const isOff = await browser.switch('dark mode').isUnchecked();
    */
@@ -670,13 +676,15 @@ class WebBrowser extends Browser {
   }
 
   /**
-   * Checks if the option from a dropdown or combobox the currently selected.
+   * Asserts that option from a dropdown or combobox the currently selected.
    *
    * Supports both native <select> elements and custom combobox widgets
    * (role='combobox').
+   * Returns true if the option is selected, otherwise throws an error.
    *
    * @returns {Promise<boolean>} True if object with `text` or `value` or `index`
-   * is currently selected else throws error.
+   * is currently selected
+   * @throws {Error} Throws if the option is not selected
    * @example
    * await browser.dropdown('Country').isSelected();
    */
