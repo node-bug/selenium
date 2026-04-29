@@ -88,7 +88,7 @@ Chain intermediate operations ending with a terminal operation:
 // Intermediate operations build selector, don't execute
 await browser
   .button('Delete') // select button
-  .below() // Position filter
+  .below // Position filter
   .element('Actions') // Anchor reference
   .click() // Terminal operation (execute)
 ```
@@ -103,24 +103,27 @@ Locate elements by their position relative to others—exactly how humans descri
 **Code:**
 
 ```javascript
-await browser.button('Delete').below().element('Actions').click()
+await browser.button('Delete').below.element('Actions').click()
 ```
 
 **Natural language:** "Type in the name field to the right of the label"  
 **Code:**
 
 ```javascript
-await browser.textbox('Name').toRightOf().label('Name').write('John')
+await browser
+  .textbox('Name')
+  .toRightOf.element('Personal Details')
+  .write('John')
 ```
 
 **Natural language:** "Click the home link inside the modal dialog"  
 **Code:**
 
 ```javascript
-await browser.link('Home').within().dialog('Modal').click()
+await browser.link('Home').within.dialog('Modal').click()
 ```
 
-Supported positions: `above()`, `below()`, `toLeftOf()`, `toRightOf()`, `within()`, `near()`
+Supported positions: `above`, `below`, `toLeftOf`, `toRightOf`, `within`, `near`
 
 Learn more: [Selectors Guide - Spatial References](docs/SELECTORS.md#spatial-references)
 
@@ -189,18 +192,18 @@ const screenshot = await browser.element('chart').get.screenshot()
 
 ### Multiple Possible Names
 
-Use `or()` when elements might have different names:
+Use `or` when elements might have different names:
 
 ```javascript
-await browser.button('Save').or().button('Apply').click()
+await browser.button('Save').or.button('Apply').click()
 ```
 
 ### Exact Text Matching
 
-By default, partial matches work. Use `exact()` for exact matching:
+By default, partial matches work. Use `exact` for exact matching:
 
 ```javascript
-await browser.exact().element('Test').click() // Won't match 'Testing'
+await browser.exact.element('Test').click() // Won't match 'Testing'
 ```
 
 ### Locating with Spatial Context
@@ -209,16 +212,16 @@ Use spatial references when you need to find elements by their position:
 
 ```javascript
 // Find the field below the Email label
-await browser.textbox('Password').below().textbox('Email').write('secret123')
+await browser.textbox('Password').below.textbox('Email').write('secret123')
 
 // Find delete button in a specific row
-await browser.button('Delete').within().row('John Doe').click()
+await browser.button('Delete').within.row('John Doe').click()
 
 // Find submit button to the right of cancel
-await browser.button('Submit').toRightOf().button('Cancel').click()
+await browser.button('Submit').toRightOf.button('Cancel').click()
 
 // Find element inside a dialog
-await browser.textbox('Name').within().dialog('User Settings').write('John')
+await browser.textbox('Name').within.dialog('User Settings').write('John')
 ```
 
 ## Documentation
@@ -271,7 +274,7 @@ await browser.close()
 
 ```javascript
 // Click delete in specific row
-await browser.button('Delete').within().row('User123').click()
+await browser.button('Delete').within.row('User123').click()
 
 // Confirm delete
 await browser.button('Confirm').click()
@@ -281,10 +284,10 @@ await browser.button('Confirm').click()
 
 ```javascript
 // Fill form in modal
-await browser.textbox('Name').within().dialog('User Details').write('John Doe')
+await browser.textbox('Name').within.dialog('User Details').write('John Doe')
 
 // Submit
-await browser.button('Save').within().dialog('User Details').click()
+await browser.button('Save').within.dialog('User Details').click()
 
 // Verify modal closed
 const visible = await browser.dialog('User Details').isVisible()
@@ -355,7 +358,7 @@ const url1 = await browser.window().get.url()
 
 ### Positioning
 
-`atIndex()`, `above()`, `below()`, `toLeftOf()`, `toRightOf()`, `within()`, `near()`, `or()`, `exact()`, `hidden()`
+`atIndex()`, `above`, `below`, `toLeftOf`, `toRightOf`, `within`, `near`, `or`, `exact`, `hidden`
 
 See [API Reference](docs/API-REFERENCE.md) for complete documentation.
 
@@ -407,10 +410,10 @@ The library automatically handles cleanup on process termination (SIGINT, SIGTER
 
 1. **Use semantic types** - `button()`, `textbox()` vs generic `element()`
 2. **Leverage text matching** - Target visible text when possible
-3. **Apply spatial context** - Use `within()`, `below()`, etc. for precise targeting
+3. **Apply spatial context** - Use `within`, `below`, etc. for precise targeting
 4. **Check state before acting** - Verify visibility/disabled state before interaction
 5. **Chain operations** - Build fluent chains for readability
-6. **Use `or()` sparingly** - Multiple alternatives are last resort
+6. **Use `or` sparingly** - Multiple alternatives are last resort
 7. **Use correct state check** - `isVisible()` for conditionals (returns boolean), `isDisplayed()`/`isNotDisplayed()` for assertions (throw errors)
 
 ## Contributing

@@ -346,18 +346,18 @@ describe('WebBrowser', () => {
     test('atIndex throws if not number', () => {
         expect(() => browser.atIndex('x')).toThrow(TypeError);
     });
-    test('or() adds condition to stack', () => {
+    test('or getter adds condition to stack', () => {
         browser.stack = [{ id: 1 }];
 
-        browser.or();
+        browser.or;
 
         expect(browser.stack).toContainEqual({
             type: 'condition',
             operator: 'or',
         });
     });
-    test('within() adds location to stack', () => {
-        browser.within();
+    test('within getter adds location to stack', () => {
+        browser.within;
 
         expect(browser.stack).toContainEqual({
             type: 'location',

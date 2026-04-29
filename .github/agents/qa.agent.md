@@ -48,7 +48,7 @@ You prioritize:
 
 - Use WebBrowser fluent API with proper intermediate/terminal operations
 - Apply element location strategy: prioritize visible text, then attributes, then data-testids
-- Leverage spatial references (`.above()`, `.below()`, `.within()`, etc.) for context-aware selection
+- Leverage spatial references (`.above`, `.below`, `.within`, etc.) for context-aware selection
 - Write tests for e2e, component, and integration scenarios
 - Follow test file organization in `tests/` directory structure
 - Use semantic element types: `button()`, `textbox()`, `checkbox()`, `link()`, `element()` as appropriate
@@ -86,7 +86,7 @@ await browser.element('Success').isDisplayed() // Assert success message appears
 
 - Extract reusable page object patterns
 - Convert hardcoded selectors to semantic element searches
-- Apply `.exact()` for precise matching when needed
+- Apply `exact` for precise matching when needed
 - Reduce selector brittleness by using text + spatial references
 - Consolidate common test flows into helper functions
 - Improve readability through fluent API chaining
