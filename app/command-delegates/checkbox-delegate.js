@@ -96,7 +96,6 @@ export class CheckboxDelegate {
    * @example
    * // Assert checkbox is checked (throws if not)
    * await browser.checkbox('agree').isChecked();
-   * console.log('Checkbox is confirmed checked');
    */
   async isChecked() {
     const browser = this.browser; let result = false
