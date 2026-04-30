@@ -5,7 +5,7 @@ import { until } from 'selenium-webdriver'
  * Alert class for handling browser alerts and prompts
  * 
  * This class provides methods for working with browser alerts, including
- * checking if an alert is present, accepting, dismissing, and sending text to alerts.
+ * validating if an alert is present, accepting, dismissing, and sending text to alerts.
  * 
  * @class Alert
  * @property {Object} driver - Selenium WebDriver instance

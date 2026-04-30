@@ -94,11 +94,13 @@ export class VisibilityDelegate {
    */
   async isDisplayed(t = null) {
     const browser = this.browser;
-    browser.message = messenger({ stack: browser.stack, action: 'waitVisibility' });
+    browser.message = messenger({ stack: browser.stack, action: 'isDisplayed' });
     try {
       await browser._finder(t);
-      log.info('Element is visible on page');
+      log.info('Element is displayed on page');
       return true;
+    } catch (err) {
+      browser.handleError(err, 'validating element to be displayed');
     } finally {
       browser.stack = [];
     }
@@ -116,7 +118,7 @@ export class VisibilityDelegate {
    */
   async isNotDisplayed(t = null) {
     const browser = this.browser;
-    browser.message = messenger({ stack: browser.stack, action: 'waitInvisibility' });
+    browser.message = messenger({ stack: browser.stack, action: 'isNotDisplayed' });
     const timeout = t ?? (selenium.timeout * 1000);
     const endTime = Date.now() + timeout;
 
@@ -134,8 +136,7 @@ export class VisibilityDelegate {
       }
       throw new Error(`Element still visible after ${timeout}ms`);
     } catch (err) {
-      // browser.handleError decides to throw or log the error
-      browser.handleError(err, 'waiting for invisibility');
+      browser.handleError(err, 'validating element to not be displayed');
       return true
     } finally {
       browser.stack = [];
@@ -165,7 +166,7 @@ export class VisibilityDelegate {
       log.info(`Element is ${result ? 'disabled' : 'enabled'}`);
       return result;
     } catch (err) {
-      browser.handleError(err, 'checking if disabled');
+      browser.handleError(err, 'validating if disabled');
     } finally {
       browser.stack = [];
     }

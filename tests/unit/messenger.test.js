@@ -97,7 +97,7 @@ describe('messenger', () => {
     };
 
     const result = messenger(action);
-    expect(result).toBe("Checking if 'exists' is visible");
+    expect(result).toBe("Validating if 'exists' is visible");
   });
 
   test('should handle isVisible action with suffix', () => {
@@ -109,7 +109,7 @@ describe('messenger', () => {
     };
 
     const result = messenger(action);
-    expect(result).toBe("Checking if element 'message' is visible");
+    expect(result).toBe("Validating if element 'message' is visible");
   });
 
   test('should handle waitVisibility action with suffix', () => {
@@ -145,7 +145,7 @@ describe('messenger', () => {
     };
 
     const result = messenger(action);
-    expect(result).toBe("Checking if button 'submit' is disabled");
+    expect(result).toBe("Validating if button 'submit' is disabled");
   });
 
   test('should handle click with coordinates', () => {

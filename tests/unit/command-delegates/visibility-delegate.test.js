@@ -179,9 +179,9 @@ describe('VisibilityDelegate (ESM)', () => {
       const error = new Error('not found');
       mockBrowser._finder.mockRejectedValue(error);
 
-      // isDisplayed re-throws the error from _finder without calling handleError
-      await expect(visibilityDelegate.isDisplayed()).rejects.toThrow('not found');
-      expect(mockBrowser.handleError).not.toHaveBeenCalled();
+      // isDisplayed catches the error and calls handleError (does not re-throw)
+      await expect(visibilityDelegate.isDisplayed()).resolves.toBeUndefined();
+      expect(mockBrowser.handleError).toHaveBeenCalledWith(error, 'validating element to be displayed');
     });
 
     test('uses custom timeout when provided', async () => {
@@ -271,7 +271,7 @@ describe('VisibilityDelegate (ESM)', () => {
       expect.objectContaining({
         message: expect.stringContaining('Element still visible after 1000ms')
       }),
-      'waiting for invisibility'
+      'validating element to not be displayed'
     );
     expect(result).toBe(true);
   });
@@ -294,7 +294,7 @@ describe('VisibilityDelegate (ESM)', () => {
       expect.objectContaining({
         message: expect.stringContaining('after 5000ms') // 5 seconds from config
       }),
-      'waiting for invisibility'
+      'validating element to not be displayed'
     );
   });
 });
@@ -336,7 +336,7 @@ describe('VisibilityDelegate (ESM)', () => {
 
       expect(mockBrowser.handleError).toHaveBeenCalledWith(
         error,
-        'checking if disabled'
+        'validating if disabled'
       );
     });
   });
@@ -401,7 +401,7 @@ describe('VisibilityDelegate (ESM)', () => {
       mockSwitchTo.frame.mockResolvedValue();
 
       // We can't directly test private methods, but we can verify the behavior
-      // by checking that the methods work correctly
+      // by validating that the methods work correctly
       expect(mockBrowser.findAll).not.toHaveBeenCalled();
     });
   });

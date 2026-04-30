@@ -5,7 +5,7 @@ import messenger from '../messenger.js';
  * Checkbox delegate for handling checkbox operations
  * 
  * This class encapsulates all checkbox-related functionality that was previously
- * part of the WebBrowser class, including check, uncheck, and state checking operations.
+ * part of the WebBrowser class, including check, uncheck, and state validation operations.
  * 
  * @class CheckboxDelegate
  */
@@ -24,7 +24,7 @@ export class CheckboxDelegate {
   async #toggleCheckbox(targetState) {
     const browser = this.browser;
     browser.message = messenger({ stack: browser.stack, action: targetState });
-    
+
     try {
       const locator = await browser._finder(null, targetState);
       const isChecked = await locator.isSelected();
@@ -104,12 +104,14 @@ export class CheckboxDelegate {
       const locator = await browser._finder();
       result = await locator.isSelected();
     } catch (err) {
-      browser.handleError(err, 'checking if checkbox is checked');
+      browser.handleError(err, 'validating if checkbox is checked');
     } finally {
       browser.stack = [];
     }
-    if(result) {log.info(`Checkbox is checked`); return true;}
-    throw new Error('Checkbox is not checked'); 
+    if (result) { log.info(`Checkbox is checked`); return true; }
+    const err = new Error('Checkbox is not checked');
+    browser.handleError(err, 'validating if checkbox is checked');
+    throw err
   }
 
   /**
@@ -132,11 +134,13 @@ export class CheckboxDelegate {
       const locator = await browser._finder();
       result = !(await locator.isSelected());
     } catch (err) {
-      browser.handleError(err, 'checking if checkbox is unchecked');
+      browser.handleError(err, 'validating if checkbox is unchecked');
     } finally {
       browser.stack = [];
     }
-    if(result) {log.info(`Checkbox is not checked`); return true;}
-    throw new Error('Checkbox is checked'); 
+    if (result) { log.info(`Checkbox is not checked`); return true; }
+    const err = new Error('Checkbox is checked');
+    browser.handleError(err, 'validating if checkbox is not checked');
+    throw err
   }
 }
