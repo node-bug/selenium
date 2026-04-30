@@ -475,63 +475,143 @@ class WebBrowser extends Browser {
   }
 
   /**
-   * Checks if an element is currently in the DOM and visible.
-   * Does not throw an error if not found; returns boolean.
-   * 
-   * @param {number} [t] - Custom timeout in milliseconds
-   * @returns {Promise<boolean>} True if element is visible
-   * @example
-   * const visible = await browser.element('submit').isVisible();
-   * if (visible) {
-   *   await browser.element('submit').click();
-   * }
+   * "Namespace" or "Sub-resource" pattern for organized access to validation/visibility operations.
+   * Accessor for validation operations.
+   * Usage: await browser.element('id').is.disabled(5000)
+   *        await browser.element('id').is.enabled(5000)
+   *        await browser.element('id').is.visible(5000)
+   *        await browser.element('id').is.not.visible(5000)
    */
-  async isVisible(t = null) {
-    return await this.#visibilityDelegate.isVisible(t);
+  get is() {
+    return {
+      /**
+       * Checks whether the element is visible.
+       *
+       * @param {number} [t] - Optional timeout in milliseconds
+       * @returns {Promise<boolean>}
+       */
+      visible: async (t = null) => {
+        this.message = messenger({ stack: this.stack, action: 'isVisible' });
+        return await this.#visibilityDelegate._isVisible(t);
+      },
+
+      not: {
+        /**
+         * Checks whether the element is not visible.
+         *
+         * @param {number} [t] - Optional timeout in milliseconds
+         * @returns {Promise<boolean>}
+         */
+        visible: async (t = null) => {
+          this.message = messenger({ stack: this.stack, action: 'isNotVisible' });
+          return await this.#visibilityDelegate._isNotVisible(t);
+        },
+      },
+
+      /**
+       * Checks whether the element is enabled.
+       *
+       * @param {number} [t] - Optional timeout in milliseconds
+       * @returns {Promise<boolean>}
+       */
+      enabled: async (t = null) => {
+        this.message = messenger({ stack: this.stack, action: 'isEnabled' });
+        return await this.#visibilityDelegate._isEnabled(t)
+      },
+
+      /**
+       * Checks whether the element is disabled.
+       *
+       * @param {number} [t] - Optional timeout in milliseconds
+       * @returns {Promise<boolean>}
+       */
+      disabled: async (t = null) => {
+        this.message = messenger({ stack: this.stack, action: 'isDisabled' });
+        return await this.#visibilityDelegate._isDisabled(t);
+      },
+    };
   }
 
   /**
-   * Asserts for an element to be visible.
-   * Throws an error if the element does not appear within the timeout.
-   * 
-   * @param {number} [t] - Custom timeout in milliseconds
-   * @returns {Promise<boolean>} True if element becomes visible
-   * @throws {Error} If element doesn't become visible within timeout
-   * @example
-   * await browser.element('loading-indicator').isDisplayed();
-   * await browser.button('submit').isDisplayed(10000); // 10 second timeout
+   * Assertion-style API for visibility checks.
+   * Throws an error if the assertion fails.
+   * Usage: await browser.element('id').should.be.visible(5000)
+   *        await browser.element('id').should.not.be.visible(5000)
+   *        await browser.element('id').should.be.enabled(5000)
+   *        await browser.element('id').should.be.disabled(5000)
    */
-  async isDisplayed(t = null) {
-    return await this.#visibilityDelegate.isDisplayed(t);
-  }
+  get should() {
+    return {
+      be: {
+        /**
+         * Asserts that the element is visible within the given timeout.
+         *
+         * @param {number} [t] - Optional timeout in milliseconds
+         * @returns {Promise<void>}
+         */
+        visible: async (t = null) => {
+          this.message = messenger({ stack: this.stack, action: 'shouldBeVisible' });
+          const test = await this.#visibilityDelegate._isVisible(t);
+          if (!test) {
+            const err = new Error('Element should be visible')
+            this.handleError(err, 'validating element to be visible');
+            throw err
+          }
+        },
 
-  /**
-   * Asserts for an element to disappear or become hidden.
-   * Throws an error if the element is still displayed after the timeout.
-   * 
-   * @param {number} [t] - Custom timeout in milliseconds
-   * @returns {Promise<boolean>} True if element becomes invisible
-   * @throws {Error} If element doesn't become invisible within timeout
-   * @example
-   * await browser.element('loading-spinner').isNotDisplayed();
-   * await browser.element('modal').isNotDisplayed(10000); // 10 second timeout
-   */
-  async isNotDisplayed(t = null) {
-    return await this.#visibilityDelegate.isNotDisplayed(t);
-  }
+        /**
+         * Asserts that the element is enabled within the given timeout.
+         *
+         * @param {number} [t] - Optional timeout in milliseconds
+         * @returns {Promise<void>}
+         */
+        enabled: async (t = null) => {
+          this.message = messenger({ stack: this.stack, action: 'shouldBeEnabled' });
+          const test = await this.#visibilityDelegate._isEnabled(t);
+          if (!test) {
+            const err = new Error('Element should be enabled')
+            this.handleError(err, 'validating element to be enabled');
+            throw err
+          }
+        },
 
-  /**
-   * Checks if an element is disabled (has the 'disabled' attribute or property).
-   * 
-   * @returns {Promise<boolean>} True if element is disabled
-   * @example
-   * const disabled = await browser.button('submit').isDisabled();
-   * if (!disabled) {
-   *   await browser.button('submit').click();
-   * }
-   */
-  async isDisabled() {
-    return await this.#visibilityDelegate.isDisabled();
+        /**
+         * Asserts that the element is disabled within the given timeout.
+         *
+         * @param {number} [t] - Optional timeout in milliseconds
+         * @returns {Promise<void>}
+         */
+        disabled: async (t = null) => {
+          this.message = messenger({ stack: this.stack, action: 'shouldBeDisabled' });
+          const test = await this.#visibilityDelegate._isDisabled(t);
+          if (!test) {
+            const err = new Error('Element should be disabled')
+            this.handleError(err, 'validating element to be disabled');
+            throw err
+          }
+        },
+      },
+
+      not: {
+        be: {
+          /**
+           * Asserts that the element is not visible within the given timeout.
+           *
+           * @param {number} [t] - Optional timeout in milliseconds
+           * @returns {Promise<void>}
+           */
+          visible: async (t = null) => {
+            this.message = messenger({ stack: this.stack, action: 'shouldNotBeVisible' });
+            const test = await this.#visibilityDelegate._isNotVisible(t);
+            if (!test) {
+              const err = new Error('Element should not be visible')
+              this.handleError(err, 'validating element to not be visible');
+              throw err
+            }
+          },
+        },
+      },
+    };
   }
 
   /**

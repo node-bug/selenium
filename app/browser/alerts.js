@@ -41,8 +41,8 @@ class Alert {
      * 
      * @returns {Promise<boolean>} True if alert is visible and text matches
      * @example
-     * await browser.alert().isVisible();
-     * await browser.alert('Expected Text').isVisible();
+     * await browser.alert().is.visible();
+     * await browser.alert('Expected Text').is.visible();
      */
     async isVisible() {
         try {
@@ -130,6 +130,27 @@ class Alert {
             text: async () => {
                 await this.isVisible();
                 return this.alert.getText();
+            },
+        };
+    }
+
+    /**
+     * "Namespace" or "Sub-resource" pattern for organized access to validation operations.
+     * Accessor for alert validation operations.
+     * Usage: await browser.alert().is.visible()
+     */
+    get is() {
+        return {
+            /**
+             * Check if an alert is visible and matches expected text
+             * 
+             * @returns {Promise<boolean>} True if alert is visible and text matches
+             * @example
+             * await browser.alert().is.visible();
+             * await browser.alert('Expected Text').is.visible();
+             */
+            visible: async () => {
+                return await this.isVisible();
             },
         };
     }

@@ -218,11 +218,11 @@ describe('BrowserTarget (ESM)', () => {
     });
   });
 
-  describe('isDisplayed()', () => {
+  describe('is.displayed()', () => {
     test('returns true when target is displayed', async () => {
       browserTarget._targetTitle = 'Test Title';
       
-      const result = await browserTarget.isDisplayed();
+      const result = await browserTarget.is.displayed();
       
       expect(result).toBe(true);
     });
@@ -231,7 +231,7 @@ describe('BrowserTarget (ESM)', () => {
       browserTarget._targetTitle = 'Non-existent Title';
       mockDriver.getTitle.mockResolvedValue('Different Title');
       
-      const result = await browserTarget.isDisplayed(100); // Short timeout
+      const result = await browserTarget.is.displayed(100); // Short timeout
       
       expect(result).toBe(false);
     });

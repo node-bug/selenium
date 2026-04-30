@@ -116,7 +116,7 @@ await browser.checkbox('Spam Filter').isUnchecked()
 **Toggle state**:
 
 ```javascript
-const isChecked = await browser.checkbox('RememberMe').isVisible()
+const isChecked = await browser.checkbox('RememberMe').is.visible()
 if (isChecked) {
   await browser.checkbox('RememberMe').uncheck()
 } else {
@@ -187,7 +187,7 @@ await browser.switch('Notifications').isOff()
 **Toggle switch**:
 
 ```javascript
-if (await browser.switch('Feature').isVisible()) {
+if (await browser.switch('Feature').is.visible()) {
   if (await browser.switch('Feature').isOn()) {
     await browser.switch('Feature').off()
   } else {
@@ -435,7 +435,7 @@ await browser.checkbox('Accept Terms').check()
 await browser.dropdown('Country').option('USA').select()
 
 // Verify and submit
-await browser.button('Submit').isDisplayed()
+await browser.button('Submit').should.be.visible()
 await browser.button('Submit').click()
 ```
 
@@ -462,7 +462,7 @@ await browser.button('Submit').click()
 await browser.button('Submit').click()
 
 // Check for error message
-if (await browser.element('Error message').isVisible()) {
+if (await browser.element('Error message').is.visible()) {
   const error = await browser.element('Error message').get.text()
   console.error('Form error:', error)
 }

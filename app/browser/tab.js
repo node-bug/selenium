@@ -22,16 +22,6 @@ class Tab extends BrowserTarget {
     }
 
     /**
-     * Check if a tab is displayed
-     * 
-     * @param {string|number} [t] - Tab title or index (optional)
-     * @returns {Promise<boolean>} True if tab is displayed
-     * @example
-     * const isDisplayed = await browser.tab('Google').isDisplayed();
-     */
-    async isDisplayed(t) { return await this._findTarget(false, t); }
-
-    /**
      * Switch to a tab
      * 
      * @param {string|number} [t] - Tab title or index (optional)

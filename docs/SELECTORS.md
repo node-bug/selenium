@@ -252,7 +252,7 @@ Target elements with different possible names:
 await browser.button('Checkout').or.button('Submit').click()
 
 // Check if either button is visible
-const visible = await browser.button('Save').or.button('Apply').isVisible()
+const visible = await browser.button('Save').or.button('Apply').is.visible()
 ```
 
 ### Selection Priority with or

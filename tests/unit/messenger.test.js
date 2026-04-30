@@ -88,30 +88,6 @@ describe('messenger', () => {
     expect(result).toBe("Clicking on located exactly 'top-left'");
   });
 
-  test('should handle condition type in stack', () => {
-    const action = {
-      action: 'isVisible',
-      stack: [
-        { type: 'condition', operator: 'exists' }
-      ]
-    };
-
-    const result = messenger(action);
-    expect(result).toBe("Validating if 'exists' is visible");
-  });
-
-  test('should handle isVisible action with suffix', () => {
-    const action = {
-      action: 'isVisible',
-      stack: [
-        { type: 'element', id: 'message' }
-      ]
-    };
-
-    const result = messenger(action);
-    expect(result).toBe("Validating if element 'message' is visible");
-  });
-
   test('should handle waitVisibility action with suffix', () => {
     const action = {
       action: 'waitVisibility',

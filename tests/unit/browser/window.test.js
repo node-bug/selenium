@@ -101,30 +101,6 @@ describe('Window (ESM)', () => {
     });
   });
 
-  describe('isDisplayed()', () => {
-    test('returns true when window is displayed', async () => {
-      // Mock the internal _findTarget method to return true
-      const originalFindTarget = window._findTarget;
-      window._findTarget = jest.fn().mockResolvedValue(true);
-      
-      const result = await window.isDisplayed('Test Title');
-      
-      expect(result).toBe(true);
-      window._findTarget = originalFindTarget;
-    });
-
-    test('returns false when window is not displayed', async () => {
-      // Mock the internal _findTarget method to return false
-      const originalFindTarget = window._findTarget;
-      window._findTarget = jest.fn().mockResolvedValue(false);
-      
-      const result = await window.isDisplayed('Non-existent Title');
-      
-      expect(result).toBe(false);
-      window._findTarget = originalFindTarget;
-    });
-  });
-
   describe('switch()', () => {
     test('switches to window and returns true', async () => {
       // Mock the internal _findTarget method to return true

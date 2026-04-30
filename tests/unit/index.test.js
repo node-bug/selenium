@@ -56,8 +56,6 @@ jest.unstable_mockModule('../../app/command-delegates/visibility-delegate.js', (
     VisibilityDelegate: jest.fn().mockImplementation(() => ({
         scroll: jest.fn(),
         isVisible: jest.fn(),
-        isDisplayed: jest.fn(),
-        isNotDisplayed: jest.fn(),
         isDisabled: jest.fn(),
         hide: jest.fn(),
         unhide: jest.fn(),

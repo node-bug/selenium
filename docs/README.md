@@ -75,9 +75,9 @@ This directory contains comprehensive documentation for the WebBrowser automatio
 
 #### Visibility & State
 
-- **Wait for element to appear** → [API-REFERENCE.md - isDisplayed()](API-REFERENCE.md#isdisplayed-timeout)
-- **Wait for element to disappear** → [API-REFERENCE.md - isNotDisplayed()](API-REFERENCE.md#isnotdisplayed-timeout)
-- **Check if element is visible** → [API-REFERENCE.md - isVisible()](API-REFERENCE.md#isvisible)
+- **Wait for element to appear** → [API-REFERENCE.md - should.be.visible()](API-REFERENCE.md#shouldbevisible-timeout)
+- **Wait for element to disappear** → [API-REFERENCE.md - should.not.be.visible()](API-REFERENCE.md#shouldnotbevisible-timeout)
+- **Check if element is visible** → [API-REFERENCE.md - is.visible()](API-REFERENCE.md#isvisible)
 - **Verify checkbox state** → [FORMS.md - isChecked/isUnchecked](FORMS.md#ischecked)
 
 ## 🔍 By Concept
@@ -278,9 +278,13 @@ browser.refresh()
 browser.goBack()
 
 // State checks
-element.isVisible()
-element.isDisplayed()
-element.isDisabled()
+element.is.visible()
+element.is.disabled()
+element.is.enabled()
+element.should.be.visible()
+element.should.not.be.visible()
+element.should.be.disabled()
+element.should.be.enabled()
 
 // Multi-window/tab
 browser.window().new()

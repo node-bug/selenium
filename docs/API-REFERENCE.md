@@ -637,14 +637,14 @@ await browser.dropdown('Country').option(0).isSelected()
 
 ## Element State
 
-### isVisible()
+### is.visible([timeout])
 
 **Returns `true`/`false` for conditional logic** - Does not throw errors.
 
 Check if element is visible in the DOM. Use this **only in if conditions** for branching logic. This method returns a boolean value and is intended for runtime decision-making, not for QA test assertions.
 
 ```javascript
-const visible = await browser.element('Submit').isVisible()
+const visible = await browser.element('Submit').is.visible()
 if (visible) {
   await browser.element('Submit').click()
 }
@@ -652,17 +652,17 @@ if (visible) {
 
 **Returns**: `Promise<boolean>` - `true` if visible, `false` otherwise
 
-**QA Best Practice**: For test validations that validate whether elements are displayed, use `isDisplayed()` or `isNotDisplayed()` instead.
+**QA Best Practice**: For test validations that validate whether elements are displayed, use `should.be.visible()` or `should.not.be.visible()` instead.
 
-### isDisplayed([timeout])
+### should.be.visible([timeout])
 
 **Assertion that throws an error and stops test execution on failure.**
 
 Wait for element to become visible within the timeout and validate that it is displayed. Use this for QA test validations and verifications to ensure elements are properly visible on the screen.
 
 ```javascript
-await browser.element('Loading').isDisplayed()
-await browser.button('Submit').isDisplayed(10000) // 10s timeout
+await browser.element('Loading').should.be.visible()
+await browser.button('Submit').should.be.visible(10000) // 10s timeout
 ```
 
 **Parameters**:
@@ -673,15 +673,15 @@ await browser.button('Submit').isDisplayed(10000) // 10s timeout
 
 **QA Best Practice**: Use this method to assert and validate that an element is displayed on the screen in your test cases.
 
-### isNotDisplayed([timeout])
+### should.not.be.visible([timeout])
 
 **Assertion that throws an error and stops test execution on failure.**
 
 Wait for element to disappear within the timeout and validate that it is no longer displayed. Use this for QA test validations and verifications to ensure elements are properly hidden from the screen.
 
 ```javascript
-await browser.element('Modal').isNotDisplayed()
-await browser.element('Spinner').isNotDisplayed(5000)
+await browser.element('Modal').should.not.be.visible()
+await browser.element('Spinner').should.not.be.visible(5000)
 ```
 
 **Parameters**:
@@ -692,18 +692,65 @@ await browser.element('Spinner').isNotDisplayed(5000)
 
 **QA Best Practice**: Use this method to assert and validate that an element is not displayed on the screen in your test cases.
 
-### isDisabled()
+### is.disabled()
 
-Check if element is disabled.
+**Returns `true`/`false` for conditional logic** - Does not throw errors.
+
+Check if element is disabled. Use this **only in if conditions** for branching logic. This method returns a boolean value and is intended for runtime decision-making, not for QA test assertions.
 
 ```javascript
-const disabled = await browser.button('Submit').isDisabled()
+const disabled = await browser.button('Submit').is.disabled()
 if (!disabled) {
   await browser.button('Submit').click()
 }
 ```
 
-**Returns**: `Promise<boolean>`
+**Returns**: `Promise<boolean>` - `true` if disabled, `false` otherwise
+
+**QA Best Practice**: For test validations that validate whether elements are disabled, use `should.be.disabled()` or `should.be.enabled()` instead.
+
+### is.enabled()
+
+**Returns `true`/`false` for conditional logic** - Does not throw errors.
+
+Check if element is enabled. Use this **only in if conditions** for branching logic.
+
+```javascript
+const enabled = await browser.button('Submit').is.enabled()
+if (enabled) {
+  await browser.button('Submit').click()
+}
+```
+
+**Returns**: `Promise<boolean>` - `true` if enabled, `false` if disabled
+
+### should.be.disabled()
+
+**Assertion that throws an error and stops test execution on failure.**
+
+Validate that an element is disabled. Use this for QA test validations and verifications to ensure elements are properly disabled on the screen.
+
+```javascript
+await browser.button('Submit').should.be.disabled()
+```
+
+**Throws**: Error if element is enabled - **Test execution stops**
+
+**QA Best Practice**: Use this method to assert and validate that an element is disabled on the screen in your test cases.
+
+### should.be.enabled()
+
+**Assertion that throws an error and stops test execution on failure.**
+
+Validate that an element is enabled. Use this for QA test validations and verifications to ensure elements are properly enabled on the screen.
+
+```javascript
+await browser.button('Submit').should.be.enabled()
+```
+
+**Throws**: Error if element is disabled - **Test execution stops**
+
+**QA Best Practice**: Use this method to assert and validate that an element is enabled on the screen in your test cases.
 
 ### isChecked()
 
@@ -892,14 +939,14 @@ Switch to fullscreen.
 await browser.window().fullscreen()
 ```
 
-### window().isDisplayed([timeout])
+### window().should.be.visible([timeout])
 
 **Assertion that throws an error and stops test execution on failure.**
 Check if window is displayed.
 
 ```javascript
-const displayed = await browser.window('Google').isDisplayed()
-await browser.window('Title').isDisplayed(5000) // 5s timeout
+const displayed = await browser.window('Google').should.be.visible()
+await browser.window('Title').should.be.visible(5000) // 5s timeout
 ```
 
 ### window().get.url()
@@ -978,13 +1025,13 @@ await browser.tab('Google').switch()
 
 - `timeout` (number): Custom timeout
 
-### tab().isDisplayed([timeout])
+### tab().should.be.visible([timeout])
 
 **Assertion that throws an error and stops test execution on failure.**
 Check if tab is displayed.
 
 ```javascript
-const displayed = await browser.tab(0).isDisplayed()
+const displayed = await browser.tab(0).should.be.visible()
 ```
 
 ### tab().get.url()
@@ -1025,12 +1072,12 @@ browser.alert('Confirmation') // With specific text
 
 **Returns**: `AlertInstance`
 
-### alert().isVisible()
+### alert().is.visible()
 
 Check if alert is present.
 
 ```javascript
-const present = await browser.alert().isVisible()
+const present = await browser.alert().is.visible()
 if (present) {
   await browser.alert().accept()
 }
