@@ -33,7 +33,7 @@ async function main() {
     await browser.checkbox('Remember Me').check()
 
     // Verify element is visible
-    await browser.button('Confirm').isDisplayed()
+    await browser.button('Confirm').should.be.visible()
   } finally {
     // Always close browser
     await browser.close()
@@ -78,7 +78,7 @@ await browser.button('Save').or.button('Apply').click()
 ```javascript
 .click()             // Terminal - executes action
 .write('text')       // Terminal - executes action
-.isVisible()         // Terminal - returns boolean
+.is.visible()        // Terminal - returns boolean
 ```
 
 ### Method Chaining Pattern
@@ -117,13 +117,13 @@ const selected = await browser.dropdown('Country').get.text()
 
 ```javascript
 // Check if element exists
-if (await browser.element('LoadingSpinner').isVisible()) {
+if (await browser.element('LoadingSpinner').is.visible()) {
   // Wait for it to disappear
-  await browser.element('LoadingSpinner').isNotDisplayed(10000)
+  await browser.element('LoadingSpinner').should.not.be.visible(10000)
 }
 
 // Wait for element to appear
-await browser.button('Submit').isDisplayed(5000)
+await browser.button('Submit').should.be.visible(5000)
 ```
 
 ### Multiple Windows/Tabs
@@ -147,7 +147,7 @@ await browser.window('Title').switch()
 
 ```javascript
 // Check and handle alert
-if (await browser.alert().isVisible()) {
+if (await browser.alert().is.visible()) {
   const text = await browser.alert().get.text()
   console.log('Alert:', text)
   await browser.alert().accept()

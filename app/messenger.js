@@ -21,10 +21,6 @@ const ACTION_MAP = {
   type: (a) => `Typing '${a.data}' into `,
   select: (a) => `Selecting '${a.data}' from `,
   isSelected: (a) => `Validating if '${a.data}' in `,
-  isVisible: () => 'Validating if ',
-  isDisabled: () => 'Validating if ',
-  isDisplayed: () => 'Validating if ',
-  isNotDisplayed: () => 'Validating if ',
   waitVisibility: () => 'Waiting for ',
   waitInvisibility: () => 'Waiting for ',
   check: () => 'Checking ',
@@ -42,13 +38,21 @@ const ACTION_MAP = {
   hide: () => 'Hiding all matching ',
   unhide: () => 'Unhiding all matching ',
   upload: (a) => `Uploading file at path '${a.data}' to `,
+  isVisible: () => 'Validating if ',
+  isNotVisible: () => 'Validating if ',
+  shouldBeVisible: () => 'Validating that ',
+  shouldNotBeVisible: () => 'Validating that ',
+  isDisabled: () => 'Validating if ',
+  isEnabled: () => 'Validating if ',
+  shouldBeDisabled: () => 'Validating that ',
+  shouldBeEnabled: () => 'Validating that ',
 };
 
 // 2. Define valid element types
 const ELEMENT_TYPES = new Set([
-  'link', 'navigation', 'heading', 'button', 'checkbox', 
-  'radio', 'slider', 'dropdown', 'textbox', 'file', 'list', 
-  'listitem', 'menu', 'menuitem', 'toolbar', 'dialog', 
+  'link', 'navigation', 'heading', 'button', 'checkbox',
+  'radio', 'slider', 'dropdown', 'textbox', 'file', 'list',
+  'listitem', 'menu', 'menuitem', 'toolbar', 'dialog',
   'row', 'column', 'image', 'element', 'switch'
 ]);
 
@@ -85,12 +89,8 @@ export default function messenger(a) {
 
   // Handle Suffixes/Action Specifics
   const suffixes = {
-    isVisible: ' is visible',
-    isDisplayed: ' is displayed',
-    isNotDisplayed: ' is not displayed',
     waitVisibility: ' to be visible',
     waitInvisibility: ' to not be visible',
-    isDisabled: ' is disabled',
     click: (a) => {
       let suffix = '';
       if (a.modifiers && a.modifiers.length > 0) {
@@ -122,6 +122,14 @@ export default function messenger(a) {
     isOff: ' is OFF',
     isChecked: ' is checked',
     isUnchecked: ' is unchecked',
+    isVisible: ' is visible',
+    isNotVisible: ' is not visible',
+    shouldBeVisible: ' is visible',
+    shouldNotBeVisible: ' is not visible',
+    isDisabled: ' is disabled',
+    isEnabled: ' is enabled',
+    shouldBeDisabled: ' is disabled',
+    shouldBeEnabled: ' is enabled',
   };
 
   if (suffixes[a.action]) {

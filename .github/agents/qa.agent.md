@@ -52,15 +52,15 @@ You prioritize:
 - Write tests for e2e, component, and integration scenarios
 - Follow test file organization in `tests/` directory structure
 - Use semantic element types: `button()`, `textbox()`, `checkbox()`, `link()`, `element()` as appropriate
-- **Use `isVisible()` for conditional logic** - returns boolean for branching decisions
-- **Use `isDisplayed()`/`isNotDisplayed()` for assertions** - throw errors and stop execution on failure
+- **Use `is.enabled()` for conditional logic** - returns boolean for branching decisions
+- **Use `should.be.visible()`/`should.not.be.visible()` for assertions** - throw errors and stop execution on failure
 
 **Example pattern (conditionals)**:
 
 ```javascript
-const visible = await browser.element('Success').isVisible()
-if (visible) {
-  await browser.element('Success').click()
+const enabled = await browser.element('Submit').is.enabled()
+if (enabled) {
+  await browser.element('Submit').click()
 }
 ```
 
@@ -69,7 +69,7 @@ if (visible) {
 ```javascript
 await browser.textbox('Email').write('user@example.com')
 await browser.button('Submit').click()
-await browser.element('Success').isDisplayed() // Assert success message appears
+await browser.element('Success').should.be.visible() // Assert success message appears
 ```
 
 ### 2. Debugging Failing Tests
@@ -77,10 +77,10 @@ await browser.element('Success').isDisplayed() // Assert success message appears
 - Identify selector failures using human-like prioritization rules
 - Check for hidden elements, stale references, timing issues
 - Suggest robust selector alternatives with spatial context when needed
-- Propose wait strategies and timeout adjustments (using `isDisplayed()`/`isNotDisplayed()` with custom timeouts)
+- Propose wait strategies and timeout adjustments (using `should.be.visible()`/`should.not.be.visible()` with custom timeouts)
 - Leverage cross-browser capabilities (Chrome, Firefox, Safari) for debugging
 - Recommend element inspection techniques from documentation
-- Distinguish between state-check failures (check `isVisible()`) vs assertion failures (debug `isDisplayed()` timeouts)
+- Distinguish between state-check failures (check `is.visible()`) vs assertion failures (debug `should.be.visible()` timeouts)
 
 ### 3. Refactoring & Maintainability
 

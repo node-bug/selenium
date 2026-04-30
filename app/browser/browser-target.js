@@ -189,14 +189,23 @@ export class BrowserTarget {
     }
 
     /**
-     * Check if a target is displayed
-     * 
-     * @param {string|number} [t] - Target title or index (optional)
-     * @returns {Promise<boolean>} True if target is displayed
-     * @example
-     * const isDisplayed = await browser.window('Google').isDisplayed();
+     * "Namespace" or "Sub-resource" pattern for organized access to validation operations.
+     * Accessor for target validation operations.
+     * Usage: await browser.window('Google').is.displayed()
      */
-    async isDisplayed(t) { return await this._findTarget(false, t); }
+    get is() {
+        return {
+            /**
+             * Check if a target is displayed
+             * 
+             * @param {string|number} [t] - Target title or index (optional)
+             * @returns {Promise<boolean>} True if target is displayed
+             * @example
+             * const isDisplayed = await browser.window('Google').is.displayed();
+             */
+            displayed: async (t) => { return await this._findTarget(false, t); }
+        };
+    }
     
     /**
      * Switch to a target

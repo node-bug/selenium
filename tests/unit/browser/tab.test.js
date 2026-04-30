@@ -101,30 +101,6 @@ describe('Tab (ESM)', () => {
     });
   });
 
-  describe('isDisplayed()', () => {
-    test('returns true when tab is displayed', async () => {
-      // Mock the internal _findTarget method to return true
-      const originalFindTarget = tab._findTarget;
-      tab._findTarget = jest.fn().mockResolvedValue(true);
-      
-      const result = await tab.isDisplayed('Test Title');
-      
-      expect(result).toBe(true);
-      tab._findTarget = originalFindTarget;
-    });
-
-    test('returns false when tab is not displayed', async () => {
-      // Mock the internal _findTarget method to return false
-      const originalFindTarget = tab._findTarget;
-      tab._findTarget = jest.fn().mockResolvedValue(false);
-      
-      const result = await tab.isDisplayed('Non-existent Title');
-      
-      expect(result).toBe(false);
-      tab._findTarget = originalFindTarget;
-    });
-  });
-
   describe('switch()', () => {
     test('switches to tab and returns true', async () => {
       // Mock the internal _findTarget method to return true

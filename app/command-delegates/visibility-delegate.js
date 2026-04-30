@@ -7,9 +7,8 @@ const selenium = config('selenium');
 /**
  * Visibility delegate for handling element visibility operations
  * 
- * This class encapsulates all visibility-related functionality that was previously
- * part of the WebBrowser class, including scroll, isVisible, isDisplayed, 
- * isNotDisplayed, isDisabled, hide, and unhide operations.
+ * This class encapsulates visibility-related functionality, including scroll,
+ * visibility checks, disabled state checks, and hide/unhide operations.
  * 
  * @class VisibilityDelegate
  */
@@ -30,7 +29,7 @@ export class VisibilityDelegate {
   async scroll(alignToTop = true) {
     const browser = this.browser;
     browser.message = messenger({ stack: browser.stack, action: 'scroll' });
-    
+
     try {
       const locator = await browser._finder();
 
@@ -55,26 +54,20 @@ export class VisibilityDelegate {
 
   /**
    * Checks if an element is currently in the DOM and visible.
-   * Does not throw an error if not found; returns boolean.
    * 
+   * @private
    * @param {number} [t] - Custom timeout in milliseconds
    * @returns {Promise<boolean>} True if element is visible
-   * @example
-   * const visible = await browser.element('submit').isVisible();
-   * if (visible) {
-   *   await browser.element('submit').click();
-   * }
    */
-  async isVisible(t = null) {
+  async _isVisible(t = null) {
     const browser = this.browser;
-    browser.message = messenger({ stack: browser.stack, action: 'isVisible' });
     let found = false;
     try {
-      // Use a shorter default timeout for a simple check
-      const locator = await browser._finder(t ?? 2000);
+      const locator = await browser._finder(t);
       found = !!locator;
+      log.info(`Element is visible.`);
     } catch (err) {
-      log.info(`Element not visible: ${err.message}`);
+      log.warn(`Element not visible: ${err.message}`);
     } finally {
       browser.stack = [];
     }
@@ -82,91 +75,104 @@ export class VisibilityDelegate {
   }
 
   /**
-   * Waits for an element to be visible.
-   * Throws an error if the element does not appear within the timeout.
+   * Checks if an element is not currently in the DOM or not visible.
    * 
+   * @private
    * @param {number} [t] - Custom timeout in milliseconds
-   * @returns {Promise<boolean>} True if element becomes visible
-   * @throws {Error} If element doesn't become visible within timeout
-   * @example
-   * await browser.element('loading-indicator').isDisplayed();
-   * await browser.button('submit').isDisplayed(10000); // 10 second timeout
+   * @returns {Promise<boolean>} True if element is not visible
    */
-  async isDisplayed(t = null) {
+  async _isNotVisible(t = null) {
     const browser = this.browser;
-    browser.message = messenger({ stack: browser.stack, action: 'isDisplayed' });
-    try {
-      await browser._finder(t);
-      log.info('Element is displayed on page');
-      return true;
-    } catch (err) {
-      browser.handleError(err, 'validating element to be displayed');
-    } finally {
-      browser.stack = [];
-    }
-  }
+    let found = true;
 
-  /**
-   * Waits for an element to disappear or become hidden.
-   * 
-   * @param {number} [t] - Custom timeout in milliseconds
-   * @returns {Promise<boolean>} True if element becomes invisible
-   * @throws {Error} If element doesn't become invisible within timeout
-   * @example
-   * await browser.element('loading-spinner').isNotDisplayed();
-   * await browser.element('modal').isNotDisplayed(10000); // 10 second timeout
-   */
-  async isNotDisplayed(t = null) {
-    const browser = this.browser;
-    browser.message = messenger({ stack: browser.stack, action: 'isNotDisplayed' });
     const timeout = t ?? (selenium.timeout * 1000);
     const endTime = Date.now() + timeout;
-
     try {
       while (Date.now() < endTime) {
-        try {
-          // We check with a very short 500ms timeout per loop
-          await browser._finder(500);
-        } catch {
-          // If _finder throws, the element is gone. Success!
-          log.info('Element is no longer visible');
-          return true;
-        }
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await browser._finder(1000);
       }
-      throw new Error(`Element still visible after ${timeout}ms`);
-    } catch (err) {
-      browser.handleError(err, 'validating element to not be displayed');
-      return true
+    } catch {
+      log.info(`Element is not visible.`);
+      found = false
     } finally {
       browser.stack = [];
     }
+    if (found) log.warn(`Element visible: Element found after ${timeout}ms timeout`);
+    return !found
   }
 
   /**
    * Checks if an element is disabled (has the 'disabled' attribute or property).
    * 
+   * @private
    * @returns {Promise<boolean>} True if element is disabled
-   * @example
-   * const disabled = await browser.button('submit').isDisabled();
-   * if (!disabled) {
-   *   await browser.button('submit').click();
-   * }
    */
-  async isDisabled() {
+  async #disability(t) {
     const browser = this.browser;
-    browser.message = messenger({ stack: browser.stack, action: 'isDisabled' });
-    try {
-      const locator = await browser._finder();
-      // Check both the property and the attribute for maximum compatibility
-      const isEnabled = await locator.isEnabled();
-      const hasDisabledAttr = await locator.getAttribute('disabled');
+    const locator = await browser._finder(t);
+    const isEnabled = await locator.isEnabled();
+    const hasDisabledAttr = await locator.getAttribute('disabled');
+    const result = !isEnabled || hasDisabledAttr !== null;
+    return result;
+  }
 
-      const result = !isEnabled || hasDisabledAttr !== null;
-      log.info(`Element is ${result ? 'disabled' : 'enabled'}`);
-      return result;
+  /**
+   * Checks if an element is enabled. 
+   * 
+   * takes timeout in milliseconds
+   * 
+   * @private
+   * @returns {Promise<boolean>} True if element is enabled
+   */
+  async _isEnabled(t) {
+    const browser = this.browser;
+    let disabled = true;
+    const timeout = t ?? (selenium.timeout * 1000);
+    const endTime = Date.now() + timeout;
+    try {
+      while (Date.now() < endTime) {
+        disabled = await this.#disability(1000)
+        if (!disabled) {
+          log.info(`Element is enabled`)
+          browser.stack = [];
+          return !disabled;
+        }
+      }
+      log.warn(`Element disabled: Element not enabled after ${timeout}ms timeout`);
+      return !disabled;
     } catch (err) {
-      browser.handleError(err, 'validating if disabled');
+      browser.handleError(err, 'validating element is enabled');
+    } finally {
+      browser.stack = [];
+    }
+  }
+
+  /**
+   * Checks if an element is disabled. 
+   * 
+   * takes timeout in milliseconds
+   * 
+   * @private
+   * @returns {Promise<boolean>} True if element is disabled
+   */
+  async _isDisabled(t) {
+    const browser = this.browser;
+    let disabled = false;
+    const timeout = t ?? (selenium.timeout * 1000);
+    const endTime = Date.now() + timeout;
+    try {
+      while (Date.now() < endTime) {
+        disabled = await this.#disability(1000)
+        if (disabled) {
+          log.info(`Element is disabled`)
+          browser.stack = [];
+          return disabled;
+        }
+      }
+      log.warn(`Element enabled: Element not disabled after ${timeout}ms timeout`);
+      return disabled;
+    } catch (err) {
+      browser.handleError(err, 'validating element is disabled');
     } finally {
       browser.stack = [];
     }

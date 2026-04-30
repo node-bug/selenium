@@ -16,7 +16,7 @@ await browser.tab(0).switch()
 await browser.tab('Title').get.url()
 
 // Alerts
-if (await browser.alert().isVisible()) {
+if (await browser.alert().is.visible()) {
   const text = await browser.alert().get.text()
   await browser.alert().accept()
 }
@@ -76,7 +76,7 @@ const title = await browser.tab(1).get.title()
 ### Check Tab Display
 
 ```javascript
-const displayed = await browser.tab(0).isDisplayed()
+const displayed = await browser.tab(0).should.be.visible()
 ```
 
 **Returns**: `Promise<boolean>`
@@ -114,11 +114,11 @@ const title = await browser.tab(0).get.title()
 ```javascript
 // Tab 0 content
 await browser.tab(0).switch()
-await browser.element('Content1').isDisplayed()
+await browser.element('Content1').should.be.visible()
 
 // Tab 1 content
 await browser.tab(1).switch()
-await browser.element('Content2').isDisplayed()
+await browser.element('Content2').should.be.visible()
 ```
 
 **Close Specific Tab**:
@@ -223,13 +223,11 @@ Get console errors:
 const errors = await browser.window().get.consoleErrors()
 ```
 
-### Check Window Display
+### Switch to Window
 
 ```javascript
-const displayed = await browser.window('Title').isDisplayed()
+await browser.window('Title').switch()
 ```
-
-**Returns**: `Promise<boolean>`
 
 ### Close Window
 
@@ -284,10 +282,10 @@ await browser.window(2).minimize()
 
 // Verify content
 await browser.window(0).switch()
-await browser.element('Content1').isDisplayed()
+await browser.element('Content1').should.be.visible()
 
 await browser.window(1).switch()
-await browser.element('Content2').isDisplayed()
+await browser.element('Content2').should.be.visible()
 ```
 
 **Responsive Testing Across Windows**:
@@ -318,7 +316,7 @@ Handle JavaScript `alert()`, `confirm()`, and `prompt()` dialogs.
 Check if alert is present:
 
 ```javascript
-if (await browser.alert().isVisible()) {
+if (await browser.alert().is.visible()) {
   // Alert is present
 }
 ```
@@ -395,7 +393,7 @@ await browser.alert('Delete permanently?').dismiss()
 **Conditional Alert Handling**:
 
 ```javascript
-const alertPresent = await browser.alert().isVisible()
+const alertPresent = await browser.alert().is.visible()
 if (alertPresent) {
   const text = await browser.alert().get.text()
   if (text.includes('Delete')) {
@@ -429,14 +427,14 @@ await browser.alert('Confirm deletion?').accept()
 await browser.button('Delete').click()
 
 // Handle confirmation alert
-if (await browser.alert().isVisible()) {
+if (await browser.alert().is.visible()) {
   const text = await browser.alert().get.text()
   console.log('Confirmation:', text)
   await browser.alert().accept()
 }
 
 // Verify deletion
-await browser.element('Deleted Item').isNotDisplayed()
+await browser.element('Deleted Item').should.not.be.visible()
 ```
 
 **Multiple Alerts**:
@@ -446,7 +444,7 @@ await browser.element('Deleted Item').isNotDisplayed()
 await browser.alert('Alert 1').accept()
 
 // Second alert (if appears)
-if (await browser.alert().isVisible()) {
+if (await browser.alert().is.visible()) {
   await browser.alert().accept()
 }
 ```

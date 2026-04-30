@@ -22,16 +22,6 @@ class Window extends BrowserTarget {
     }
 
     /**
-     * Check if a window is displayed
-     * 
-     * @param {string|number} [t] - Window title or index (optional)
-     * @returns {Promise<boolean>} True if window is displayed
-     * @example
-     * const isDisplayed = await browser.window('Google').isDisplayed();
-     */
-    async isDisplayed(t) { return await this._findTarget(false, t); }
-
-    /**
      * Switch to a window
      * 
      * @param {string|number} [t] - Window title or index (optional)

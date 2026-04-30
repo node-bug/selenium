@@ -22,7 +22,7 @@ await browser.element('submit').above.button('cancel').click()
 
 Execute the selector stack and perform actual actions. They return values or perform actions and clear the stack.
 
-**Examples**: `click()`, `write()`, `isVisible()`, `scroll()`, `upload()`, `get.text()`
+**Examples**: `click()`, `write()`, `is.visible()`, `scroll()`, `upload()`, `get.text()`
 
 ```javascript
 await browser.button('submit').click()

@@ -163,7 +163,7 @@ await browser.goForward() // Forward to page2
 ```javascript
 await browser.button('Update').click()
 await browser.refresh()
-await browser.element('Updated').isDisplayed()
+await browser.element('Updated').should.be.visible()
 ```
 
 ## Browser State
@@ -323,7 +323,7 @@ const errors = await browser.window().get.consoleErrors()
 await browser.window().maximize()
 await browser.window().minimize()
 await browser.window().fullscreen()
-const displayed = await browser.window('Title').isDisplayed()
+const displayed = await browser.window('Title').should.be.visible()
 ```
 
 ### Close Window
@@ -362,7 +362,7 @@ await browser.tab('Google').switch()
 ```javascript
 const url = await browser.tab().get.url()
 const title = await browser.tab().get.title()
-const displayed = await browser.tab(0).isDisplayed()
+const displayed = await browser.tab(0).should.be.visible()
 ```
 
 ### Close Tab
