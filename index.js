@@ -416,7 +416,7 @@ class WebBrowser extends Browser {
         result = valueAttr;
       }
 
-      log.info(`${valueType} is ${result}`)
+      log.info(`${valueType} is '${result}'`)
       return result?.trim() ?? '';
     } catch (err) {
       this.handleError(err, 'getting text');
