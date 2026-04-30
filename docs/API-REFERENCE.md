@@ -632,7 +632,7 @@ await browser.dropdown('Country').option(0).isSelected()
 
 **Returns `true`/`false` for conditional logic** - Does not throw errors.
 
-Check if element is visible in the DOM.
+Check if element is visible in the DOM. Use this **only in if conditions** for branching logic. This method returns a boolean value and is intended for runtime decision-making, not for QA test assertions.
 
 ```javascript
 const visible = await browser.element('Submit').isVisible()
@@ -643,11 +643,13 @@ if (visible) {
 
 **Returns**: `Promise<boolean>` - `true` if visible, `false` otherwise
 
+**QA Best Practice**: For test validations that validate whether elements are displayed, use `isDisplayed()` or `isNotDisplayed()` instead.
+
 ### isDisplayed([timeout])
 
 **Assertion that throws an error and stops test execution on failure.**
 
-Wait for element to become visible within the timeout. Use this for test validations and verifications.
+Wait for element to become visible within the timeout and validate that it is displayed. Use this for QA test validations and verifications to ensure elements are properly visible on the screen.
 
 ```javascript
 await browser.element('Loading').isDisplayed()
@@ -660,11 +662,13 @@ await browser.button('Submit').isDisplayed(10000) // 10s timeout
 
 **Throws**: Error if not visible within timeout - **Test execution stops**
 
+**QA Best Practice**: Use this method to assert and validate that an element is displayed on the screen in your test cases.
+
 ### isNotDisplayed([timeout])
 
 **Assertion that throws an error and stops test execution on failure.**
 
-Wait for element to disappear within the timeout. Use this for test validations and verifications.
+Wait for element to disappear within the timeout and validate that it is no longer displayed. Use this for QA test validations and verifications to ensure elements are properly hidden from the screen.
 
 ```javascript
 await browser.element('Modal').isNotDisplayed()
@@ -676,6 +680,8 @@ await browser.element('Spinner').isNotDisplayed(5000)
 - `timeout` (number, optional): Milliseconds to wait for element to disappear
 
 **Throws**: Error if still visible within timeout - **Test execution stops**
+
+**QA Best Practice**: Use this method to assert and validate that an element is not displayed on the screen in your test cases.
 
 ### isDisabled()
 
