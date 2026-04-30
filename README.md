@@ -168,7 +168,7 @@ await browser.file('Choose File').upload('/path/to/file.txt')
 ### Check Element State
 
 ```javascript
-// Get boolean for conditional logic
+// Use isVisible() only in if conditions for branching logic (returns boolean)
 const visible = await browser.element('Item').isVisible()
 const disabled = await browser.button('Submit').isDisabled()
 await browser.checkbox('Subscribe').isChecked()
@@ -177,9 +177,10 @@ if (visible) {
   await browser.element('Item').click()
 }
 
-// Assert and wait for state changes (throws error if not met)
-await browser.element('Loading').isNotDisplayed() // Assert disappears
-await browser.button('Ready').isDisplayed() // Assert appears
+// Use isDisplayed() and isNotDisplayed() for QA validations (assertions with errors)
+// These validate that elements are properly displayed or hidden on the screen
+await browser.element('Loading').isNotDisplayed() // Assert element disappears
+await browser.button('Ready').isDisplayed() // Assert element is displayed
 ```
 
 ### Get Element Properties
