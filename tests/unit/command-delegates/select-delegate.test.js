@@ -799,9 +799,8 @@ describe('SelectDelegate (ESM)', () => {
       mockSelectInstance.getFirstSelectedOption.mockResolvedValue(mockSelectedOption);
 
       delegate.option('United States');
-      // optionValue is cleared in finally block before the throw, so it will be null
       await expect(delegate.isSelected()).rejects.toThrow(
-        "Option 'null' is not selected"
+        "Option 'United States' is not selected"
       );
     });
 
@@ -820,9 +819,8 @@ describe('SelectDelegate (ESM)', () => {
       mockLocator.getAttribute.mockResolvedValue('Canada');
 
       delegate.option('United States');
-      // optionValue is cleared in finally block before the throw, so it will be null
       await expect(delegate.isSelected()).rejects.toThrow(
-        "Option 'null' is not selected"
+        "Option 'United States' is not selected"
       );
     });
 
@@ -868,7 +866,7 @@ describe('SelectDelegate (ESM)', () => {
 
       expect(mockBrowser.handleError).toHaveBeenCalledWith(
         error,
-        "checking if 'United States' is selected"
+        "validating if 'United States' is selected"
       );
     });
 

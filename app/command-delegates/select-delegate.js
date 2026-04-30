@@ -305,9 +305,9 @@ export class SelectDelegate {
    * console.log('Option is confirmed selected');
    */
   async isSelected() {
-    const browser = this.browser; let result = false;
-    browser.message = messenger({ stack: browser.stack, action: 'isSelected', data: this.optionValue });
-    if(this.optionValue === null){
+    const browser = this.browser; let result = false; let data = this.optionValue;
+    browser.message = messenger({ stack: browser.stack, action: 'isSelected', data });
+    if(data === null){
       log.error(`Option to be asserted was not provided. Please use option() chain.`);
       throw new Error(`Option to be asserted was not provided. Please use option() chain.`);
     }
@@ -322,15 +322,16 @@ export class SelectDelegate {
         result = await this.#isSelectedCombobox(locator);
       }
     } catch (err) {
-      browser.handleError(err, `checking if '${this.optionValue}' is selected`);
+      browser.handleError(err, `validating if '${data}' is selected`);
     } finally {
       this.optionValue = null;
       this.isIndex = false;
       browser.stack = [];
     }
-
     if (result) return true;
-    throw new Error(`Option '${this.optionValue}' is not selected`);
+    const err = new Error(`Option '${data}' is not selected`);
+    browser.handleError(err, 'validating if option is selected');
+    throw err
   }
 
   /**

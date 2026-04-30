@@ -126,7 +126,7 @@ export class BrowserTarget {
                 }
             }
 
-            log.debug(`Checking ${this._label} with title '${this._targetTitle}' is displayed`);
+            log.debug(`Validating ${this._label} with title '${this._targetTitle}' is displayed`);
             const startTime = Date.now();
 
             while (Date.now() - startTime < timeout) {
@@ -149,7 +149,7 @@ export class BrowserTarget {
                         }
                     }
                 } catch (err) {
-                    log.error(`Error while checking ${this._label} is displayed : ${err.message}`);
+                    log.error(`Error while validating ${this._label} is displayed : ${err.message}`);
                     throw err;
                 }
                 await new Promise(r => setTimeout(r, 200));

@@ -181,7 +181,7 @@ This directory contains comprehensive documentation for the WebBrowser automatio
 - All browser control methods
 - All element selection methods
 - All interaction methods
-- All state checking methods
+- All state validation methods
 - All data retrieval methods
 
 ### CONFIGURATION.md

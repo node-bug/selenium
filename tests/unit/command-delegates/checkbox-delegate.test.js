@@ -20,7 +20,7 @@ jest.unstable_mockModule('@nodebug/logger', () => ({
 }));
 
 jest.unstable_mockModule('../../../app/messenger.js', () => ({
-  default: jest.fn(({ action }) => `Checking: ${action}`),
+  default: jest.fn(({ action }) => `Validating: ${action}`),
 }));
 
 // ---------------- IMPORTS ----------------
@@ -179,7 +179,7 @@ describe('CheckboxDelegate (ESM)', () => {
       mockBrowser._finder.mockRejectedValue(new Error('Selection failed'));
       // When _finder fails, handleError is called, then result stays false so assertion throws
       await expect(delegate.isChecked()).rejects.toThrow('Checkbox is not checked');
-      expect(mockBrowser.handleError).toHaveBeenCalledWith(expect.any(Error), 'checking if checkbox is checked');
+      expect(mockBrowser.handleError).toHaveBeenCalledWith(expect.any(Error), 'validating if checkbox is checked');
     });
   });
 
@@ -204,7 +204,7 @@ describe('CheckboxDelegate (ESM)', () => {
       mockBrowser._finder.mockRejectedValue(new Error('Selection failed'));
       // When _finder fails, handleError is called, then result stays false so assertion throws
       await expect(delegate.isUnchecked()).rejects.toThrow('Checkbox is checked');
-      expect(mockBrowser.handleError).toHaveBeenCalledWith(expect.any(Error), 'checking if checkbox is unchecked');
+      expect(mockBrowser.handleError).toHaveBeenCalledWith(expect.any(Error), 'validating if checkbox is unchecked');
     });
   });
 });

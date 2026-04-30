@@ -195,7 +195,7 @@ class WebBrowser extends Browser {
 
   // Common Error Handler Helper
   handleError(err, context) {
-    log.error(`${this.message}\nError while ${context}.\n${err.stack}`);
+    log.error(`Error while ${context}.\n${err.stack}`);
     this.stack = [];
     err.message = `Error while ${this.message}\n${err.message}`;
     throw err;

@@ -5,7 +5,7 @@ import messenger from '../messenger.js';
  * Switch delegate for handling switch/toggle operations
  * 
  * This class encapsulates all switch-related functionality for elements
- * with role='switch', including on, off, and state checking operations.
+ * with role='switch', including on, off, and state validation operations.
  * 
  * @class SwitchDelegate
  */
@@ -105,12 +105,14 @@ export class SwitchDelegate {
       const locator = await browser._finder();
       result = await locator.isSelected();
     } catch (err) {
-      browser.handleError(err, 'checking if switch is on');
+      browser.handleError(err, 'validating if switch is ON');
     } finally {
       browser.stack = [];
     }
     if(result) {log.info(`Switch is ON`); return true;}
-    throw new Error('Switch is not ON'); 
+    const err = new Error('Switch is OFF');
+    browser.handleError(err, 'validating if switch is ON');
+    throw err
   }
 
   /**
@@ -133,11 +135,13 @@ export class SwitchDelegate {
       const locator = await browser._finder();
       result = !(await locator.isSelected());
     } catch (err) {
-      browser.handleError(err, 'checking if switch is off');
+      browser.handleError(err, 'validating if switch is OFF');
     } finally {
       browser.stack = [];
     }
     if(result) {log.info(`Switch is OFF`); return true;}
-    throw new Error('Switch is not OFF'); 
+    const err = new Error('Switch is ON');
+    browser.handleError(err, 'validating if switch is OFF');
+    throw err
   }
 }
