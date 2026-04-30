@@ -70,6 +70,13 @@ Find elements using type and text/attribute:
 await browser.button('Click Me').click()
 await browser.textbox('Email').write('...')
 await browser.checkbox('Subscribe').check()
+await browser.checkbox('Subscribe').isChecked()
+await browser.checkbox('Subscribe').isUnchecked()
+
+// Radio buttons
+await browser.radio('Male').set()
+await browser.radio('Male').isSet()
+await browser.radio('Male').isNotSet()
 
 // Generic selector
 await browser.element('Text').click()

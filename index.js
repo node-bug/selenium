@@ -10,6 +10,7 @@ import { VisibilityDelegate } from './app/command-delegates/visibility-delegate.
 import { CheckboxDelegate } from './app/command-delegates/checkbox-delegate.js';
 import { SwitchDelegate } from './app/command-delegates/switch-delegate.js';
 import { SelectDelegate } from './app/command-delegates/select-delegate.js';
+import { RadioDelegate } from './app/command-delegates/radio-delegate.js';
 
 const selenium = config('selenium');
 
@@ -35,6 +36,7 @@ class WebBrowser extends Browser {
   #checkboxDelegate;
   #switchDelegate;
   #selectDelegate;
+  #radioDelegate;
 
   constructor() {
     super()
@@ -46,6 +48,7 @@ class WebBrowser extends Browser {
     this.#checkboxDelegate = new CheckboxDelegate(this);
     this.#switchDelegate = new SwitchDelegate(this);
     this.#selectDelegate = new SelectDelegate(this);
+    this.#radioDelegate = new RadioDelegate(this);
 
     Object.keys(this.locatorStrategy.definitions).forEach(type => {
       this[type] = (data) => {
@@ -641,6 +644,48 @@ class WebBrowser extends Browser {
    */
   async isOff() {
     return await this.#switchDelegate.isOff();
+  }
+
+  /**
+   * Sets a radio button.
+   * 
+   * Clicks the radio button if it's not already set. Falls back to JavaScript
+   * click if Selenium click fails.
+   * 
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.radio('option-a').set();
+   */
+  async set() {
+    return await this.#radioDelegate.set();
+  }
+
+  /**
+   * Asserts that a radio button is currently set.
+   * 
+   * Returns true if the radio button is set, otherwise throws an error.
+   * 
+   * @returns {Promise<boolean>} Returns true if radio button is set
+   * @throws {Error} Throws if radio button is not set
+   * @example
+   * await browser.radio('option-a').isSet();
+   */
+  async isSet() {
+    return await this.#radioDelegate.isSet();
+  }
+
+  /**
+   * Asserts that a radio button is currently NOT set.
+   * 
+   * Returns true if the radio button is not set, otherwise throws an error.
+   * 
+   * @returns {Promise<boolean>} Returns true if radio button is not set
+   * @throws {Error} Throws if radio button is set
+   * @example
+   * await browser.radio('option-b').isNotSet();
+   */
+  async isNotSet() {
+    return await this.#radioDelegate.isNotSet();
   }
 
   /**

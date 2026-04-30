@@ -18,8 +18,9 @@ await browser.switch('Dark Mode').isOn()
 await browser.switch('Dark Mode').isOff()
 
 // Radio Buttons
-await browser.radio('Male').check()
-await browser.radio('Male').isChecked()
+await browser.radio('Male').set()
+await browser.radio('Male').isSet()
+await browser.radio('Male').isNotSet()
 
 // Dropdowns
 await browser.dropdown('Country').option('United States').select()
@@ -199,45 +200,88 @@ if (await browser.switch('Feature').isVisible()) {
 
 Radio buttons allow selecting one option from a group.
 
-### check()
+### set()
 
-Select a radio button:
+Set a radio button:
 
 ```javascript
-await browser.radio('Male').check()
-await browser.radio('Female').check()
-await browser.radio('Prefer not to say').check()
+await browser.radio('Male').set()
+await browser.radio('Female').set()
+await browser.radio('Prefer not to say').set()
 ```
+
+**Behavior**:
+
+- If already set → skips (no action)
+- If not set → clicks to set
+- Falls back to JavaScript click if standard click fails
+- Verifies final state
 
 **Returns**: `Promise<boolean>`
 
-### isChecked()
+### isSet()
 
-Assert that radio button is selected:
+Assert that a radio button is currently set (selected):
 
 ```javascript
-await browser.radio('Male').isChecked()
+await browser.radio('Male').isSet()
 ```
 
-**Throws**: Error if not selected
+**Behavior**:
+
+- If set → returns `true`
+- If not set → throws error and **stops execution**
 
 **Returns**: `Promise<boolean>`
+
+**Throws**: `Error` if radio button is not set
+
+**Use when**: You expect a radio button to be selected and want the test to fail if it's not
+
+### isNotSet()
+
+Assert that a radio button is currently NOT set (not selected):
+
+```javascript
+await browser.radio('Female').isNotSet()
+```
+
+**Behavior**:
+
+- If not set → returns `true`
+- If set → throws error and **stops execution**
+
+**Returns**: `Promise<boolean>`
+
+**Throws**: `Error` if radio button is set
+
+**Use when**: You expect a radio button to be unselected and want the test to fail if it is
 
 ### Radio Button Patterns
 
 **Gender selection**:
 
 ```javascript
-await browser.radio('Female').check()
-await browser.radio('Female').isChecked()
+await browser.radio('Female').set()
+await browser.radio('Female').isSet()
+```
+
+**Verifying default state**:
+
+```javascript
+// Verify default option is selected
+await browser.radio('Standard (5-7 days)').isSet()
+// Verify other options are not selected
+await browser.radio('Express (2-3 days)').isNotSet()
 ```
 
 **Selecting from options**:
 
 ```javascript
 // Select shipping method
-await browser.radio('Standard (5-7 days)').check()
-await browser.radio('Express (2-3 days)').check()
+await browser.radio('Express (2-3 days)').set()
+await browser.radio('Express (2-3 days)').isSet()
+await browser.radio('Standard (5-7 days)').isNotSet()
 ```
 
 ## Dropdowns / Selects

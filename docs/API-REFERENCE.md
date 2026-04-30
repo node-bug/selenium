@@ -469,11 +469,20 @@ await browser.file('Resume').upload('/path/to/resume.pdf')
 
 ### check()
 
-Check a checkbox or radio button.
+Check a checkbox.
 
 ```javascript
 await browser.checkbox('Subscribe').check()
-await browser.radio('Male').check()
+```
+
+**Returns**: `Promise<boolean>`
+
+### set()
+
+Set a radio button.
+
+```javascript
+await browser.radio('Male').set()
 ```
 
 **Returns**: `Promise<boolean>`
@@ -743,6 +752,34 @@ const off = await browser.switch('Dark Mode').isOff()
 ```
 
 **Throws**: Error if switch is on - **Test execution stops**
+
+### isSet()
+
+**Assertion that throws an error and stops test execution on failure.**
+
+Assert that a radio button is currently set (selected).
+
+```javascript
+await browser.radio('Male').isSet()
+```
+
+**Throws**: Error if radio button is not set - **Test execution stops**
+
+**Returns**: `Promise<boolean>`
+
+### isNotSet()
+
+**Assertion that throws an error and stops test execution on failure.**
+
+Assert that a radio button is currently NOT set (not selected).
+
+```javascript
+await browser.radio('Female').isNotSet()
+```
+
+**Throws**: Error if radio button is set - **Test execution stops**
+
+**Returns**: `Promise<boolean>`
 
 ### scroll([alignToTop])
 
