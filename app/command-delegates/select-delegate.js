@@ -289,7 +289,7 @@ export class SelectDelegate {
   }
 
   /**
-   * Checks if a specific option is currently selected in a dropdown.
+   * Internal helper to check if a specific option is currently selected in a dropdown.
    * 
    * Supports two types of dropdowns:
    * 1. Native <select> elements - compares against the selected option's text/value
@@ -297,16 +297,11 @@ export class SelectDelegate {
    * 
    * The option to check must be set via `.option()` before calling this method.
    * 
-   * @returns {Promise<boolean>} Returns true if the option is selected
-   * @throws {Error} Throws if the option is not selected
-   * @example
-   * // Assert option is selected (throws if not)
-   * await browser.dropdown('Country').option('United States').isSelected();
-   * console.log('Option is confirmed selected');
+   * @private
+   * @returns {Promise<boolean>} True if the option is selected
    */
-  async isSelected() {
-    const browser = this.browser; let result = false; let data = this.optionValue;
-    browser.message = messenger({ stack: browser.stack, action: 'isSelected', data });
+  async _isSelected() {
+    const browser = this.browser; let result; let data = this.optionValue;
     if(data === null){
       log.error(`Option to be asserted was not provided. Please use option() chain.`);
       throw new Error(`Option to be asserted was not provided. Please use option() chain.`);
@@ -323,15 +318,13 @@ export class SelectDelegate {
       }
     } catch (err) {
       browser.handleError(err, `validating if '${data}' is selected`);
+      throw err;
     } finally {
       this.optionValue = null;
       this.isIndex = false;
       browser.stack = [];
     }
-    if (result) return true;
-    const err = new Error(`Option '${data}' is not selected`);
-    browser.handleError(err, 'validating if option is selected');
-    throw err
+    return result;
   }
 
   /**
@@ -340,6 +333,7 @@ export class SelectDelegate {
    * @private
    * @param {Object} locator - The WebElement representing the <select> element
    * @returns {Promise<boolean>} True if the option is selected
+   * @throws {Error} Throws if the option is not selected
    */
   async #isSelectedNative(locator) {
     const select = new Select(locator);
@@ -348,6 +342,10 @@ export class SelectDelegate {
       selectedOption.getAttribute('textContent'),
       selectedOption.getAttribute('value'),
     ]);
+
+    if (!selectedText && !selectedValue) {
+      throw new Error(`Selected option has no text or value`);
+    }
 
     // Check by index (1-based)
     if (this.isIndex) {
@@ -360,16 +358,24 @@ export class SelectDelegate {
         options[index].getAttribute('textContent'),
         options[index].getAttribute('value'),
       ]);
-      log.info(`Option at index ${this.optionValue} is selected: text: '${optText}', value: '${optValue}'`)
-      return optText === selectedText || optValue === selectedValue;
+      // log.info(`Option at index ${this.optionValue} is selected: text: '${optText}', value: '${optValue}'`)
+      if (optText !== selectedText && optValue !== selectedValue) return false
+      // {
+      //   throw new Error(`Option '${this.optionValue}' is not selected`);
+      // }
+      return true;
     }
 
     // Check by text or value (partial, case-insensitive)
     const textMatch = selectedText?.includes(this.optionValue);
     const valueMatch = selectedValue?.includes(this.optionValue);
 
-    log.info(`Option selected is: text: '${selectedText}', value: '${selectedValue}'`)
-    return textMatch || valueMatch;
+    // log.info(`Option selected is: text: '${selectedText}', value: '${selectedValue}'`)
+    if (!textMatch && !valueMatch) return false 
+    // {
+    //   throw new Error(`Option '${this.optionValue}' is not selected`);
+    // }
+    return true;
   }
 
   /**
@@ -378,10 +384,17 @@ export class SelectDelegate {
    * @private
    * @param {Object} locator - The WebElement representing the combobox trigger
    * @returns {Promise<boolean>} True if the option is selected
+   * @throws {Error} Throws if the option is not selected
    */
   async #isSelectedCombobox(locator) {
     const text = await locator.getAttribute('textContent');
-    return text?.includes(this.optionValue);
+    if (!text) {
+      throw new Error(`Combobox has no text content`);
+    }
+    if (!text.includes(this.optionValue)) {
+      throw new Error(`Option '${this.optionValue}' is not selected`);
+    }
+    return true;
   }
 
   /**

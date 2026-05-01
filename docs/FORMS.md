@@ -8,8 +8,10 @@ Complete guide to form element interactions including checkboxes, switches, radi
 // Checkboxes
 await browser.checkbox('Subscribe').check()
 await browser.checkbox('Subscribe').uncheck()
-await browser.checkbox('Subscribe').isChecked()
-await browser.checkbox('Subscribe').isUnchecked()
+await browser.checkbox('Subscribe').is.checked()
+await browser.checkbox('Subscribe').is.not.checked()
+await browser.checkbox('Subscribe').should.be.checked()
+await browser.checkbox('Subscribe').should.not.be.checked()
 
 // Switches
 await browser.switch('Dark Mode').on()
@@ -19,8 +21,10 @@ await browser.switch('Dark Mode').isOff()
 
 // Radio Buttons
 await browser.radio('Male').set()
-await browser.radio('Male').isSet()
-await browser.radio('Male').isNotSet()
+await browser.radio('Male').is.set()
+await browser.radio('Male').is.not.set()
+await browser.radio('Male').should.be.set()
+await browser.radio('Male').should.not.be.set()
 
 // Dropdowns
 await browser.dropdown('Country').option('United States').select()
@@ -73,39 +77,59 @@ await browser.checkbox('Notifications').uncheck()
 
 **Returns**: `Promise<boolean>`
 
-### isChecked()
+### is.checked()
+
+Return whether the checkbox is currently checked:
+
+```javascript
+const checked = await browser.checkbox('Agree').is.checked()
+```
+
+**Returns**: `Promise<boolean>`
+
+**Use when**: You need to read the checkbox state without failing the test
+
+### is.not.checked()
+
+Return whether the checkbox is currently unchecked:
+
+```javascript
+const unchecked = await browser.checkbox('Spam Filter').is.not.checked()
+```
+
+**Returns**: `Promise<boolean>`
+
+**Use when**: You need to read the checkbox state without failing the test
+
+### should.be.checked()
 
 Assert that checkbox is currently checked:
 
 ```javascript
-await browser.checkbox('Agree').isChecked()
+await browser.checkbox('Agree').should.be.checked()
 ```
 
 **Behavior**:
 
-- If checked → returns `true`
+- If checked → passes
 - If unchecked → throws error and **stops execution**
-
-**Returns**: `Promise<boolean>`
 
 **Throws**: `Error` if checkbox is not checked
 
 **Use when**: You expect checkbox to be checked and want test to fail if it's not
 
-### isUnchecked()
+### should.not.be.checked()
 
 Assert that checkbox is currently unchecked:
 
 ```javascript
-await browser.checkbox('Spam Filter').isUnchecked()
+await browser.checkbox('Spam Filter').should.not.be.checked()
 ```
 
 **Behavior**:
 
-- If unchecked → returns `true`
+- If unchecked → passes
 - If checked → throws error and **stops execution**
-
-**Returns**: `Promise<boolean>`
 
 **Throws**: `Error` if checkbox is checked
 
@@ -116,7 +140,7 @@ await browser.checkbox('Spam Filter').isUnchecked()
 **Toggle state**:
 
 ```javascript
-const isChecked = await browser.checkbox('RememberMe').is.visible()
+const isChecked = await browser.checkbox('RememberMe').is.checked()
 if (isChecked) {
   await browser.checkbox('RememberMe').uncheck()
 } else {
@@ -219,39 +243,59 @@ await browser.radio('Prefer not to say').set()
 
 **Returns**: `Promise<boolean>`
 
-### isSet()
+### is.set()
+
+Return whether the radio button is currently set (selected):
+
+```javascript
+const set = await browser.radio('Male').is.set()
+```
+
+**Returns**: `Promise<boolean>`
+
+**Use when**: You need to read the radio button state without failing the test
+
+### is.not.set()
+
+Return whether the radio button is currently NOT set (not selected):
+
+```javascript
+const notSet = await browser.radio('Female').is.not.set()
+```
+
+**Returns**: `Promise<boolean>`
+
+**Use when**: You need to read the radio button state without failing the test
+
+### should.be.set()
 
 Assert that a radio button is currently set (selected):
 
 ```javascript
-await browser.radio('Male').isSet()
+await browser.radio('Male').should.be.set()
 ```
 
 **Behavior**:
 
-- If set → returns `true`
+- If set → passes
 - If not set → throws error and **stops execution**
-
-**Returns**: `Promise<boolean>`
 
 **Throws**: `Error` if radio button is not set
 
 **Use when**: You expect a radio button to be selected and want the test to fail if it's not
 
-### isNotSet()
+### should.not.be.set()
 
 Assert that a radio button is currently NOT set (not selected):
 
 ```javascript
-await browser.radio('Female').isNotSet()
+await browser.radio('Female').should.not.be.set()
 ```
 
 **Behavior**:
 
-- If not set → returns `true`
+- If not set → passes
 - If set → throws error and **stops execution**
-
-**Returns**: `Promise<boolean>`
 
 **Throws**: `Error` if radio button is set
 
@@ -263,16 +307,16 @@ await browser.radio('Female').isNotSet()
 
 ```javascript
 await browser.radio('Female').set()
-await browser.radio('Female').isSet()
+await browser.radio('Female').should.be.set()
 ```
 
 **Verifying default state**:
 
 ```javascript
 // Verify default option is selected
-await browser.radio('Standard (5-7 days)').isSet()
+await browser.radio('Standard (5-7 days)').should.be.set()
 // Verify other options are not selected
-await browser.radio('Express (2-3 days)').isNotSet()
+await browser.radio('Express (2-3 days)').should.not.be.set()
 ```
 
 **Selecting from options**:
@@ -280,8 +324,8 @@ await browser.radio('Express (2-3 days)').isNotSet()
 ```javascript
 // Select shipping method
 await browser.radio('Express (2-3 days)').set()
-await browser.radio('Express (2-3 days)').isSet()
-await browser.radio('Standard (5-7 days)').isNotSet()
+await browser.radio('Express (2-3 days)').should.be.set()
+await browser.radio('Standard (5-7 days)').should.not.be.set()
 ```
 
 ## Dropdowns / Selects

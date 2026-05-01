@@ -8,9 +8,9 @@ import { ClickDelegate } from './app/command-delegates/click-delegate.js';
 import { InputDelegate } from './app/command-delegates/input-delegate.js';
 import { VisibilityDelegate } from './app/command-delegates/visibility-delegate.js';
 import { CheckboxDelegate } from './app/command-delegates/checkbox-delegate.js';
-import { SwitchDelegate } from './app/command-delegates/switch-delegate.js';
 import { SelectDelegate } from './app/command-delegates/select-delegate.js';
 import { RadioDelegate } from './app/command-delegates/radio-delegate.js';
+import { SwitchDelegate } from './app/command-delegates/switch-delegate.js';
 
 const selenium = config('selenium');
 
@@ -34,9 +34,9 @@ class WebBrowser extends Browser {
   #inputDelegate;
   #visibilityDelegate;
   #checkboxDelegate;
-  #switchDelegate;
   #selectDelegate;
   #radioDelegate;
+  #switchDelegate;
 
   constructor() {
     super()
@@ -46,9 +46,9 @@ class WebBrowser extends Browser {
     this.#inputDelegate = new InputDelegate(this);
     this.#visibilityDelegate = new VisibilityDelegate(this);
     this.#checkboxDelegate = new CheckboxDelegate(this);
-    this.#switchDelegate = new SwitchDelegate(this);
     this.#selectDelegate = new SelectDelegate(this);
     this.#radioDelegate = new RadioDelegate(this);
+    this.#switchDelegate = new SwitchDelegate(this);
 
     Object.keys(this.locatorStrategy.definitions).forEach(type => {
       this[type] = (data) => {
@@ -416,7 +416,7 @@ class WebBrowser extends Browser {
         result = valueAttr;
       }
 
-      log.info(`${valueType} is ${result}`)
+      log.info(`${valueType} is '${result}'`)
       return result?.trim() ?? '';
     } catch (err) {
       this.handleError(err, 'getting text');
@@ -495,17 +495,69 @@ class WebBrowser extends Browser {
         return await this.#visibilityDelegate._isVisible(t);
       },
 
-      not: {
-        /**
-         * Checks whether the element is not visible.
-         *
-         * @param {number} [t] - Optional timeout in milliseconds
-         * @returns {Promise<boolean>}
-         */
-        visible: async (t = null) => {
-          this.message = messenger({ stack: this.stack, action: 'isNotVisible' });
-          return await this.#visibilityDelegate._isNotVisible(t);
-        },
+      /**
+       * Checks whether the checkbox is checked.
+       *
+       * @returns {Promise<boolean>}
+       */
+      checked: async () => {
+        this.message = messenger({ stack: this.stack, action: 'isChecked' });
+        const result = await this.#checkboxDelegate._isChecked();
+        if (result) log.info(`Checkbox is checked`);
+        else log.warn(`Checkbox is not checked`);
+        return result;
+      },
+
+      /**
+       * Checks whether the radio is set.
+       *
+       * @returns {Promise<boolean>}
+       */
+      set: async () => {
+        this.message = messenger({ stack: this.stack, action: 'isSet' });
+        const result = await this.#radioDelegate._isSet();
+        if (result) log.info(`Radiobutton is set`);
+        else log.warn(`Radiobutton is not set`);
+        return result;
+      },
+
+      /**
+       * Checks whether the switch is on.
+       *
+       * @returns {Promise<boolean>}
+       */
+      on: async () => {
+        this.message = messenger({ stack: this.stack, action: 'isOn' });
+        const result = await this.#switchDelegate._isOn();
+        if (result) log.info(`Switch is on`);
+        else log.warn(`Switch is not on`);
+        return result;
+      },
+
+      /**
+       * Checks whether the switch is off.
+       *
+       * @returns {Promise<boolean>}
+       */
+      off: async () => {
+        this.message = messenger({ stack: this.stack, action: 'isOff' });
+        const result = !(await this.#switchDelegate._isOn());
+        if (result) log.info(`Switch is off`);
+        else log.warn(`Switch is not off`);
+        return result;
+      },
+
+      /**
+       * Checks whether the dropdown option is selected.
+       *
+       * @returns {Promise<boolean>}
+       */
+      selected: async () => {
+        this.message = messenger({ stack: this.stack, action: 'isSelected', data: this.#selectDelegate.optionValue });
+        const result = await this.#selectDelegate._isSelected();
+        if (result) log.info(`Option is selected`);
+        else log.warn(`Option is not selected`);
+        return result;
       },
 
       /**
@@ -528,6 +580,58 @@ class WebBrowser extends Browser {
       disabled: async (t = null) => {
         this.message = messenger({ stack: this.stack, action: 'isDisabled' });
         return await this.#visibilityDelegate._isDisabled(t);
+      },
+
+      not: {
+        /**
+         * Checks whether the element is not visible.
+         *
+         * @param {number} [t] - Optional timeout in milliseconds
+         * @returns {Promise<boolean>}
+         */
+        visible: async (t = null) => {
+          this.message = messenger({ stack: this.stack, action: 'isNotVisible' });
+          return await this.#visibilityDelegate._isNotVisible(t);
+        },
+
+        /**
+       * Checks whether the checkbox is not checked.
+       *
+       * @returns {Promise<boolean>}
+       */
+        checked: async () => {
+          this.message = messenger({ stack: this.stack, action: 'isNotChecked' });
+          const result = !(await this.#checkboxDelegate._isChecked());
+          if (result) log.info(`Checkbox is not checked`);
+          else log.warn(`Checkbox is checked`);
+          return result;
+        },
+
+        /**
+         * Checks whether the radio is not set.
+         *
+         * @returns {Promise<boolean>}
+         */
+        set: async () => {
+          this.message = messenger({ stack: this.stack, action: 'isNotSet' });
+          const result = !(await this.#radioDelegate._isSet());
+          if (result) log.info(`Radiobutton is not set`);
+          else log.warn(`Radiobutton is set`);
+          return result;
+        },
+
+        /**
+         * Checks whether the dropdown option is not selected.
+         *
+         * @returns {Promise<boolean>}
+         */
+        selected: async () => {
+          this.message = messenger({ stack: this.stack, action: 'isNotSelected', data: this.#selectDelegate.optionValue });
+          const result = !(await this.#selectDelegate._isSelected());
+          if (result) log.info(`Option is not selected`);
+          else log.warn(`Option is selected`);
+          return result;
+        },
       },
     };
   }
@@ -556,6 +660,96 @@ class WebBrowser extends Browser {
             const err = new Error('Element should be visible')
             this.handleError(err, 'validating element to be visible');
             throw err
+          }
+        },
+
+        /**
+         * Asserts that the checkbox is checked.
+         *
+         * @returns {Promise<void>}
+         */
+        checked: async () => {
+          this.message = messenger({ stack: this.stack, action: 'shouldBeChecked' });
+          const test = await this.#checkboxDelegate._isChecked();
+          if (!test) {
+            log.warn(`Checkbox is not checked`);
+            const err = new Error('Element should be checked')
+            this.handleError(err, 'validating element to be checked');
+            throw err
+          } else {
+            log.info(`Checkbox is checked`);
+          }
+        },
+
+        /**
+         * Asserts that the radio is set.
+         *
+         * @returns {Promise<void>}
+         */
+        set: async () => {
+          this.message = messenger({ stack: this.stack, action: 'shouldBeSet' });
+          const test = await this.#radioDelegate._isSet();
+          if (!test) {
+            log.warn(`Radiobutton is not set`);
+            const err = new Error('Radiobutton should be set')
+            this.handleError(err, 'validating Radiobutton to be set');
+            throw err
+          } else {
+            log.info(`Radiobutton is set`);
+          }
+        },
+
+        /**
+         * Asserts that the switch is on.
+         *
+         * @returns {Promise<void>}
+         */
+        on: async () => {
+          this.message = messenger({ stack: this.stack, action: 'shouldBeOn' });
+          const test = await this.#switchDelegate._isOn();
+          if (!test) {
+            log.warn(`Switch is not on`);
+            const err = new Error('Switch should be on')
+            this.handleError(err, 'validating switch to be on');
+            throw err
+          } else {
+            log.info(`Switch is on`);
+          }
+        },
+
+        /**
+         * Asserts that the switch is off.
+         *
+         * @returns {Promise<void>}
+         */
+        off: async () => {
+          this.message = messenger({ stack: this.stack, action: 'shouldBeOff' });
+          const test = !(await this.#switchDelegate._isOn());
+          if (!test) {
+            log.warn(`Switch is not off`);
+            const err = new Error('Switch should be off')
+            this.handleError(err, 'validating switch to be off');
+            throw err
+          } else {
+            log.info(`Switch is off`);
+          }
+        },
+
+        /**
+         * Asserts that the dropdown option is selected.
+         *
+         * @returns {Promise<void>}
+         */
+        selected: async () => {
+          this.message = messenger({ stack: this.stack, action: 'shouldBeSelected', data: this.#selectDelegate.optionValue });
+          const test = await this.#selectDelegate._isSelected();
+          if (!test) {
+            log.warn(`Option is not selected`);
+            const err = new Error('Option should be selected')
+            this.handleError(err, 'validating option to be selected');
+            throw err
+          } else {
+            log.info(`Option is selected`);
           }
         },
 
@@ -609,6 +803,60 @@ class WebBrowser extends Browser {
               throw err
             }
           },
+
+          /**
+           * Asserts that the checkbox is not checked.
+           *
+           * @returns {Promise<void>}
+           */
+          checked: async () => {
+            this.message = messenger({ stack: this.stack, action: 'shouldNotBeChecked' });
+            const test = !(await this.#checkboxDelegate._isChecked());
+            if (!test) {
+              log.warn(`Checkbox is checked`);
+              const err = new Error('Element should not be checked')
+              this.handleError(err, 'validating element to not be checked');
+              throw err
+            } else {
+              log.info(`Checkbox is not checked`);
+            }
+          },
+
+          /**
+           * Asserts that the radiobutton is not set.
+           *
+           * @returns {Promise<void>}
+           */
+          set: async () => {
+            this.message = messenger({ stack: this.stack, action: 'shouldNotBeSet' });
+            const test = !(await this.#radioDelegate._isSet());
+            if (!test) {
+              log.warn(`Radiobutton is set`);
+              const err = new Error('Radiobutton should not be set')
+              this.handleError(err, 'validating Radiobutton to not be set');
+              throw err
+            } else {
+              log.info(`Radiobutton is not set`);
+            }
+          },
+
+          /**
+           * Asserts that the dropdown option is not selected.
+           *
+           * @returns {Promise<void>}
+           */
+          selected: async () => {
+            this.message = messenger({ stack: this.stack, action: 'shouldNotBeSelected', data: this.#selectDelegate.optionValue });
+            const test = !(await this.#selectDelegate._isSelected());
+            if (!test) {
+              log.warn(`Option is selected`);
+              const err = new Error('Option should not be selected')
+              this.handleError(err, 'validating option to not be selected');
+              throw err
+            } else {
+              log.info(`Option is not selected`);
+            }
+          },
         },
       },
     };
@@ -643,31 +891,17 @@ class WebBrowser extends Browser {
   }
 
   /**
-   * Asserts if a checkbox is currently checked.
+   * Sets a radio button.
    * 
-   * Returns true if the checkbox is checked, otherwise throws an error.
+   * Clicks the radio button if it's not already set. Falls back to JavaScript
+   * click if Selenium click fails.
    * 
-   * @returns {Promise<boolean>} True if checkbox is checked
-   * @throws {Error} Throws if checkbox is not checked
+   * @returns {Promise<boolean>} True if successful
    * @example
-   * await browser.switch('dark mode').isChecked();
+   * await browser.radio('option-a').set();
    */
-  async isChecked() {
-    return await this.#checkboxDelegate.isChecked();
-  }
-
-  /**
-   * Asserts if a checkbox is currently unchecked.
-   * 
-   * Returns true if the checkbox is unchecked, otherwise throws an error.
-   * 
-   * @returns {Promise<boolean>} True if checkbox is unchecked
-   * @throws {Error} Throws if checkbox is checked
-   * @example
-   * const isOff = await browser.switch('dark mode').isUnchecked();
-   */
-  async isUnchecked() {
-    return await this.#checkboxDelegate.isUnchecked();
+  async set() {
+    return await this.#radioDelegate.set();
   }
 
   /**
@@ -699,76 +933,6 @@ class WebBrowser extends Browser {
   }
 
   /**
-   * Asserts that a switch is currently on.
-   * 
-   * Returns true if the switch is on, otherwise throws an error.
-   * 
-   * @returns {Promise<boolean>} Returns true if switch is on
-   * @throws {Error} Throws if switch is off
-   * @example
-   * await browser.switch('dark mode').isOn();
-   */
-  async isOn() {
-    return await this.#switchDelegate.isOn();
-  }
-
-  /**
-   * Asserts that a switch is currently off.
-   * 
-   * Returns true if the switch is off, otherwise throws an error.
-   * 
-   * @returns {Promise<boolean>} Returns true if switch is off
-   * @throws {Error} Throws if switch is on
-   * @example
-   * await browser.switch('dark mode').isOff();
-   */
-  async isOff() {
-    return await this.#switchDelegate.isOff();
-  }
-
-  /**
-   * Sets a radio button.
-   * 
-   * Clicks the radio button if it's not already set. Falls back to JavaScript
-   * click if Selenium click fails.
-   * 
-   * @returns {Promise<boolean>} True if successful
-   * @example
-   * await browser.radio('option-a').set();
-   */
-  async set() {
-    return await this.#radioDelegate.set();
-  }
-
-  /**
-   * Asserts that a radio button is currently set.
-   * 
-   * Returns true if the radio button is set, otherwise throws an error.
-   * 
-   * @returns {Promise<boolean>} Returns true if radio button is set
-   * @throws {Error} Throws if radio button is not set
-   * @example
-   * await browser.radio('option-a').isSet();
-   */
-  async isSet() {
-    return await this.#radioDelegate.isSet();
-  }
-
-  /**
-   * Asserts that a radio button is currently NOT set.
-   * 
-   * Returns true if the radio button is not set, otherwise throws an error.
-   * 
-   * @returns {Promise<boolean>} Returns true if radio button is not set
-   * @throws {Error} Throws if radio button is set
-   * @example
-   * await browser.radio('option-b').isNotSet();
-   */
-  async isNotSet() {
-    return await this.#radioDelegate.isNotSet();
-  }
-
-  /**
    * Selects an option from a dropdown or combobox by its visible text.
    *
    * @param {string} optionText - The visible text, value or index of the option to select
@@ -794,27 +958,9 @@ class WebBrowser extends Browser {
    * @returns {Promise<boolean>} True if successful
    * @example
    * await browser.dropdown('Country').option('United States').select();
-   * await browser.dropdown('some combo').option('Option 1').isSelected();
    */
   async select() {
     return await this.#selectDelegate.select();
-  }
-
-  /**
-   * Asserts that option from a dropdown or combobox the currently selected.
-   *
-   * Supports both native <select> elements and custom combobox widgets
-   * (role='combobox').
-   * Returns true if the option is selected, otherwise throws an error.
-   *
-   * @returns {Promise<boolean>} True if object with `text` or `value` or `index`
-   * is currently selected
-   * @throws {Error} Throws if the option is not selected
-   * @example
-   * await browser.dropdown('Country').isSelected();
-   */
-  async isSelected() {
-    return await this.#selectDelegate.isSelected();
   }
 
   /**

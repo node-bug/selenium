@@ -124,53 +124,34 @@ describe('RadioDelegate (ESM)', () => {
     });
   });
 
-  // ---------------- IS SET ----------------
-  describe('isSet()', () => {
+  // ---------------- _IS SET ----------------
+  describe('_isSet()', () => {
     test('should return true if radio button is set', async () => {
       mockLocator.isSelected.mockResolvedValue(true);
 
-      const result = await delegate.isSet();
+      const result = await delegate._isSet();
 
       expect(result).toBe(true);
-      expect(log.info).toHaveBeenCalledWith(expect.stringContaining('set'));
+      expect(mockBrowser.stack).toEqual([]);
     });
 
-    test('should throw error if radio button is not set', async () => {
+    test('should return false if radio button is not set', async () => {
       mockLocator.isSelected.mockResolvedValue(false);
 
-      await expect(delegate.isSet()).rejects.toThrow('Radio button is not set');
+      const result = await delegate._isSet();
+
+      expect(result).toBe(false);
+      expect(mockBrowser.stack).toEqual([]);
     });
 
-    test('should handle errors from _finder', async () => {
+    test('should handle errors from _finder and return false', async () => {
       mockBrowser._finder.mockRejectedValue(new Error('Selection failed'));
-      // When _finder fails, handleError is called, then result stays false so assertion throws
-      await expect(delegate.isSet()).rejects.toThrow('Radio button is not set');
-      expect(mockBrowser.handleError).toHaveBeenCalledWith(expect.any(Error), 'validating if radio button is set');
-    });
-  });
 
-  // ---------------- IS NOT SET ----------------
-  describe('isNotSet()', () => {
-    test('should return true if radio button is not set', async () => {
-      mockLocator.isSelected.mockResolvedValue(false);
+      const result = await delegate._isSet();
 
-      const result = await delegate.isNotSet();
-
-      expect(result).toBe(true);
-      expect(log.info).toHaveBeenCalledWith(expect.stringContaining('not set'));
-    });
-
-    test('should throw error if radio button is set', async () => {
-      mockLocator.isSelected.mockResolvedValue(true);
-
-      await expect(delegate.isNotSet()).rejects.toThrow('Radio button is set');
-    });
-
-    test('should handle errors from _finder', async () => {
-      mockBrowser._finder.mockRejectedValue(new Error('Selection failed'));
-      // When _finder fails, handleError is called, then result stays false so assertion throws
-      await expect(delegate.isNotSet()).rejects.toThrow('Radio button is set');
-      expect(mockBrowser.handleError).toHaveBeenCalledWith(expect.any(Error), 'validating if radio button is not set');
+      expect(result).toBe(false);
+      expect(mockBrowser.handleError).toHaveBeenCalledWith(expect.any(Error), 'validating radio button state');
+      expect(mockBrowser.stack).toEqual([]);
     });
   });
 });

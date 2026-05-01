@@ -78,7 +78,7 @@ This directory contains comprehensive documentation for the WebBrowser automatio
 - **Wait for element to appear** → [API-REFERENCE.md - should.be.visible()](API-REFERENCE.md#shouldbevisible-timeout)
 - **Wait for element to disappear** → [API-REFERENCE.md - should.not.be.visible()](API-REFERENCE.md#shouldnotbevisible-timeout)
 - **Check if element is visible** → [API-REFERENCE.md - is.visible()](API-REFERENCE.md#isvisible)
-- **Verify checkbox state** → [FORMS.md - isChecked/isUnchecked](FORMS.md#ischecked)
+- **Verify checkbox state** → [FORMS.md - is.checked/should.be.checked](FORMS.md#ischecked)
 
 ## 🔍 By Concept
 
@@ -144,9 +144,9 @@ This directory contains comprehensive documentation for the WebBrowser automatio
 
 ### FORMS.md
 
-- Checkboxes (check, uncheck, isChecked, isUnchecked)
+- Checkboxes (check, uncheck, is.checked, is.not.checked, should.be.checked, should.not.be.checked)
 - Switches (on, off, isOn, isOff)
-- Radio buttons
+- Radio buttons (set, is.set, is.not.set, should.be.set, should.not.be.set)
 - Dropdowns (option, select, get.text, get.value, isSelected)
 - Form validation patterns
 - Multi-step forms

@@ -27,9 +27,9 @@ export class SwitchDelegate {
 
     try {
       const locator = await browser._finder(null, targetState);
-      const isChecked = await locator.isSelected();
-      const needsChange = (targetState === 'on' && !isChecked) ||
-        (targetState === 'off' && isChecked);
+      const isOn = await locator.isSelected();
+      const needsChange = (targetState === 'on' && !isOn) ||
+        (targetState === 'off' && isOn);
 
       if (needsChange) {
         try {
@@ -43,7 +43,7 @@ export class SwitchDelegate {
 
         // Final verification
         const finalState = await locator.isSelected();
-        if (finalState === isChecked) {
+        if (finalState === isOn) {
           throw new Error(`Failed to set switch ${targetState}. State did not change.`);
         }
       } else {
@@ -86,62 +86,22 @@ export class SwitchDelegate {
   }
 
   /**
-   * Asserts that a switch is currently on.
+   * Internal helper to check if switch is on.
    * 
-   * Returns true if the switch is on, otherwise throws an error.
-   * Use this as an assertion to verify switch state.
-   * 
-   * @returns {Promise<boolean>} Returns true if switch is on
-   * @throws {Error} Throws 'Switch is not ON' if switch is off
-   * @example
-   * // Assert switch is on (throws if not)
-   * await browser.switch('dark mode').isOn();
-   * console.log('Switch is confirmed ON');
+   * @private
+   * @returns {Promise<boolean>} True if switch is on
    */
-  async isOn() {
-    const browser = this.browser; let result = false
-    browser.message = messenger({ stack: browser.stack, action: 'isOn' });
+  async _isOn() {
+    const browser = this.browser;
+    let result = false;
     try {
       const locator = await browser._finder();
       result = await locator.isSelected();
     } catch (err) {
-      browser.handleError(err, 'validating if switch is ON');
+      browser.handleError(err, 'validating switch state');
     } finally {
       browser.stack = [];
     }
-    if(result) {log.info(`Switch is ON`); return true;}
-    const err = new Error('Switch is OFF');
-    browser.handleError(err, 'validating if switch is ON');
-    throw err
-  }
-
-  /**
-   * Asserts that a switch is currently off.
-   * 
-   * Returns true if the switch is off, otherwise throws an error.
-   * Use this as an assertion to verify switch state.
-   * 
-   * @returns {Promise<boolean>} Returns true if switch is off
-   * @throws {Error} Throws 'Switch is not OFF' if switch is on
-   * @example
-   * // Assert switch is off (throws if not)
-   * await browser.switch('dark mode').isOff();
-   * console.log('Switch is confirmed OFF');
-   */
-  async isOff() {
-    const browser = this.browser; let result = false
-    browser.message = messenger({ stack: browser.stack, action: 'isOff' });
-    try {
-      const locator = await browser._finder();
-      result = !(await locator.isSelected());
-    } catch (err) {
-      browser.handleError(err, 'validating if switch is OFF');
-    } finally {
-      browser.stack = [];
-    }
-    if(result) {log.info(`Switch is OFF`); return true;}
-    const err = new Error('Switch is ON');
-    browser.handleError(err, 'validating if switch is OFF');
-    throw err
+    return result;
   }
 }

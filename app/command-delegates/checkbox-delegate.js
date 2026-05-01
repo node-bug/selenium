@@ -86,61 +86,22 @@ export class CheckboxDelegate {
   }
 
   /**
-   * Asserts that a checkbox is currently checked.
+   * Internal helper to check if checkbox is checked.
    * 
-   * Returns true if the checkbox is checked, otherwise throws an error.
-   * Use this as an assertion to verify checkbox state.
-   * 
-   * @returns {Promise<boolean>} Returns true if checkbox is checked
-   * @throws {Error} Throws 'Checkbox is not checked' if checkbox is unchecked
-   * @example
-   * // Assert checkbox is checked (throws if not)
-   * await browser.checkbox('agree').isChecked();
+   * @private
+   * @returns {Promise<boolean>} True if checkbox is checked
    */
-  async isChecked() {
-    const browser = this.browser; let result = false
-    browser.message = messenger({ stack: browser.stack, action: 'isChecked' });
+  async _isChecked() {
+    const browser = this.browser;
+    let result = false;
     try {
       const locator = await browser._finder();
       result = await locator.isSelected();
     } catch (err) {
-      browser.handleError(err, 'validating if checkbox is checked');
+      browser.handleError(err, 'validating checkbox state');
     } finally {
       browser.stack = [];
     }
-    if (result) { log.info(`Checkbox is checked`); return true; }
-    const err = new Error('Checkbox is not checked');
-    browser.handleError(err, 'validating if checkbox is checked');
-    throw err
-  }
-
-  /**
-   * Asserts that a checkbox is currently unchecked.
-   * 
-   * Returns true if the checkbox is unchecked, otherwise throws an error.
-   * Use this as an assertion to verify checkbox state.
-   * 
-   * @returns {Promise<boolean>} Returns true if checkbox is unchecked
-   * @throws {Error} Throws 'Checkbox is checked' if checkbox is checked
-   * @example
-   * // Assert checkbox is unchecked (throws if not)
-   * await browser.checkbox('agree').isUnchecked();
-   * console.log('Checkbox is confirmed unchecked');
-   */
-  async isUnchecked() {
-    const browser = this.browser; let result = false
-    browser.message = messenger({ stack: browser.stack, action: 'isUnchecked' });
-    try {
-      const locator = await browser._finder();
-      result = !(await locator.isSelected());
-    } catch (err) {
-      browser.handleError(err, 'validating if checkbox is unchecked');
-    } finally {
-      browser.stack = [];
-    }
-    if (result) { log.info(`Checkbox is not checked`); return true; }
-    const err = new Error('Checkbox is checked');
-    browser.handleError(err, 'validating if checkbox is not checked');
-    throw err
+    return result;
   }
 }

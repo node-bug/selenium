@@ -748,9 +748,9 @@ describe('SelectDelegate (ESM)', () => {
   });
 
   // ---------------- IS SELECTED ----------------
-  describe('isSelected()', () => {
+  describe('_isSelected()', () => {
     test('should throw error when optionValue is null (no option() called)', async () => {
-      await expect(delegate.isSelected()).rejects.toThrow(
+      await expect(delegate._isSelected()).rejects.toThrow(
         'Option to be asserted was not provided. Please use option() chain.'
       );
       expect(log.error).toHaveBeenCalled();
@@ -767,7 +767,7 @@ describe('SelectDelegate (ESM)', () => {
       mockSelectInstance.getFirstSelectedOption.mockResolvedValue(mockSelectedOption);
 
       delegate.option('United');
-      const result = await delegate.isSelected();
+      const result = await delegate._isSelected();
 
       expect(result).toBe(true);
     });
@@ -783,12 +783,12 @@ describe('SelectDelegate (ESM)', () => {
       mockSelectInstance.getFirstSelectedOption.mockResolvedValue(mockSelectedOption);
 
       delegate.option('us');
-      const result = await delegate.isSelected();
+      const result = await delegate._isSelected();
 
       expect(result).toBe(true);
     });
 
-    test('should throw when option is not selected in native select', async () => {
+    test('should return false when option is not selected in native select', async () => {
       mockLocator.tagName = 'select';
 
       const mockSelectedOption = {
@@ -799,9 +799,9 @@ describe('SelectDelegate (ESM)', () => {
       mockSelectInstance.getFirstSelectedOption.mockResolvedValue(mockSelectedOption);
 
       delegate.option('United States');
-      await expect(delegate.isSelected()).rejects.toThrow(
-        "Option 'United States' is not selected"
-      );
+      const result = await delegate._isSelected();
+
+      expect(result).toBe(false);
     });
 
     test('should return true when option is selected in combobox', async () => {
@@ -809,7 +809,7 @@ describe('SelectDelegate (ESM)', () => {
       mockLocator.getAttribute.mockResolvedValue('United States');
 
       delegate.option('United');
-      const result = await delegate.isSelected();
+      const result = await delegate._isSelected();
 
       expect(result).toBe(true);
     });
@@ -819,7 +819,7 @@ describe('SelectDelegate (ESM)', () => {
       mockLocator.getAttribute.mockResolvedValue('Canada');
 
       delegate.option('United States');
-      await expect(delegate.isSelected()).rejects.toThrow(
+      await expect(delegate._isSelected()).rejects.toThrow(
         "Option 'United States' is not selected"
       );
     });
@@ -844,7 +844,7 @@ describe('SelectDelegate (ESM)', () => {
       mockSelectInstance.getOptions.mockResolvedValue(mockOptions);
 
       delegate.option(1);
-      const result = await delegate.isSelected();
+      const result = await delegate._isSelected();
 
       expect(result).toBe(true);
     });
@@ -854,15 +854,15 @@ describe('SelectDelegate (ESM)', () => {
       mockSelectInstance.getOptions.mockResolvedValue([{}, {}]);
 
       delegate.option(10);
-      await expect(delegate.isSelected()).rejects.toThrow();
+      await expect(delegate._isSelected()).rejects.toThrow();
     });
 
-    test('should handle errors during isSelected', async () => {
+    test('should handle errors during _isSelected', async () => {
       const error = new Error('Finder failed');
       mockBrowser._finder.mockRejectedValue(error);
 
       delegate.option('United States');
-      await expect(delegate.isSelected()).rejects.toThrow();
+      await expect(delegate._isSelected()).rejects.toThrow();
 
       expect(mockBrowser.handleError).toHaveBeenCalledWith(
         error,
@@ -874,7 +874,7 @@ describe('SelectDelegate (ESM)', () => {
       mockBrowser._finder.mockRejectedValue(new Error('fail'));
 
       delegate.option('test');
-      await expect(delegate.isSelected()).rejects.toThrow();
+      await expect(delegate._isSelected()).rejects.toThrow();
 
       expect(mockBrowser.stack).toEqual([]);
     });
@@ -886,21 +886,21 @@ describe('SelectDelegate (ESM)', () => {
       expect(delegate.optionValue).toBe(5);
       expect(delegate.isIndex).toBe(true);
 
-      await expect(delegate.isSelected()).rejects.toThrow();
+      await expect(delegate._isSelected()).rejects.toThrow();
 
       expect(delegate.optionValue).toBeNull();
       expect(delegate.isIndex).toBe(false);
     });
 
-    test('should handle null text in combobox isSelected', async () => {
+    test('should handle null text in combobox _isSelected', async () => {
       mockLocator.tagName = 'div';
       mockLocator.getAttribute.mockResolvedValue(null);
 
       delegate.option('anything');
-      await expect(delegate.isSelected()).rejects.toThrow();
+      await expect(delegate._isSelected()).rejects.toThrow();
     });
 
-    test('should handle null text in native isSelected', async () => {
+    test('should handle null text in native _isSelected', async () => {
       mockLocator.tagName = 'select';
 
       const mockSelectedOption = {
@@ -911,7 +911,7 @@ describe('SelectDelegate (ESM)', () => {
       mockSelectInstance.getFirstSelectedOption.mockResolvedValue(mockSelectedOption);
 
       delegate.option('anything');
-      await expect(delegate.isSelected()).rejects.toThrow();
+      await expect(delegate._isSelected()).rejects.toThrow();
     });
 
     test('should set browser message via messenger', async () => {
@@ -921,7 +921,7 @@ describe('SelectDelegate (ESM)', () => {
       });
 
       delegate.option('test');
-      await delegate.isSelected();
+      await delegate._isSelected();
 
       expect(mockBrowser.message).toBeDefined();
     });
@@ -940,7 +940,7 @@ describe('SelectDelegate (ESM)', () => {
       expect(mockSelectInstance.selectByVisibleText).toHaveBeenCalledWith('United States');
     });
 
-    test('should support option().isSelected() chaining pattern', async () => {
+    test('should support option()._isSelected() chaining pattern', async () => {
       mockLocator.tagName = 'select';
 
       const mockSelectedOption = {
@@ -951,7 +951,7 @@ describe('SelectDelegate (ESM)', () => {
       mockSelectInstance.getFirstSelectedOption.mockResolvedValue(mockSelectedOption);
 
       delegate.option('United');
-      const result = await delegate.isSelected();
+      const result = await delegate._isSelected();
 
       expect(result).toBe(true);
     });
