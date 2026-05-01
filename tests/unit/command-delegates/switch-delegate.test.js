@@ -170,53 +170,34 @@ describe('SwitchDelegate (ESM)', () => {
     });
   });
 
-  // ---------------- IS ON ----------------
-  describe('isOn()', () => {
+  // ---------------- _IS ON ----------------
+  describe('_isOn()', () => {
     test('should return true if switch is on (selected)', async () => {
       mockLocator.isSelected.mockResolvedValue(true);
 
-      const result = await delegate.isOn();
+      const result = await delegate._isOn();
 
       expect(result).toBe(true);
-      expect(log.info).toHaveBeenCalledWith(expect.stringContaining('ON'));
+      expect(mockBrowser.stack).toEqual([]);
     });
 
-    test('should throw error if switch is off (not selected)', async () => {
+    test('should return false if switch is off (not selected)', async () => {
       mockLocator.isSelected.mockResolvedValue(false);
 
-      await expect(delegate.isOn()).rejects.toThrow('Switch is OFF');
+      const result = await delegate._isOn();
+
+      expect(result).toBe(false);
+      expect(mockBrowser.stack).toEqual([]);
     });
 
-    test('should handle errors from _finder', async () => {
+    test('should handle errors from _finder and return false', async () => {
       mockBrowser._finder.mockRejectedValue(new Error('Selection failed'));
-      // When _finder fails, handleError is called, then result stays false so assertion throws
-      await expect(delegate.isOn()).rejects.toThrow('Switch is OFF');
-      expect(mockBrowser.handleError).toHaveBeenCalledWith(expect.any(Error), 'validating if switch is ON');
-    });
-  });
 
-  // ---------------- IS OFF ----------------
-  describe('isOff()', () => {
-    test('should return true if switch is off (not selected)', async () => {
-      mockLocator.isSelected.mockResolvedValue(false);
+      const result = await delegate._isOn();
 
-      const result = await delegate.isOff();
-
-      expect(result).toBe(true);
-      expect(log.info).toHaveBeenCalledWith(expect.stringContaining('OFF'));
-    });
-
-    test('should throw error if switch is on (selected)', async () => {
-      mockLocator.isSelected.mockResolvedValue(true);
-
-      await expect(delegate.isOff()).rejects.toThrow('Switch is ON');
-    });
-
-    test('should handle errors from _finder', async () => {
-      mockBrowser._finder.mockRejectedValue(new Error('Selection failed'));
-      // When _finder fails, handleError is called, then result stays false so assertion throws
-      await expect(delegate.isOff()).rejects.toThrow('Switch is ON');
-      expect(mockBrowser.handleError).toHaveBeenCalledWith(expect.any(Error), 'validating if switch is OFF');
+      expect(result).toBe(false);
+      expect(mockBrowser.handleError).toHaveBeenCalledWith(expect.any(Error), 'validating switch state');
+      expect(mockBrowser.stack).toEqual([]);
     });
   });
 });

@@ -59,76 +59,22 @@ export class RadioDelegate {
   }
 
   /**
-   * Asserts that a radio button is currently set.
+   * Internal helper to check if radio button is set.
    * 
-   * Returns true if the radio button is set, otherwise throws an error.
-   * Use this as an assertion to verify radio button state.
-   * 
-   * @returns {Promise<boolean>} Returns true if radio button is set
-   * @throws {Error} Throws 'Radio button is not set' if radio button is not set
-   * @example
-   * // Assert radio button is set (throws if not)
-   * await browser.radio('option-a').isSet();
-   * console.log('Radio button is confirmed set');
+   * @private
+   * @returns {Promise<boolean>} True if radio button is set
    */
-  async isSet() {
+  async _isSet() {
     const browser = this.browser;
     let result = false;
-    browser.message = messenger({ stack: browser.stack, action: 'isSet' });
-
     try {
       const locator = await browser._finder();
       result = await locator.isSelected();
     } catch (err) {
-      browser.handleError(err, 'validating if radio button is set');
+      browser.handleError(err, 'validating radio button state');
     } finally {
       browser.stack = [];
     }
-
-    if (result) {
-      log.info('Radio button is set');
-      return true;
-    }
-
-    const err = new Error('Radio button is not set');
-    browser.handleError(err, 'validating if radio button is set');
-    throw err;
-  }
-
-  /**
-   * Asserts that a radio button is currently NOT set.
-   * 
-   * Returns true if the radio button is not set, otherwise throws an error.
-   * Use this as an assertion to verify radio button state.
-   * 
-   * @returns {Promise<boolean>} Returns true if radio button is not set
-   * @throws {Error} Throws 'Radio button is set' if radio button is set
-   * @example
-   * // Assert radio button is not set (throws if it is)
-   * await browser.radio('option-b').isNotSet();
-   * console.log('Radio button is confirmed not set');
-   */
-  async isNotSet() {
-    const browser = this.browser;
-    let result = false;
-    browser.message = messenger({ stack: browser.stack, action: 'isNotSet' });
-
-    try {
-      const locator = await browser._finder();
-      result = !(await locator.isSelected());
-    } catch (err) {
-      browser.handleError(err, 'validating if radio button is not set');
-    } finally {
-      browser.stack = [];
-    }
-
-    if (result) {
-      log.info('Radio button is not set');
-      return true;
-    }
-
-    const err = new Error('Radio button is set');
-    browser.handleError(err, 'validating if radio button is not set');
-    throw err;
+    return result;
   }
 }

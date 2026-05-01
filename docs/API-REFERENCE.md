@@ -752,29 +752,53 @@ await browser.button('Submit').should.be.enabled()
 
 **QA Best Practice**: Use this method to assert and validate that an element is enabled on the screen in your test cases.
 
-### isChecked()
+### is.checked()
+
+**Returns a boolean indicating whether the checkbox is checked.**
+
+Check if a checkbox is currently checked.
+
+```javascript
+const checked = await browser.checkbox('Subscribe').is.checked()
+```
+
+**Returns**: `Promise<boolean>`
+
+### is.not.checked()
+
+**Returns a boolean indicating whether the checkbox is not checked.**
+
+Check if a checkbox is currently unchecked.
+
+```javascript
+const unchecked = await browser.checkbox('Subscribe').is.not.checked()
+```
+
+**Returns**: `Promise<boolean>`
+
+### should.be.checked()
 
 **Assertion that throws an error and stops test execution on failure.**
 
-Check if checkbox is checked.
+Assert that a checkbox is currently checked.
 
 ```javascript
-const checked = await browser.checkbox('Subscribe').isChecked()
+await browser.checkbox('Subscribe').should.be.checked()
 ```
 
 **Throws**: Error if checkbox is not checked - **Test execution stops**
 
-### isUnchecked()
+### should.not.be.checked()
 
 **Assertion that throws an error and stops test execution on failure.**
 
-Check if checkbox is unchecked.
+Assert that a checkbox is currently unchecked.
 
 ```javascript
-const unchecked = await browser.checkbox('Subscribe').isUnchecked()
+await browser.checkbox('Subscribe').should.not.be.checked()
 ```
 
-**Throws**: Error if checkbox is checked - \*_Test execution stops_
+**Throws**: Error if checkbox is checked - **Test execution stops**
 
 ### isOn()
 
@@ -800,33 +824,53 @@ const off = await browser.switch('Dark Mode').isOff()
 
 **Throws**: Error if switch is on - **Test execution stops**
 
-### isSet()
+### is.set()
+
+**Returns a boolean indicating whether the radio button is set (selected).**
+
+Check if a radio button is currently set.
+
+```javascript
+const set = await browser.radio('Male').is.set()
+```
+
+**Returns**: `Promise<boolean>`
+
+### is.not.set()
+
+**Returns a boolean indicating whether the radio button is not set (not selected).**
+
+Check if a radio button is currently not set.
+
+```javascript
+const notSet = await browser.radio('Female').is.not.set()
+```
+
+**Returns**: `Promise<boolean>`
+
+### should.be.set()
 
 **Assertion that throws an error and stops test execution on failure.**
 
 Assert that a radio button is currently set (selected).
 
 ```javascript
-await browser.radio('Male').isSet()
+await browser.radio('Male').should.be.set()
 ```
 
 **Throws**: Error if radio button is not set - **Test execution stops**
 
-**Returns**: `Promise<boolean>`
-
-### isNotSet()
+### should.not.be.set()
 
 **Assertion that throws an error and stops test execution on failure.**
 
 Assert that a radio button is currently NOT set (not selected).
 
 ```javascript
-await browser.radio('Female').isNotSet()
+await browser.radio('Female').should.not.be.set()
 ```
 
 **Throws**: Error if radio button is set - **Test execution stops**
-
-**Returns**: `Promise<boolean>`
 
 ### scroll([alignToTop])
 

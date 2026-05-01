@@ -1,10 +1,41 @@
 import { jest } from '@jest/globals';
 
+// Shared mutable mock objects so tests can control delegate return values
+const mockVisibilityDelegate = {
+    scroll: jest.fn(),
+    isVisible: jest.fn(),
+    isDisabled: jest.fn(),
+    hide: jest.fn(),
+    unhide: jest.fn(),
+    _isVisible: jest.fn().mockResolvedValue(true),
+    _isEnabled: jest.fn().mockResolvedValue(true),
+    _isDisabled: jest.fn().mockResolvedValue(false),
+    _isNotVisible: jest.fn().mockResolvedValue(false),
+};
+
+const mockCheckboxDelegate = {
+    check: jest.fn(),
+    uncheck: jest.fn(),
+    _isChecked: jest.fn().mockResolvedValue(true),
+};
+
+const mockRadioDelegate = {
+    set: jest.fn(),
+    _isSet: jest.fn().mockResolvedValue(true),
+};
+
+const mockSwitchDelegate = {
+    on: jest.fn(),
+    off: jest.fn(),
+    _isOn: jest.fn().mockResolvedValue(true),
+};
+
 // Mocks
 jest.unstable_mockModule('@nodebug/logger', () => ({
     log: {
         info: jest.fn(),
         error: jest.fn(),
+        warn: jest.fn(),
     },
 }));
 
@@ -53,20 +84,19 @@ jest.unstable_mockModule('../../app/command-delegates/input-delegate.js', () => 
 }));
 
 jest.unstable_mockModule('../../app/command-delegates/visibility-delegate.js', () => ({
-    VisibilityDelegate: jest.fn().mockImplementation(() => ({
-        scroll: jest.fn(),
-        isVisible: jest.fn(),
-        isDisabled: jest.fn(),
-        hide: jest.fn(),
-        unhide: jest.fn(),
-    })),
+    VisibilityDelegate: jest.fn().mockImplementation(() => mockVisibilityDelegate),
 }));
 
 jest.unstable_mockModule('../../app/command-delegates/checkbox-delegate.js', () => ({
-    CheckboxDelegate: jest.fn().mockImplementation(() => ({
-        check: jest.fn(),
-        uncheck: jest.fn(),
-    })),
+    CheckboxDelegate: jest.fn().mockImplementation(() => mockCheckboxDelegate),
+}));
+
+jest.unstable_mockModule('../../app/command-delegates/radio-delegate.js', () => ({
+    RadioDelegate: jest.fn().mockImplementation(() => mockRadioDelegate),
+}));
+
+jest.unstable_mockModule('../../app/command-delegates/switch-delegate.js', () => ({
+    SwitchDelegate: jest.fn().mockImplementation(() => mockSwitchDelegate),
 }));
 
 const { default: WebBrowser } = await import('../../index.js');
@@ -478,6 +508,281 @@ describe('WebBrowser', () => {
             expect(upResult).toBe(true);
             expect(downResult).toBe(true);
             pressSpy.mockRestore();
+        });
+    });
+
+    // ------------------------------------------------------------------
+    //  IS GETTER — query-style API (returns boolean, never throws)
+    // ------------------------------------------------------------------
+    describe('is getter', () => {
+        beforeEach(() => {
+            mockVisibilityDelegate._isVisible.mockResolvedValue(true);
+            mockVisibilityDelegate._isEnabled.mockResolvedValue(true);
+            mockVisibilityDelegate._isDisabled.mockResolvedValue(false);
+            mockVisibilityDelegate._isNotVisible.mockResolvedValue(false);
+            mockCheckboxDelegate._isChecked.mockResolvedValue(true);
+            mockRadioDelegate._isSet.mockResolvedValue(true);
+            mockSwitchDelegate._isOn.mockResolvedValue(true);
+        });
+
+        describe('is.visible()', () => {
+            test('should return true when element is visible', async () => {
+                const result = await browser.is.visible();
+                expect(result).toBe(true);
+            });
+
+            test('should return false when element is not visible', async () => {
+                mockVisibilityDelegate._isVisible.mockResolvedValue(false);
+                const result = await browser.is.visible();
+                expect(result).toBe(false);
+            });
+
+            test('should pass timeout to delegate', async () => {
+                await browser.is.visible(5000);
+                expect(mockVisibilityDelegate._isVisible).toHaveBeenCalledWith(5000);
+            });
+        });
+
+        describe('is.enabled()', () => {
+            test('should return true when element is enabled', async () => {
+                const result = await browser.is.enabled();
+                expect(result).toBe(true);
+            });
+
+            test('should return false when element is not enabled', async () => {
+                mockVisibilityDelegate._isEnabled.mockResolvedValue(false);
+                const result = await browser.is.enabled();
+                expect(result).toBe(false);
+            });
+        });
+
+        describe('is.disabled()', () => {
+            test('should return true when element is disabled', async () => {
+                mockVisibilityDelegate._isDisabled.mockResolvedValue(true);
+                const result = await browser.is.disabled();
+                expect(result).toBe(true);
+            });
+
+            test('should return false when element is not disabled', async () => {
+                const result = await browser.is.disabled();
+                expect(result).toBe(false);
+            });
+        });
+
+        describe('is.checked()', () => {
+            test('should return true when checkbox is checked', async () => {
+                const result = await browser.is.checked();
+                expect(result).toBe(true);
+            });
+
+            test('should return false when checkbox is not checked', async () => {
+                mockCheckboxDelegate._isChecked.mockResolvedValue(false);
+                const result = await browser.is.checked();
+                expect(result).toBe(false);
+            });
+        });
+
+        describe('is.set()', () => {
+            test('should return true when radio is set', async () => {
+                const result = await browser.is.set();
+                expect(result).toBe(true);
+            });
+
+            test('should return false when radio is not set', async () => {
+                mockRadioDelegate._isSet.mockResolvedValue(false);
+                const result = await browser.is.set();
+                expect(result).toBe(false);
+            });
+        });
+
+        describe('is.on()', () => {
+            test('should return true when switch is on', async () => {
+                const result = await browser.is.on();
+                expect(result).toBe(true);
+            });
+
+            test('should return false when switch is off', async () => {
+                mockSwitchDelegate._isOn.mockResolvedValue(false);
+                const result = await browser.is.on();
+                expect(result).toBe(false);
+            });
+        });
+
+        describe('is.off()', () => {
+            test('should return true when switch is off', async () => {
+                mockSwitchDelegate._isOn.mockResolvedValue(false);
+                const result = await browser.is.off();
+                expect(result).toBe(true);
+            });
+
+            test('should return false when switch is on', async () => {
+                const result = await browser.is.off();
+                expect(result).toBe(false);
+            });
+        });
+
+        describe('is.not.visible()', () => {
+            test('should return true when element is not visible', async () => {
+                mockVisibilityDelegate._isNotVisible.mockResolvedValue(true);
+                const result = await browser.is.not.visible();
+                expect(result).toBe(true);
+            });
+
+            test('should return false when element is visible', async () => {
+                const result = await browser.is.not.visible();
+                expect(result).toBe(false);
+            });
+        });
+
+        describe('is.not.checked()', () => {
+            test('should return true when checkbox is not checked', async () => {
+                mockCheckboxDelegate._isChecked.mockResolvedValue(false);
+                const result = await browser.is.not.checked();
+                expect(result).toBe(true);
+            });
+
+            test('should return false when checkbox is checked', async () => {
+                const result = await browser.is.not.checked();
+                expect(result).toBe(false);
+            });
+        });
+
+        describe('is.not.set()', () => {
+            test('should return true when radio is not set', async () => {
+                mockRadioDelegate._isSet.mockResolvedValue(false);
+                const result = await browser.is.not.set();
+                expect(result).toBe(true);
+            });
+
+            test('should return false when radio is set', async () => {
+                const result = await browser.is.not.set();
+                expect(result).toBe(false);
+            });
+        });
+    });
+
+    // ------------------------------------------------------------------
+    //  SHOULD GETTER — assertion-style API (throws on failure)
+    // ------------------------------------------------------------------
+    describe('should getter', () => {
+        beforeEach(() => {
+            mockVisibilityDelegate._isVisible.mockResolvedValue(true);
+            mockVisibilityDelegate._isEnabled.mockResolvedValue(true);
+            mockVisibilityDelegate._isDisabled.mockResolvedValue(false);
+            mockVisibilityDelegate._isNotVisible.mockResolvedValue(false);
+            mockCheckboxDelegate._isChecked.mockResolvedValue(true);
+            mockRadioDelegate._isSet.mockResolvedValue(true);
+            mockSwitchDelegate._isOn.mockResolvedValue(true);
+        });
+
+        describe('should.be.visible()', () => {
+            test('should not throw when element is visible', async () => {
+                await expect(browser.should.be.visible()).resolves.not.toThrow();
+            });
+
+            test('should throw when element is not visible', async () => {
+                mockVisibilityDelegate._isVisible.mockResolvedValue(false);
+                await expect(browser.should.be.visible()).rejects.toThrow('Element should be visible');
+            });
+        });
+
+        describe('should.be.enabled()', () => {
+            test('should not throw when element is enabled', async () => {
+                await expect(browser.should.be.enabled()).resolves.not.toThrow();
+            });
+
+            test('should throw when element is not enabled', async () => {
+                mockVisibilityDelegate._isEnabled.mockResolvedValue(false);
+                await expect(browser.should.be.enabled()).rejects.toThrow('Element should be enabled');
+            });
+        });
+
+        describe('should.be.disabled()', () => {
+            test('should not throw when element is disabled', async () => {
+                mockVisibilityDelegate._isDisabled.mockResolvedValue(true);
+                await expect(browser.should.be.disabled()).resolves.not.toThrow();
+            });
+
+            test('should throw when element is not disabled', async () => {
+                await expect(browser.should.be.disabled()).rejects.toThrow('Element should be disabled');
+            });
+        });
+
+        describe('should.be.checked()', () => {
+            test('should not throw when checkbox is checked', async () => {
+                await expect(browser.should.be.checked()).resolves.not.toThrow();
+            });
+
+            test('should throw when checkbox is not checked', async () => {
+                mockCheckboxDelegate._isChecked.mockResolvedValue(false);
+                await expect(browser.should.be.checked()).rejects.toThrow('Element should be checked');
+            });
+        });
+
+        describe('should.be.set()', () => {
+            test('should not throw when radio is set', async () => {
+                await expect(browser.should.be.set()).resolves.not.toThrow();
+            });
+
+            test('should throw when radio is not set', async () => {
+                mockRadioDelegate._isSet.mockResolvedValue(false);
+                await expect(browser.should.be.set()).rejects.toThrow('Radiobutton should be set');
+            });
+        });
+
+        describe('should.be.on()', () => {
+            test('should not throw when switch is on', async () => {
+                await expect(browser.should.be.on()).resolves.not.toThrow();
+            });
+
+            test('should throw when switch is off', async () => {
+                mockSwitchDelegate._isOn.mockResolvedValue(false);
+                await expect(browser.should.be.on()).rejects.toThrow('Switch should be on');
+            });
+        });
+
+        describe('should.be.off()', () => {
+            test('should not throw when switch is off', async () => {
+                mockSwitchDelegate._isOn.mockResolvedValue(false);
+                await expect(browser.should.be.off()).resolves.not.toThrow();
+            });
+
+            test('should throw when switch is on', async () => {
+                await expect(browser.should.be.off()).rejects.toThrow('Switch should be off');
+            });
+        });
+
+        describe('should.not.be.visible()', () => {
+            test('should not throw when element is not visible', async () => {
+                mockVisibilityDelegate._isNotVisible.mockResolvedValue(true);
+                await expect(browser.should.not.be.visible()).resolves.not.toThrow();
+            });
+
+            test('should throw when element is visible', async () => {
+                await expect(browser.should.not.be.visible()).rejects.toThrow('Element should not be visible');
+            });
+        });
+
+        describe('should.not.be.checked()', () => {
+            test('should not throw when checkbox is not checked', async () => {
+                mockCheckboxDelegate._isChecked.mockResolvedValue(false);
+                await expect(browser.should.not.be.checked()).resolves.not.toThrow();
+            });
+
+            test('should throw when checkbox is checked', async () => {
+                await expect(browser.should.not.be.checked()).rejects.toThrow('Element should not be checked');
+            });
+        });
+
+        describe('should.not.be.set()', () => {
+            test('should not throw when radio is not set', async () => {
+                mockRadioDelegate._isSet.mockResolvedValue(false);
+                await expect(browser.should.not.be.set()).resolves.not.toThrow();
+            });
+
+            test('should throw when radio is set', async () => {
+                await expect(browser.should.not.be.set()).rejects.toThrow('Radiobutton should not be set');
+            });
         });
     });
 });
