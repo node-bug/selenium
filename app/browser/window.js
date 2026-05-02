@@ -40,9 +40,8 @@ class Window extends BrowserTarget {
      */
     async new() {
         log.info(`Opening new browser window`);
-        const newHandle = await this.driver.switchTo().newWindow('window');
-        // Switch to the newly created window
-        await this.driver.switchTo().window(newHandle);
+        // switchTo().newWindow() already switches to the new window
+        await this.driver.switchTo().newWindow('window');
     }
 
     /**

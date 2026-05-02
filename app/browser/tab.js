@@ -40,9 +40,8 @@ class Tab extends BrowserTarget {
      */
     async new() {
         log.info(`Opening new tab in the browser window`);
-        const newHandle = await this.driver.switchTo().newWindow('tab');
-        // Switch to the newly created tab
-        await this.driver.switchTo().window(newHandle);
+        // switchTo().newWindow() already switches to the new tab
+        await this.driver.switchTo().newWindow('tab');
     }
 
     /**
