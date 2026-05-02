@@ -614,7 +614,67 @@ console.log(value) // e.g., 'us'
 
 **Throws**: Error if dropdown not found or no option is selected.
 
-### isSelected()
+### is.selected()
+
+**Returns `true`/`false` for conditional logic** - Does not throw errors.
+
+Check if a specific option is currently selected. Accepts text, value, or index. Use this **only in if conditions** for branching logic.
+
+```javascript
+// Check by text
+const isSelected = await browser
+  .dropdown('Country')
+  .option('United States')
+  .is.selected()
+if (isSelected) {
+  console.log('United States is selected')
+}
+
+// Check by value
+const isSelected = await browser.dropdown('Country').option('US').is.selected()
+
+// Check by index
+const isSelected = await browser.dropdown('Country').option(0).is.selected()
+```
+
+**Returns**: `Promise<boolean>` - `true` if the option is selected, `false` otherwise
+
+**QA Best Practice**: For test validations, use `should.be.selected()` or `should.not.be.selected()` instead.
+
+### is.not.selected()
+
+**Returns `true`/`false` for conditional logic** - Does not throw errors.
+
+Check if a specific option is NOT currently selected. Accepts text, value, or index. Use this **only in if conditions** for branching logic.
+
+```javascript
+// Check by text
+const isNotSelected = await browser
+  .dropdown('Country')
+  .option('Canada')
+  .is.not.selected()
+if (isNotSelected) {
+  console.log('Canada is not selected')
+}
+
+// Check by value
+const isNotSelected = await browser
+  .dropdown('Country')
+  .option('CA')
+  .is.not.selected()
+
+// Check by index
+const isNotSelected = await browser
+  .dropdown('Country')
+  .option(1)
+  .is.not.selected()
+```
+
+**Returns**: `Promise<boolean>` - `true` if the option is NOT selected, `false` otherwise
+
+**QA Best Practice**: For test validations, use `should.be.selected()` or `should.not.be.selected()` instead.
+
+### should.be.selected()
 
 **Assertion that throws an error and stops test execution on failure.**
 
@@ -622,16 +682,32 @@ Assert that a specific option is currently selected. Accepts text, value, or ind
 
 ```javascript
 // Assert by text
-await browser.dropdown('Country').option('United States').isSelected()
+await browser.dropdown('Country').option('United States').should.be.selected()
 
 // Assert by value
-await browser.dropdown('Country').option('US').isSelected()
+await browser.dropdown('Country').option('US').should.be.selected()
 
 // Assert by index
-await browser.dropdown('Country').option(0).isSelected()
+await browser.dropdown('Country').option(0).should.be.selected()
 ```
 
 **Throws**: Error if the specified option is not selected.
+
+### should.not.be.selected()
+
+**Assertion that throws an error and stops test execution on failure.**
+
+Assert that a specific option is NOT currently selected. Accepts text, value, or index.
+
+```javascript
+// Assert by text
+await browser.dropdown('Country').option('Canada').should.not.be.selected()
+
+// Assert by value
+await browser.dropdown('Country').option('CA').should.not.be.selected()
+```
+
+**Throws**: Error if the specified option IS selected.
 
 ---
 

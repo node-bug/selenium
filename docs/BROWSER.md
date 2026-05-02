@@ -540,6 +540,188 @@ await testOnBrowser('chrome')
 await testOnBrowser('firefox')
 ```
 
+---
+
+## 🔧 Troubleshooting
+
+### Browser Won't Start
+
+**Error: "Chrome not found" or "Firefox not found"**
+
+Solution: Ensure browser is installed
+
+```bash
+# Check if Chrome is installed
+which google-chrome  # Linux
+which "Google Chrome"  # macOS
+where chrome.exe  # Windows
+
+# Or specify browser path in config
+{
+  "browser": "chrome",
+  "goog:chromeOptions": {
+    "binary": "/custom/path/to/chrome"
+  }
+}
+```
+
+**Error: "WebDriver timeout"**
+
+Solution: Check if port is available
+
+```bash
+# Kill process on port 4444 (default WebDriver port)
+lsof -i :4444  # macOS/Linux
+netstat -ano | findstr :4444  # Windows
+```
+
+### Timeout Errors
+
+**Error: "Element timeout" or "Timeout waiting for element"**
+
+Solution: Increase timeout in config
+
+```json
+{
+  "timeout": 30 // Increase from default 10
+}
+```
+
+Or add explicit timeout to specific operation:
+
+```javascript
+// Wait up to 10 seconds instead of default
+await browser.element('Loading').should.not.be.visible(10000)
+```
+
+**Common causes:**
+
+- Page taking too long to load
+- Element on different page (navigation needed)
+- Element inside modal dialog (use `.within.dialog()`)
+- Element name doesn't match exactly
+
+### Element Interaction Issues
+
+**Error: "Element not clickable" or "Element not visible"**
+
+Solutions:
+
+```javascript
+// 1. Wait for element to be visible
+await browser.button('Submit').should.be.visible()
+await browser.button('Submit').click()
+
+// 2. Scroll element into view
+await browser.button('Submit').scroll()
+
+// 3. Use JavaScript click if standard click fails
+await browser.button('Submit').click() // Falls back to JS automatically
+```
+
+**Error: "Stale element reference"**
+
+Solution: Elements loaded dynamically might become stale
+
+```javascript
+// ✓ Get element and interact immediately
+await browser.button('Delete').click()
+
+// ✗ Don't store element reference
+const element = await browser.button('Delete').find()
+// Page reloads...
+await element.click() // May fail - element is stale
+```
+
+### Navigation Issues
+
+**Error: "Navigation failed" or "Timeout reached"**
+
+Solution: Check URL and wait for page load
+
+```javascript
+// Ensure page loads after navigation
+await browser.goto('https://example.com')
+await browser.element('Loading').should.not.be.visible() // Wait for content
+
+// Check current URL
+const url = await browser.get.url()
+console.log('Current URL:', url)
+```
+
+### Configuration Issues
+
+**Error: "Config file not found"**
+
+Solution: Create `.config/selenium.json` in project root
+
+```json
+{
+  "browser": "chrome",
+  "headless": false,
+  "timeout": 30
+}
+```
+
+Or use environment variables:
+
+```bash
+export browser=firefox
+export headless=true
+export timeout=20
+node test.js
+```
+
+Or pass as command-line arguments:
+
+```bash
+node test.js --browser=safari --headless=false
+```
+
+### Multi-Tab/Window Issues
+
+**Error: "Cannot switch to window" or "Window not found"**
+
+Solution: Use correct window switching
+
+```javascript
+// Switch by window title
+await browser.window('Page Title').switch()
+
+// Or by index
+await browser.window(0).switch()
+
+// Verify window exists
+const title = await browser.window(0).get.title()
+```
+
+### Memory/Performance Issues
+
+**Problem: Memory grows continuously or process slows down**
+
+Solutions:
+
+```javascript
+// 1. Always close browser
+await browser.close()
+
+// 2. Use try-finally to ensure cleanup
+try {
+  // tests
+} finally {
+  await browser.close()
+}
+
+// 3. Disable images for faster tests
+{
+  "goog:chromeOptions": {
+    "args": ["--blink-settings=imagesEnabled=false"]
+  }
+}
+```
+
+---
+
 ## See Also
 
 - [Getting Started](GETTING-STARTED.md) - Quick start guide

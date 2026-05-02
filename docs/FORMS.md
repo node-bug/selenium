@@ -358,7 +358,7 @@ await browser.dropdown('Country').option(1).select()
 3. Partial text match
 4. Partial value match
 
-**Note**: The option value is cleared after `.select()`, `.get.text()`, `.get.value()`, or `.isSelected()`
+**Note**: The option value is cleared after `.select()`, `.get.text()`, `.get.value()`, `.is.selected()`, or `.should.be.selected()`
 
 ### select()
 
@@ -413,17 +413,65 @@ console.log(value) // "us"
 
 **Returns**: `Promise<string>`
 
-### isSelected()
+### is.selected()
 
-Assert that a specific option is currently selected:
+**Returns `true`/`false` for conditional logic** - Does not throw errors.
+
+Check if a specific option is currently selected. Use this **only in if conditions** for branching logic.
 
 ```javascript
-await browser.dropdown('Country').option('United States').isSelected()
+const isSelected = await browser
+  .dropdown('Country')
+  .option('United States')
+  .is.selected()
+if (isSelected) {
+  console.log('United States is selected')
+}
+```
+
+**Returns**: `Promise<boolean>`
+
+### is.not.selected()
+
+**Returns `true`/`false` for conditional logic** - Does not throw errors.
+
+Check if a specific option is NOT currently selected. Use this **only in if conditions** for branching logic.
+
+```javascript
+const isNotSelected = await browser
+  .dropdown('Country')
+  .option('Canada')
+  .is.not.selected()
+if (isNotSelected) {
+  console.log('Canada is not selected')
+}
+```
+
+**Returns**: `Promise<boolean>`
+
+### should.be.selected()
+
+**Assertion that throws an error and stops test execution on failure.**
+
+Assert that a specific option is currently selected. Use this for QA test validations.
+
+```javascript
+await browser.dropdown('Country').option('United States').should.be.selected()
 ```
 
 **Throws**: Error if option is not selected
 
-**Returns**: `Promise<boolean>`
+### should.not.be.selected()
+
+**Assertion that throws an error and stops test execution on failure.**
+
+Assert that a specific option is NOT currently selected.
+
+```javascript
+await browser.dropdown('Country').option('Canada').should.not.be.selected()
+```
+
+**Throws**: Error if option IS selected
 
 ### Dropdown Patterns
 
@@ -463,7 +511,7 @@ if (current !== 'English') {
 
 ```javascript
 await browser.dropdown('Country').option('Canada').select()
-await browser.dropdown('Country').option('Canada').isSelected()
+await browser.dropdown('Country').option('Canada').should.be.selected()
 ```
 
 ## Form Validation Patterns
