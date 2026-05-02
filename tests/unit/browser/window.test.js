@@ -107,7 +107,7 @@ describe('Window (ESM)', () => {
       const originalFindTarget = window._findTarget;
       window._findTarget = jest.fn().mockResolvedValue(true);
       
-      const result = await window.switch('Test Title');
+      const result = await window.switch();
       
       expect(result).toBe(true);
       window._findTarget = originalFindTarget;
@@ -118,7 +118,7 @@ describe('Window (ESM)', () => {
       const originalFindTarget = window._findTarget;
       window._findTarget = jest.fn().mockRejectedValue(new Error('Window not found'));
       
-      await expect(window.switch('Non-existent Title')).rejects.toThrow();
+      await expect(window.switch()).rejects.toThrow();
       window._findTarget = originalFindTarget;
     });
   });

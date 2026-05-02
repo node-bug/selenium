@@ -378,17 +378,29 @@ await browser.row('John Doe').should.not.be.visible()
 
 **Element Types**: `button`, `textbox`, `checkbox`, `radio`, `dropdown`, `link`, `heading`, `image`, `file`, `dialog`, `row`, `column`, and more
 
-**Actions**: `click()`, `write()`, `check()`, `uncheck()`, `upload()`, `hover()`, `drag()`, `focus()`, `clear()`
+**Clicks**: `click()`, `doubleClick()`, `tripleClick()`, `rightClick()`, `multipleClick(times)`
 
-**State**: `is.visible()`, `is.enabled()`, `should.be.visible()`, `should.be.disabled()`
+**Text Input**: `write()`, `clear()`, `overwrite()`, `type()`, `press()`, `left()`, `right()`, `up()`, `down()`
 
-**Navigation**: `goto()`, `refresh()`, `goBack()`, `goForward()`
+**Form Elements**: `check()`, `uncheck()`, `set()`, `on()`, `off()`, `option()`, `select()`
 
-**Windows/Tabs**: `window()`, `tab()`, `alert()`
+**Element State**: `is.visible()`, `is.enabled()`, `is.checked()`, `should.be.visible()`, `should.be.disabled()`
 
-**Data**: `get.text()`, `get.value()`, `get.attribute()`
+**Data Retrieval**: `get.text()`, `get.value()`, `get.attribute()`, `get.screenshot()`
 
-**Position**: `above`, `below`, `toLeftOf`, `toRightOf`, `within`, `near`, `or`, `exact`
+**Navigation**: `goto()`, `refresh()`, `goBack()`, `goForward()`, `scroll()`
+
+**Visibility**: `hide()`, `unhide()`
+
+**Windows/Tabs/Alerts**: `window()`, `tab()`, `alert()`
+
+**Spatial Positioning**: `above`, `below`, `toLeftOf`, `toRightOf`, `within`, `near`, `exactly`, `or`, `exact`, `atIndex()`
+
+**Drag & Drop**: `drag()`, `onto()`, `drop()`
+
+**Upload**: `upload(filePath)`
+
+**Keyboard Modifiers**: `ctrl`, `alt`, `meta`, `shift` (chain before actions)
 
 See [API-REFERENCE.md](docs/API-REFERENCE.md) for complete reference.
 
