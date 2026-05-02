@@ -294,6 +294,8 @@ await browser.setSize({ width: 375, height: 667 })
 await browser.window().new()
 ```
 
+**Note**: Automatically switches focus to the newly created window. No explicit `switch()` call is needed.
+
 ### Switch Between Windows
 
 By title:
@@ -341,6 +343,8 @@ See [Advanced Guide - Windows](ADVANCED.md#window-management) for detailed examp
 ```javascript
 await browser.tab().new()
 ```
+
+**Note**: Automatically switches focus to the newly created tab. No explicit `switch()` call is needed.
 
 ### Switch Between Tabs
 
