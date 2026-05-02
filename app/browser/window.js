@@ -34,13 +34,15 @@ class Window extends BrowserTarget {
     /**
      * Open a new browser window
      * 
-     * @returns {Promise<void>} Resolves when new window is opened
+     * @returns {Promise<void>} Resolves when new window is opened and switched to
      * @example
      * await browser.window().new();
      */
     async new() {
         log.info(`Opening new browser window`);
-        return this.driver.switchTo().newWindow('window');
+        const newHandle = await this.driver.switchTo().newWindow('window');
+        // Switch to the newly created window
+        await this.driver.switchTo().window(newHandle);
     }
 
     /**

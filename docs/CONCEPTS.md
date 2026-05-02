@@ -133,8 +133,8 @@ See [Selectors Guide - Form Label Association](SELECTORS.md#form-label-associati
 - **Tabs** - Multiple documents in same window, sharing context
 
 ```javascript
-await browser.window().new() // New window
-await browser.tab().new() // New tab
+await browser.window().new() // New window (auto-switches to it)
+await browser.tab().new() // New tab (auto-switches to it)
 await browser.window('Title').switch() // Switch window
 await browser.tab(0).switch() // Switch tab
 ```

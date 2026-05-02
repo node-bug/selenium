@@ -227,12 +227,12 @@ async function multiTabTest() {
     await browser.start()
     await browser.goto('https://example.com')
 
-    // Open new tab
+    // Open new tab (automatically switches to it)
     await browser.tab().new()
     await browser.goto('https://google.com')
 
-    // Verify we're on Google
-    const url = await browser.tab(1).get.url()
+    // Verify we're on Google (we're already on the new tab)
+    const url = await browser.tab().get.url()
     console.log('Tab 1 URL:', url)
 
     // Switch back to first tab

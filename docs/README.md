@@ -142,16 +142,15 @@ await browser.link('Home').within.dialog('Modal').click()
 **Tabs (same window):**
 
 ```javascript
-await browser.tab().new()
-await browser.tab(1).switch()
-const url = await browser.tab(0).get.url()
+await browser.tab().new() // Creates and switches to new tab
+const url = await browser.tab().get.url() // You're already on the new tab
 ```
 
 **Windows (separate contexts):**
 
 ```javascript
-await browser.window().new()
-await browser.window('Title').switch()
+await browser.window().new() // Creates and switches to new window
+await browser.window('Title').switch() // Switch back by title if needed
 ```
 
 ---

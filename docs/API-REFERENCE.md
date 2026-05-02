@@ -1055,11 +1055,15 @@ browser.window(0) // By index
 
 ### window().new()
 
-Open a new browser window.
+Open a new browser window and automatically switch to it.
 
 ```javascript
 await browser.window().new()
 ```
+
+**Returns**: `Promise<void>`
+
+**Note**: After calling `new()`, the driver is already focused on the newly created window, so no explicit `switch()` is needed.
 
 ### window().close()
 
@@ -1165,11 +1169,15 @@ browser.tab(0) // By index
 
 ### tab().new()
 
-Open a new tab.
+Open a new tab and automatically switch to it.
 
 ```javascript
 await browser.tab().new()
 ```
+
+**Returns**: `Promise<void>`
+
+**Note**: After calling `new()`, the driver is already focused on the newly created tab, so no explicit `switch()` is needed.
 
 ### tab().close()
 
