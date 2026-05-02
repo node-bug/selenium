@@ -208,3 +208,228 @@ await browser
 - **Browser Management**: [Browser Guide](BROWSER.md)
 - **Advanced Patterns**: [Advanced Guide](ADVANCED.md)
 - **API Details**: [API Reference](API-REFERENCE.md)
+
+---
+
+## 🤖 Guidance for AI Code Generators
+
+This section helps AI systems understand WebBrowser's design for code generation.
+
+### Architecture Principles
+
+**1. Explicit over Implicit**
+
+- Use semantic types: `button()`, `textbox()`, `checkbox()` over generic `element()`
+- Explicit types make code readable and intent clear
+- Example: ✅ `browser.checkbox('Agree').check()` vs ❌ `browser.element('Agree').click()`
+
+**2. Text as Primary Identifier**
+
+- Default to element text matching first
+- Only use attributes (`data-testid`, `id`) when visible text isn't available
+- Example: ✅ `button('Submit')` before `element('submit-btn')`
+
+**3. Spatial Context for Disambiguation**
+
+- When multiple elements have same text, use position
+- Natural language: "Password field below Email" → Code: `textbox('Password').below.textbox('Email')`
+- Positions: `above`, `below`, `toLeftOf`, `toRightOf`, `within`, `near`
+
+**4. Operation Types (Strict)**
+
+- **Intermediate**: Return `browser` instance (chainable) - no execution
+  - Examples: `element()`, `button()`, `below`, `within`, `atIndex()`, `exact`
+- **Terminal**: Execute action (return value) - clears stack
+  - Examples: `click()`, `write()`, `is.visible()`, `should.be.visible()`, `get.text()`
+- Always end chains with terminal operation
+
+**5. State Checking Distinction**
+
+- **Conditionals** (`is.*`): Return boolean - use in branching logic
+  - Examples: `is.visible()`, `is.enabled()`, `is.checked()`
+  - Use when: You need to branch based on state
+- **Assertions** (`should.*`): Throw error on failure - use in tests
+  - Examples: `should.be.visible()`, `should.be.enabled()`, `should.be.checked()`
+  - Use when: You want test to fail on assertion failure
+
+### Code Generation Patterns
+
+**Pattern 1: Finding and Interacting**
+
+```javascript
+// Structure: type.text.interaction
+await browser.button('Submit').click()
+await browser.textbox('Email').write('user@example.com')
+await browser.checkbox('Subscribe').check()
+```
+
+**Pattern 2: Spatial Relationships**
+
+```javascript
+// Structure: type.text.position.anchor.interaction
+await browser
+  .textbox('Password') // Select element type and text
+  .below // Position filter
+  .textbox('Email') // Anchor element
+  .write('secret') // Action
+```
+
+**Pattern 3: Modal Interactions**
+
+```javascript
+// Structure: type.text.within.dialog.interaction
+await browser
+  .button('Save') // Select element
+  .within // Position filter
+  .dialog('Settings') // Container reference
+  .click() // Action
+```
+
+**Pattern 4: Form Filling**
+
+```javascript
+// Multiple sequential operations
+await browser.textbox('Name').write('John')
+await browser.textbox('Email').write('john@example.com')
+await browser.dropdown('Country').option('US').select()
+await browser.checkbox('Subscribe').check()
+await browser.button('Submit').click()
+```
+
+**Pattern 5: State-Based Conditional**
+
+```javascript
+// Check state, then act
+if (await browser.element('Error').is.visible()) {
+  await browser.button('Retry').click()
+} else {
+  await browser.button('Continue').click()
+}
+```
+
+**Pattern 6: Wait for Condition**
+
+```javascript
+// Use should.* to wait with timeout
+await browser.element('Success').should.be.visible(5000)
+// or default timeout from config
+await browser.element('Loading').should.not.be.visible()
+```
+
+### Code Generation Rules
+
+1. **Start with semantic type** - Choose from: `button`, `textbox`, `checkbox`, `radio`, `dropdown`, `link`, `heading`, `dialog`, `row`, `column`, `image`, `file`, `switch`, etc.
+
+2. **Match visible text** - Use text that users see, not HTML attributes (unless unavoidable)
+
+3. **Add position when needed** - If text is ambiguous, add `.position.element('anchor')`
+
+4. **End with terminal operation** - Every chain must end with action: `click()`, `write()`, `check()`, `is.visible()`, `should.be.visible()`, etc.
+
+5. **Use correct state check** - Choose `is.*` (boolean) for conditionals, `should.*` (assertion) for tests
+
+6. **Avoid XPath/CSS** - Not supported; use text-based selection instead
+
+7. **Prefer exact type** - `button()` not `element()`, unless truly generic
+
+8. **Build readable chains** - Multi-line chains are ok for readability:
+
+```javascript
+// ✅ Readable
+await browser.button('Delete').within.row('User Name').click()
+
+// ❌ Less readable
+await browser.button('Delete').within.row('User Name').click()
+```
+
+### Element Type Priority
+
+When generating code, consider this priority:
+
+1. **Semantic types** (highest priority) - `button`, `textbox`, `checkbox`, etc.
+2. **Container types** - `dialog`, `row`, `column`, `menu`
+3. **Position modifiers** - `above`, `below`, `within`
+4. **Generic fallback** - `element()` only when no type matches
+
+### Common Generation Mistakes to Avoid
+
+❌ **Don't**: Use CSS selectors or XPath
+
+```javascript
+// WRONG
+await browser.goto('//button[text()="Submit"]')
+```
+
+✅ **Do**: Use semantic text-based selection
+
+```javascript
+// RIGHT
+await browser.button('Submit').click()
+```
+
+---
+
+❌ **Don't**: Use generic `element()` for everything
+
+```javascript
+// WRONG
+await browser.element('Click').click()
+await browser.element('Email').write('...')
+```
+
+✅ **Do**: Use semantic types
+
+```javascript
+// RIGHT
+await browser.button('Click').click()
+await browser.textbox('Email').write('...')
+```
+
+---
+
+❌ **Don't**: Mix intermediate and terminal operations incorrectly
+
+```javascript
+// WRONG
+await browser.button('Delete').click().below.element('Actions')
+// Terminal operation (click) can't chain further
+```
+
+✅ **Do**: Put position filters before terminal operations
+
+```javascript
+// RIGHT
+await browser.button('Delete').below.element('Actions').click()
+```
+
+---
+
+❌ **Don't**: Use `is.*` for test assertions
+
+```javascript
+// WRONG
+const visible = await browser.button('Save').is.visible()
+// Just returns boolean, doesn't fail test if false
+```
+
+✅ **Do**: Use `should.*` for test assertions
+
+```javascript
+// RIGHT
+await browser.button('Save').should.be.visible()
+// Throws error if not visible, failing the test
+```
+
+### Testing Pattern Recognition
+
+When given a user instruction, identify these patterns:
+
+| User Says                         | Pattern                  | Code                                                     |
+| --------------------------------- | ------------------------ | -------------------------------------------------------- |
+| "Click the button"                | Type + Action            | `button('...').click()`                                  |
+| "Fill the email field"            | Type + Text + Action     | `textbox('Email').write('...')`                          |
+| "Check the checkbox"              | Type + Action            | `checkbox('...').check()`                                |
+| "Click delete in row"             | Type + Position + Action | `button('Delete').within.row('...').click()`             |
+| "Click button below the section"  | Type + Position + Anchor | `button('...').below.element('...').click()`             |
+| "Verify success message appears"  | State + Assertion        | `element('Success').should.be.visible()`                 |
+| "If logout link exists, click it" | State + Conditional      | `if (await browser.link('Logout').is.visible()) { ... }` |

@@ -1,300 +1,328 @@
-# Documentation Index
+# 📚 WebBrowser Documentation
 
-This directory contains comprehensive documentation for the WebBrowser automation library. Use this guide to find what you need.
+Complete reference for browser automation with WebBrowser. Start with your use case below.
 
-## 📚 Quick Start
+## 🚀 Getting Started (5 minutes)
 
-**New to WebBrowser?**
-→ Start with [GETTING-STARTED.md](GETTING-STARTED.md) for a quick introduction and first examples.
+New to WebBrowser? Start here:
 
-## 📖 Documentation Structure
+1. **[GETTING-STARTED.md](GETTING-STARTED.md)** - Your first automation script
+2. **[CONCEPTS.md](CONCEPTS.md)** - How the library works
+3. **[SELECTORS.md](SELECTORS.md)** - Finding elements
 
-### Foundational
+## 📖 Documentation by Use Case
 
-| Document                                 | Purpose                               | Best For                   |
-| ---------------------------------------- | ------------------------------------- | -------------------------- |
-| [GETTING-STARTED.md](GETTING-STARTED.md) | Quick introduction and setup          | First-time users           |
-| [CORE-CONCEPTS.md](CONCEPTS.md)          | Fundamental patterns and architecture | Understanding how it works |
+### ✏️ "How do I... fill out a form?"
 
-### Task-Oriented Guides
+**Basic form filling:**
 
-| Guide                              | Topics                                          | Use When                       |
-| ---------------------------------- | ----------------------------------------------- | ------------------------------ |
-| [SELECTORS.md](SELECTORS.md)       | Element selection, locators, spatial references | Finding and targeting elements |
-| [INTERACTIONS.md](INTERACTIONS.md) | Clicks, text input, keyboard, drag-drop         | Interacting with elements      |
-| [FORMS.md](FORMS.md)               | Checkboxes, switches, radio buttons, dropdowns  | Working with form elements     |
-| [BROWSER.md](BROWSER.md)           | Navigation, windows, tabs, configuration        | Managing browser and sessions  |
-| [ADVANCED.md](ADVANCED.md)         | Multi-window, multi-tab, alerts                 | Advanced patterns              |
+- Read: [GETTING-STARTED.md](GETTING-STARTED.md) → Example 1
+- Read: [SELECTORS.md](SELECTORS.md#text-based-selection) - Find elements
+- Read: [INTERACTIONS.md](INTERACTIONS.md#text-input-operations) - Enter text
+- See: [FORMS.md](FORMS.md) - Checkboxes, dropdowns
 
-### Reference
-
-| Document                             | Purpose                                 | Use For                     |
-| ------------------------------------ | --------------------------------------- | --------------------------- |
-| [API-REFERENCE.md](API-REFERENCE.md) | Complete method signatures              | Looking up specific methods |
-| [CONFIGURATION.md](CONFIGURATION.md) | Browser setup and configuration options | Configuring WebBrowser      |
-
-## 🎯 By Task
-
-### "How do I..."
-
-#### Element Selection & Finding
-
-- **Find an element by text** → [SELECTORS.md - Text-Based Selection](SELECTORS.md#text-based-selection)
-- **Find an element by position** → [SELECTORS.md - Spatial References](SELECTORS.md#spatial-references)
-- **Use element types** → [SELECTORS.md - Element Types](SELECTORS.md#element-types)
-- **Find multiple elements** → [SELECTORS.md - Finding Multiple Elements](SELECTORS.md#finding-multiple-elements)
-
-#### Interacting with Elements
-
-- **Click an element** → [INTERACTIONS.md - Click Operations](INTERACTIONS.md#click-operations)
-- **Enter text** → [INTERACTIONS.md - Text Input](INTERACTIONS.md#text-input-operations)
-- **Use keyboard** → [INTERACTIONS.md - Keyboard Navigation](INTERACTIONS.md#keyboard-navigation)
-- **Upload files** → [INTERACTIONS.md - File Operations](INTERACTIONS.md#file-operations)
-- **Drag and drop** → [INTERACTIONS.md - Drag and Drop](INTERACTIONS.md#drag-and-drop)
-
-#### Working with Forms
-
-- **Check/Uncheck boxes** → [FORMS.md - Checkboxes](FORMS.md#checkboxes)
-- **Toggle switches** → [FORMS.md - Switches](FORMS.md#switches)
-- **Select radio buttons** → [FORMS.md - Radio Buttons](FORMS.md#radio-buttons)
-- **Select dropdowns** → [FORMS.md - Dropdowns](FORMS.md#dropdowns--selects)
-- **Fill complete form** → [FORMS.md - Form Validation Patterns](FORMS.md#form-validation-patterns)
-
-#### Browser Management
-
-- **Start/close browser** → [BROWSER.md - Session Lifecycle](BROWSER.md#session-lifecycle)
-- **Navigate to URL** → [BROWSER.md - Navigation](BROWSER.md#navigation)
-- **Set window size** → [BROWSER.md - Window Management](BROWSER.md#window-management)
-- **Configure browser** → [CONFIGURATION.md](CONFIGURATION.md) or [BROWSER.md - Configuration](BROWSER.md#configuration)
-
-#### Advanced Operations
-
-- **Work with multiple tabs** → [ADVANCED.md - Tab Management](ADVANCED.md#tab-management)
-- **Work with multiple windows** → [ADVANCED.md - Window Management](ADVANCED.md#window-management)
-- **Handle alerts** → [ADVANCED.md - Alert Handling](ADVANCED.md#alert-handling)
-
-#### Visibility & State
-
-- **Wait for element to appear** → [API-REFERENCE.md - should.be.visible()](API-REFERENCE.md#shouldbevisible-timeout)
-- **Wait for element to disappear** → [API-REFERENCE.md - should.not.be.visible()](API-REFERENCE.md#shouldnotbevisible-timeout)
-- **Check if element is visible** → [API-REFERENCE.md - is.visible()](API-REFERENCE.md#isvisible)
-- **Verify checkbox state** → [FORMS.md - is.checked/should.be.checked](FORMS.md#ischecked)
-
-## 🔍 By Concept
-
-### Operations
-
-- **Intermediate vs Terminal** → [CONCEPTS.md - Operations](CONCEPTS.md#operations-intermediate-vs-terminal)
-- **Method Chaining** → [CONCEPTS.md - Method Chaining Pattern](CONCEPTS.md#method-chaining-pattern)
-
-### Element Location
-
-- **How elements are found** → [SELECTORS.md - How Elements Are Found](SELECTORS.md#how-elements-are-found)
-- **Attribute priority** → [SELECTORS.md - Text-Based Selection](SELECTORS.md#text-based-selection)
-- **Spatial context** → [CONCEPTS.md - Spatial Context](CONCEPTS.md#spatial-context-how-elements-are-located)
-
-### Browser Lifecycle
-
-- **Complete lifecycle** → [BROWSER.md - Session Lifecycle](BROWSER.md#session-lifecycle)
-- **Error handling** → [BROWSER.md - Complete Lifecycle](BROWSER.md#complete-lifecycle)
-
-## 📋 Document Overview
-
-### GETTING-STARTED.md
-
-- Installation
-- Your first test
-- Key concepts overview
-- Common tasks
-- Next steps
-
-### CONCEPTS.md
-
-- Operations (intermediate vs terminal)
-- Element locator strategy
-- Spatial references
-- Multiple references
-- Window vs tab management
-- Browser lifecycle
-- Method chaining pattern
-
-### SELECTORS.md
-
-- How elements are found
-- Element types reference
-- Text-based selection
-- Exact vs partial matching
-- Spatial references (all keywords)
-- Multiple alternatives with `or`
-- Form label association
-- Element indexing
-- Finding multiple elements
-
-### INTERACTIONS.md
-
-- Click operations (standard, double, right, long press, etc.)
-- Click modifiers
-- Text input operations
-- Keyboard navigation
-- Hover interactions
-- File operations
-- Drag and drop
-- Modifier key chaining
-- Common patterns
-
-### FORMS.md
-
-- Checkboxes (check, uncheck, is.checked, is.not.checked, should.be.checked, should.not.be.checked)
-- Switches (on, off, isOn, isOff)
-- Radio buttons (set, is.set, is.not.set, should.be.set, should.not.be.set)
-- Dropdowns (option, select, get.text, get.value, isSelected)
-- Form validation patterns
-- Multi-step forms
-- Accessibility
-
-### BROWSER.md
-
-- Session lifecycle (create, start, close)
-- Navigation (goto, refresh, back, forward)
-- Browser state and reset
-- Browser information
-- Window management
-- Tab management
-- Browser selection and configuration
-- Common patterns
-- Responsive testing
-
-### ADVANCED.md
-
-- Tab management (create, switch, close)
-- Window management (create, switch, control, close)
-- Alert handling (detect, accept, dismiss, write, by text)
-- Multi-window patterns
-- Multi-tab patterns
-- Alert patterns
-- Browser compatibility
-
-### API-REFERENCE.md
-
-- Complete method signatures
-- Return types and parameters
-- All browser control methods
-- All element selection methods
-- All interaction methods
-- All state validation methods
-- All data retrieval methods
-
-### CONFIGURATION.md
-
-- Configuration file format
-- Configuration options (browser, headless, timeout, etc.)
-- Browser-specific options
-- Environment variables
-- Command-line arguments
-- Selenium Grid configuration
-
-## 🔗 Cross-Reference Guide
-
-### Related Documents
-
-**Element Selection**
-
-- Primary: [SELECTORS.md](SELECTORS.md)
-- Related: [CONCEPTS.md - Element Types](CONCEPTS.md#element-types)
-- Reference: [API-REFERENCE.md - Element Selection](API-REFERENCE.md#element-selection)
-
-**User Interactions**
-
-- Primary: [INTERACTIONS.md](INTERACTIONS.md)
-- Related: [FORMS.md](FORMS.md)
-- Reference: [API-REFERENCE.md - Element Interaction](API-REFERENCE.md#element-interaction)
-
-**Browser Control**
-
-- Primary: [BROWSER.md](BROWSER.md)
-- Advanced: [ADVANCED.md - Windows & Tabs](ADVANCED.md)
-- Config: [CONFIGURATION.md](CONFIGURATION.md)
-- Reference: [API-REFERENCE.md - Browser Control](API-REFERENCE.md#browser-control)
-
-## 💡 Learning Paths
-
-### For Beginners
-
-1. [GETTING-STARTED.md](GETTING-STARTED.md) - Get up and running
-2. [CONCEPTS.md](CONCEPTS.md) - Understand the architecture
-3. [SELECTORS.md](SELECTORS.md) - Learn element selection
-4. [INTERACTIONS.md](INTERACTIONS.md) - Learn interactions
-5. [FORMS.md](FORMS.md) - Work with forms
-
-### For Intermediate Users
-
-1. [SELECTORS.md - Spatial References](SELECTORS.md#spatial-references) - Advanced selection
-2. [BROWSER.md](BROWSER.md) - Browser management
-3. [ADVANCED.md](ADVANCED.md) - Multi-window/tab operations
-4. [API-REFERENCE.md](API-REFERENCE.md) - Explore all methods
-
-### For Advanced Users
-
-1. [ADVANCED.md](ADVANCED.md) - Complex patterns
-2. [API-REFERENCE.md](API-REFERENCE.md) - Complete reference
-3. [CONFIGURATION.md](CONFIGURATION.md) - Advanced setup
-
-## 📝 Examples
-
-All documents contain practical examples. Look for:
-
-- **Quick Reference** sections - Copy-paste examples
-- **Code blocks** - Runnable examples
-- **Patterns** sections - Real-world use cases
-- **Quick Examples** - One-liners for common tasks
-
-## 🔑 Key Files for Specific Needs
-
-| Need                | File                                     |
-| ------------------- | ---------------------------------------- |
-| First test          | [GETTING-STARTED.md](GETTING-STARTED.md) |
-| Find element        | [SELECTORS.md](SELECTORS.md)             |
-| Click element       | [INTERACTIONS.md](INTERACTIONS.md)       |
-| Fill form           | [FORMS.md](FORMS.md)                     |
-| Navigate browser    | [BROWSER.md](BROWSER.md)                 |
-| Advanced operations | [ADVANCED.md](ADVANCED.md)               |
-| Method signature    | [API-REFERENCE.md](API-REFERENCE.md)     |
-| Setup browser       | [CONFIGURATION.md](CONFIGURATION.md)     |
-
-## ❓ Frequently Used Methods
-
-For quick lookup of frequently used operations:
+**Example:**
 
 ```javascript
-// Element selection
-browser.button('text').click()
-browser.textbox('email').write('...')
-browser.checkbox('agree').check()
-browser.dropdown('country').option('US').select()
-
-// Navigation
-browser.goto('url')
-browser.refresh()
-browser.goBack()
-
-// State checks
-element.is.visible()
-element.is.disabled()
-element.is.enabled()
-element.should.be.visible()
-element.should.not.be.visible()
-element.should.be.disabled()
-element.should.be.enabled()
-
-// Multi-window/tab
-browser.window().new()
-browser.tab().new()
-browser.alert().accept()
+await browser.textbox('Email').write('user@example.com')
+await browser.checkbox('Subscribe').check()
+await browser.dropdown('Country').option('US').select()
+await browser.button('Submit').click()
 ```
-
-See [API-REFERENCE.md](API-REFERENCE.md) for complete method reference.
 
 ---
 
-**Last Updated**: 2026
-**Version**: 1.0
+### 🔍 "How do I... find an element?"
+
+**Element selection guide:**
+
+- Read: [CONCEPTS.md](CONCEPTS.md#element-locator-strategy-human-like-prioritization)
+- Read: [SELECTORS.md](SELECTORS.md) - Complete selection guide
+
+**By text (most common):**
+
+```javascript
+await browser.button('Submit').click()
+```
+
+**By position (when text isn't unique):**
+
+```javascript
+await browser.textbox('Password').below.textbox('Email').write('...')
+```
+
+**By attribute (when text doesn't match):**
+
+```javascript
+await browser.element('auth-submit').click() // by data-testid
+```
+
+---
+
+### 🖱️ "How do I... interact with elements?"
+
+- Read: [INTERACTIONS.md](INTERACTIONS.md)
+
+**Common interactions:**
+
+```javascript
+await browser.button('Click').click()
+await browser.textbox('Name').write('John')
+await browser.checkbox('Agree').check()
+await browser.link('Home').hover()
+await browser.element('File').drag().to(element('Target'))
+await browser.file('Upload').upload('/path/file.txt')
+```
+
+---
+
+### 📋 "How do I... work with forms (checkboxes, dropdowns, etc.)?"
+
+- Read: [FORMS.md](FORMS.md)
+
+**Checkboxes:**
+
+```javascript
+await browser.checkbox('Subscribe').check()
+const isChecked = await browser.checkbox('Subscribe').is.checked()
+```
+
+**Dropdowns:**
+
+```javascript
+await browser.dropdown('Country').option('United States').select()
+```
+
+**Radio buttons:**
+
+```javascript
+await browser.radio('Option A').set()
+```
+
+---
+
+### ✔️ "How do I... check if an element is visible or verify state?"
+
+**Conditionals (return boolean):**
+
+```javascript
+if (await browser.element('Item').is.visible()) {
+  // Do something
+}
+```
+
+**Assertions (throw error on failure):**
+
+```javascript
+await browser.element('Success').should.be.visible()
+await browser.button('Submit').should.be.enabled()
+```
+
+---
+
+### 📍 "How do I... find an element by position?"
+
+- Read: [SELECTORS.md#spatial-references](SELECTORS.md#spatial-references)
+
+```javascript
+await browser.button('Delete').below.element('Actions').click()
+await browser.textbox('City').toRightOf.textbox('State').write('CA')
+await browser.link('Home').within.dialog('Modal').click()
+```
+
+**Positions:** `above`, `below`, `toLeftOf`, `toRightOf`, `within`, `near`
+
+---
+
+### 🔄 "How do I... work with multiple windows or tabs?"
+
+- Read: [ADVANCED.md](ADVANCED.md#tab-management)
+- Read: [ADVANCED.md](ADVANCED.md#window-management)
+
+**Tabs (same window):**
+
+```javascript
+await browser.tab().new()
+await browser.tab(1).switch()
+const url = await browser.tab(0).get.url()
+```
+
+**Windows (separate contexts):**
+
+```javascript
+await browser.window().new()
+await browser.window('Title').switch()
+```
+
+---
+
+### 🚨 "How do I... handle alerts and prompts?"
+
+- Read: [ADVANCED.md#alert-handling](ADVANCED.md#alert-handling)
+
+```javascript
+if (await browser.alert().is.visible()) {
+  await browser.alert().accept()
+  // or
+  await browser.alert().write('User input').accept()
+}
+```
+
+---
+
+### 🛠️ "How do I... configure the browser?"
+
+- Read: [CONFIGURATION.md](CONFIGURATION.md)
+- Read: [BROWSER.md#configuration](BROWSER.md#configuration)
+
+Create `.config/selenium.json`:
+
+```json
+{
+  "browser": "chrome",
+  "headless": true,
+  "timeout": 10,
+  "width": 1280,
+  "height": 800
+}
+```
+
+---
+
+### 🌐 "How do I... navigate to URLs?"
+
+- Read: [BROWSER.md#navigation](BROWSER.md#navigation)
+
+```javascript
+await browser.goto('https://example.com')
+await browser.refresh()
+await browser.goBack()
+await browser.goForward()
+```
+
+---
+
+### 📊 "How do I... interact with tables and rows?"
+
+```javascript
+// Click button in specific row
+await browser.button('Edit').within.row('John Doe').click()
+
+// Get data from cell
+const email = await browser.column('Email').within.row('Jane Smith').get.text()
+```
+
+---
+
+## 📚 Complete Documentation
+
+### Foundational (Read These First)
+
+| Document                                 | Topics                                     | Best For               |
+| ---------------------------------------- | ------------------------------------------ | ---------------------- |
+| [GETTING-STARTED.md](GETTING-STARTED.md) | Setup, first script, basic examples        | New users              |
+| [CONCEPTS.md](CONCEPTS.md)               | Architecture, operations, element location | Understanding design   |
+| [SELECTORS.md](SELECTORS.md)             | Finding elements, text matching, position  | Element selection help |
+
+### Task-Oriented Guides
+
+| Document                           | Topics                                          | Use When              |
+| ---------------------------------- | ----------------------------------------------- | --------------------- |
+| [INTERACTIONS.md](INTERACTIONS.md) | Click, type, keyboard, drag, upload             | Working with elements |
+| [FORMS.md](FORMS.md)               | Checkboxes, switches, radio, dropdowns, selects | Form interaction      |
+| [BROWSER.md](BROWSER.md)           | Navigation, windows, tabs, lifecycle            | Browser management    |
+| [ADVANCED.md](ADVANCED.md)         | Multi-tab, multi-window, alerts, patterns       | Complex scenarios     |
+
+### Reference
+
+| Document                             | Purpose                  | Use For                |
+| ------------------------------------ | ------------------------ | ---------------------- |
+| [API-REFERENCE.md](API-REFERENCE.md) | All methods & signatures | Looking up methods     |
+| [CONFIGURATION.md](CONFIGURATION.md) | Browser configuration    | Configuring WebBrowser |
+
+---
+
+## 🎯 Common Questions
+
+**Q: What's the difference between `is.visible()` and `should.be.visible()`?**  
+A: `is.*` returns boolean (use in conditionals), `should.*` throws error (use in tests). [Learn more](CONCEPTS.md)
+
+**Q: How do I find elements with duplicate text?**  
+A: Use spatial context: `button.below.element()`, or target by position with `atIndex()`. [Examples](SELECTORS.md#spatial-references)
+
+**Q: Can I use XPath or CSS selectors?**  
+A: No. WebBrowser uses human-like text matching and spatial context. It's simpler. [How it works](CONCEPTS.md)
+
+**Q: How do I wait for an element?**  
+A: Use `should.be.visible()` - it waits up to configured timeout.
+
+**Q: Can I run tests in headless mode?**  
+A: Yes. Set `"headless": true` in config. [Configuration](CONFIGURATION.md)
+
+---
+
+## 🤖 For AI Agents
+
+This documentation is designed to be AI-friendly:
+
+- **Clear API** - Methods have consistent naming patterns
+- **Readable examples** - Code reads like instructions
+- **Task-oriented guides** - Find docs by what you need to do
+- **Organized by use case** - Direct routing to relevant guides
+- **Explicit element types** - 20+ semantic types (button, textbox, etc.)
+- **Spatial relationships** - Position logic is obvious
+
+**For agents: When generating code:**
+
+1. Prefer semantic types: `button()`, `textbox()` over `element()`
+2. Use visible text as primary selector
+3. Add spatial context when needed: `.within.dialog()`, `.below.element()`
+4. Use `should.*` for test assertions, `is.*` for conditionals
+5. Follow fluent pattern: intermediate operations chain to terminal operation
+
+---
+
+## 📖 Learning Paths
+
+### Path 1: Complete Beginner (30 minutes)
+
+1. [GETTING-STARTED.md](GETTING-STARTED.md)
+2. [CONCEPTS.md](CONCEPTS.md#operations-intermediate-vs-terminal)
+3. Run examples in your code editor
+
+### Path 2: Build a Test Suite (1 hour)
+
+1. [GETTING-STARTED.md](GETTING-STARTED.md)
+2. [SELECTORS.md](SELECTORS.md)
+3. [INTERACTIONS.md](INTERACTIONS.md)
+4. [FORMS.md](FORMS.md)
+
+### Path 3: Advanced Patterns (2 hours)
+
+1. [CONCEPTS.md](CONCEPTS.md) - Full understanding
+2. [ADVANCED.md](ADVANCED.md) - Multi-window, tabs, alerts
+3. [API-REFERENCE.md](API-REFERENCE.md) - All methods
+4. [BROWSER.md](BROWSER.md) - Lifecycle patterns
+
+---
+
+## 🔗 Quick Links
+
+**Getting help?**
+
+- Check [CONCEPTS.md](CONCEPTS.md) to understand how it works
+- Search [API-REFERENCE.md](API-REFERENCE.md) for specific methods
+- See [SELECTORS.md](SELECTORS.md) for element finding help
+
+**Setting up?**
+
+- [CONFIGURATION.md](CONFIGURATION.md) - Configure browser
+- [BROWSER.md](BROWSER.md) - Session lifecycle
+- [GETTING-STARTED.md](GETTING-STARTED.md) - First script
+
+**Specific tasks?**
+
+- Fill forms → [FORMS.md](FORMS.md)
+- Find elements → [SELECTORS.md](SELECTORS.md)
+- Interact with elements → [INTERACTIONS.md](INTERACTIONS.md)
+- Multiple windows/tabs → [ADVANCED.md](ADVANCED.md)

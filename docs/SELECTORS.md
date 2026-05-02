@@ -323,3 +323,213 @@ await browser.button('Delete').atIndex(2).click()
 
 - [Core Concepts](CONCEPTS.md) - Foundational concepts
 - [API Reference](API-REFERENCE.md#element-selection) - Complete method reference
+
+---
+
+## Troubleshooting: Element Not Found
+
+### Issue: "Element not found" Error
+
+**Try these solutions in order:**
+
+#### 1. Check element text matches exactly
+
+```javascript
+// ✗ Won't match
+await browser.element('Subm').click() // Text must match
+
+// ✓ Partial match OK
+await browser.button('Submit').click() // Matches "Submit Form"
+
+// ✓ If exact text needed
+await browser.exact.button('Submit').click()
+```
+
+#### 2. Use semantic type, not generic element()
+
+```javascript
+// ✗ Less reliable
+await browser.element('Submit').click()
+
+// ✓ Better - explicit type
+await browser.button('Submit').click()
+```
+
+#### 3. Check if element is inside a container
+
+```javascript
+// ✗ May not find if in modal
+await browser.button('Save').click()
+
+// ✓ Specify container
+await browser.button('Save').within.dialog('Settings').click()
+```
+
+#### 4. Use spatial positioning if text is ambiguous
+
+```javascript
+// ✗ Which email field if multiple?
+await browser.textbox('Email').write('...')
+
+// ✓ Use position
+await browser.textbox('Email').below.element('Personal Info').write('...')
+```
+
+#### 5. Use attributes if text matching fails
+
+```javascript
+// ✗ Element text doesn't match exactly
+await browser.element('auth-submit').click()
+
+// ✓ Match by data-testid
+await browser.element('auth-submit').click()
+
+// ✓ Or by other attributes
+await browser.textbox('email_address').write('...') // by name
+```
+
+#### 6. Add index if multiple elements match
+
+```javascript
+// ✗ Multiple buttons with 'Delete'
+await browser.button('Delete').click() // Gets first
+
+// ✓ Specify which one
+await browser.button('Delete').atIndex(1).click() // Get second
+```
+
+### Common Patterns That Fail
+
+**Pattern: Hidden Elements**
+
+```javascript
+// ✗ Hidden element not found
+await browser.element('Hidden Text').click()
+
+// ✓ Make visible first or use within visible container
+await browser.element('Hidden Text').hidden.click() // if library supports this
+```
+
+**Pattern: Dynamic Content**
+
+```javascript
+// ✗ Element loaded after delay
+await browser.element('Loaded Item').click()
+
+// ✓ Wait for element with should.be.visible()
+await browser.element('Loaded Item').should.be.visible(10000)
+await browser.element('Loaded Item').click()
+```
+
+**Pattern: Elements with Special Characters**
+
+```javascript
+// ✗ Special characters in text
+await browser.button('Next →').click() // Arrow may not match
+
+// ✓ Use partial match or attribute
+await browser.button('Next').click() // Matches "Next →"
+```
+
+---
+
+## Quick Selector Decision Tree
+
+**When should I use each selector method?**
+
+```
+Do you know the visible text or placeholder?
+├─ YES → Use text-based:
+│        await browser.button('Submit').click()
+│        await browser.textbox('Email').write('...')
+│
+└─ NO → Do you know the element position?
+         ├─ YES → Use spatial reference:
+         │        await browser.button('Delete')
+         │          .within.row('User123').click()
+         │
+         └─ NO → Do you know a unique attribute?
+                 ├─ YES → Use attribute:
+                 │        await browser.element('user-id-123').click()
+                 │
+                 └─ NO → Use generic + index:
+                         await browser.element('Text')
+                           .atIndex(2).click()
+```
+
+---
+
+## Performance Tips
+
+### Prefer specific types over generic
+
+```javascript
+// SLOW - searches all element types
+await browser.element('Submit').click()
+
+// FAST - narrows search scope
+await browser.button('Submit').click()
+```
+
+### Use spatial context to narrow search
+
+```javascript
+// SLOW - searches entire page
+await browser.textbox('Email').write('...')
+
+// FAST - narrows to specific area
+await browser.textbox('Email').within.dialog('Login').write('...')
+```
+
+### Avoid too many `or` alternatives
+
+```javascript
+// SLOW - many possibilities to check
+await browser.button('A').or.button('B').or.button('C').or.button('D').click()
+
+// FAST - fewer alternatives
+await browser.button('Primary').or.button('Submit').click()
+```
+
+---
+
+## Advanced Patterns
+
+### Chaining Multiple Spatial References
+
+```javascript
+// Find element that is:
+// - Below a heading
+// - To the right of a label
+// - Inside a dialog
+await browser
+  .button('Save')
+  .below.heading('Settings')
+  .toRightOf.text('Permissions')
+  .within.dialog('Configuration')
+  .click()
+```
+
+### Conditional Selection
+
+```javascript
+// Click different buttons based on visibility
+if (await browser.button('Save').is.visible()) {
+  await browser.button('Save').click()
+} else {
+  await browser.button('Apply').click()
+}
+```
+
+### Dynamic Text Matching
+
+```javascript
+// Match by partial text
+await browser.button('Next').click() // Matches "Next Page"
+
+// Match by exact text
+await browser.exact.button('Next').click() // Matches "Next" only
+
+// Match by attribute containing text
+await browser.element('user-').click() // Matches user-123, user-456
+```
