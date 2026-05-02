@@ -40,6 +40,7 @@ jest.unstable_mockModule('@nodebug/logger', () => ({
     info: jest.fn(),
     error: jest.fn(),
     debug: jest.fn(),
+    warn: jest.fn(),
   },
 }));
 
@@ -165,6 +166,7 @@ describe('BrowserTarget (ESM)', () => {
   describe('_findTarget()', () => {
     test('finds target by index and returns true', async () => {
       browserTarget._targetTitle = 1;
+      browserTarget._isIndex = true;
       mockDriver.getAllWindowHandles.mockResolvedValue(['handle1', 'handle2']);
       
       const result = await browserTarget._findTarget(false);
@@ -184,17 +186,23 @@ describe('BrowserTarget (ESM)', () => {
     test('returns false when target is not found', async () => {
       browserTarget._targetTitle = 'Non-existent Title';
       mockDriver.getTitle.mockResolvedValue('Different Title');
-      
-      const result = await browserTarget._findTarget(false, 100); // Short timeout
-      
+
+      // Override timeout for this test to avoid long wait
+      Object.defineProperty(browserTarget, 'timeout', { get: () => 100 });
+
+      const result = await browserTarget._findTarget(false);
+
       expect(result).toBe(false);
     });
 
     test('throws error when switching to non-existent target', async () => {
       browserTarget._targetTitle = 'Non-existent Title';
       mockDriver.getTitle.mockResolvedValue('Different Title');
-      
-      await expect(browserTarget._findTarget(true, 100)).rejects.toThrow(); // Short timeout
+
+      // Override timeout for this test to avoid long wait
+      Object.defineProperty(browserTarget, 'timeout', { get: () => 100 });
+
+      await expect(browserTarget._findTarget(true)).rejects.toThrow();
     });
   });
 
@@ -218,21 +226,24 @@ describe('BrowserTarget (ESM)', () => {
     });
   });
 
-  describe('is.displayed()', () => {
-    test('returns true when target is displayed', async () => {
+describe('is.present()', () => {
+    test('returns true when target is present', async () => {
       browserTarget._targetTitle = 'Test Title';
-      
-      const result = await browserTarget.is.displayed();
-      
+
+      const result = await browserTarget.is.present();
+
       expect(result).toBe(true);
     });
 
-    test('returns false when target is not displayed', async () => {
+    test('returns false when target is not present', async () => {
       browserTarget._targetTitle = 'Non-existent Title';
       mockDriver.getTitle.mockResolvedValue('Different Title');
-      
-      const result = await browserTarget.is.displayed(100); // Short timeout
-      
+
+      // Override timeout for this test to avoid long wait
+      Object.defineProperty(browserTarget, 'timeout', { get: () => 100 });
+
+      const result = await browserTarget.is.present();
+
       expect(result).toBe(false);
     });
   });
@@ -247,10 +258,11 @@ describe('BrowserTarget (ESM)', () => {
     });
 
     test('throws error when target is not found during switch', async () => {
-      browserTarget._targetTitle = 'Non-existent Title';
-      mockDriver.getTitle.mockResolvedValue('Different Title');
+      const originalFindTarget = browserTarget._findTarget;
+      browserTarget._findTarget = jest.fn().mockRejectedValue(new Error('Target not found'));
       
-      await expect(browserTarget.switch(100)).rejects.toThrow(); // Short timeout
+      await expect(browserTarget.switch()).rejects.toThrow();
+      browserTarget._findTarget = originalFindTarget;
     });
   });
 });

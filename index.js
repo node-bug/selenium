@@ -373,6 +373,35 @@ class WebBrowser extends Browser {
   }
 
   /**
+   * Performs a middle-click on the element.
+   * 
+   * Uses Selenium WebDriver Actions API to simulate a middle-click.
+   * 
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.element('middle-click-target').middleClick();
+   * await browser.button('tab').middleClick();
+   */
+  async middleClick() {
+    return await this.#clickDelegate.middleClick();
+  }
+
+  /**
+   * Performs a long press click on the element.
+   * 
+   * Uses Selenium WebDriver Actions API to simulate a long press.
+   * 
+   * @param {number} [duration=1000] - Duration of the long press in milliseconds
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.element('long-press-target').longPress(); // Default 1000ms
+   * await browser.button('menu').longPress(2000); // 2 seconds
+   */
+  async longPress(duration = 1000) {
+    return await this.#clickDelegate.longPress(duration);
+  }
+
+  /**
    * Internal click handler for elements.
    * 
    * Handles both standard clicks and coordinate-based clicks.

@@ -16,6 +16,54 @@ Complete method reference for WebBrowser. See [Core Concepts](CONCEPTS.md) for u
 
 ---
 
+## 📋 Supported Methods
+
+The following methods are fully supported and tested in WebBrowser:
+
+### Clicks
+
+- `click([x, y])` - Standard click with optional coordinates
+- `doubleClick()` - Double-click an element
+- `tripleClick()` - Triple-click to select text
+- `rightClick()` - Right-click (context menu)
+- `multipleClick(times)` - Click multiple times
+
+### Input Methods
+
+- `write(text)` - Write text to input (appends if not empty)
+- `clear()` - Clear text from input
+- `overwrite(text)` - Clear and write new text
+- `type(text)` - Type character-by-character
+- `press(key)` - Press a keyboard key
+- Arrow keys: `left()`, `right()`, `up()`, `down()`
+
+### Form Elements
+
+- `check()` - Check a checkbox
+- `uncheck()` - Uncheck a checkbox
+- `set()` - Set/select a radio button
+- `on()` - Turn on a switch
+- `off()` - Turn off a switch
+- `option(value).select()` - Select dropdown option
+
+### Visibility Control
+
+- `hide()` - Hide element via opacity
+- `unhide()` - Restore visibility
+- `scroll([alignToTop])` - Scroll element into view
+
+### Modifiers
+
+Chain `ctrl`, `shift`, `alt`, or `meta` before actions:
+
+```javascript
+await browser.ctrl.click()
+await browser.shift.type('text')
+await browser.meta.press('w')
+```
+
+---
+
 ## Browser Control
 
 ### start()

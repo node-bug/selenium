@@ -107,7 +107,7 @@ describe('Tab (ESM)', () => {
       const originalFindTarget = tab._findTarget;
       tab._findTarget = jest.fn().mockResolvedValue(true);
       
-      const result = await tab.switch('Test Title');
+      const result = await tab.switch();
       
       expect(result).toBe(true);
       tab._findTarget = originalFindTarget;
@@ -118,7 +118,7 @@ describe('Tab (ESM)', () => {
       const originalFindTarget = tab._findTarget;
       tab._findTarget = jest.fn().mockRejectedValue(new Error('Tab not found'));
       
-      await expect(tab.switch('Non-existent Title')).rejects.toThrow();
+      await expect(tab.switch()).rejects.toThrow();
       tab._findTarget = originalFindTarget;
     });
   });

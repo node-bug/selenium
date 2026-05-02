@@ -24,6 +24,7 @@ export class BrowserTarget {
      */
     constructor(driver, label = 'Target') {
         this._label = label;
+        this._isIndex = false;
         if (driver) this.initialize(driver);
     }
 
@@ -43,7 +44,7 @@ export class BrowserTarget {
      * @param {Object} value - Selenium WebDriver instance
      */
     set driver(value) { this.initialize(value); }
-    
+
     /**
      * Get the WebDriver instance
      * 
@@ -57,7 +58,7 @@ export class BrowserTarget {
      * @returns {number} Timeout value in milliseconds
      */
     get timeout() { return (selenium.timeout || 10) * 1000; }
-    
+
     /**
      * Chain method for fluent interface
      * 
@@ -73,6 +74,7 @@ export class BrowserTarget {
      */
     identifier(value) {
         this._targetTitle = value;
+        if (typeof this._targetTitle === 'number') this._isIndex = true
         return this;
     }
 
@@ -81,20 +83,18 @@ export class BrowserTarget {
      * 
      * @private
      * @param {boolean} shouldSwitch - Whether to switch to the target
-     * @param {number} [customTimeout] - Custom timeout value
      * @returns {Promise<boolean>} True if target was found
      */
-    async _findTarget(shouldSwitch, customTimeout = undefined) {
-        const timeout = customTimeout ?? this.timeout;
-        if([null, undefined].includes(this._targetTitle))
-        {
+    async _findTarget(shouldSwitch) {
+        const timeout = this.timeout;
+        if ([null, undefined].includes(this._targetTitle)) {
             log.debug(`No ${this._label} target index or name specified. Using current ${this._label}.`)
             return true
         }
 
         // 1. FAST PATH FOR INDEX-BASED SWITCHING
         try {
-            if (typeof this._targetTitle === 'number') {
+            if (this._isIndex) {
                 const handles = await this.driver.getAllWindowHandles();
                 if (this._targetTitle >= handles.length || this._targetTitle < 0) {
                     log.info(`${this._label} with index ${this._targetTitle} was not found on screen after '${timeout} ms' timeout`);
@@ -126,7 +126,6 @@ export class BrowserTarget {
                 }
             }
 
-            log.debug(`Validating ${this._label} with title '${this._targetTitle}' is displayed`);
             const startTime = Date.now();
 
             while (Date.now() - startTime < timeout) {
@@ -196,27 +195,121 @@ export class BrowserTarget {
     get is() {
         return {
             /**
-             * Check if a target is displayed
-             * 
-             * @param {string|number} [t] - Target title or index (optional)
-             * @returns {Promise<boolean>} True if target is displayed
+             * Check if a target is present
+             *
+             * @returns {Promise<boolean>} True if target is present, false otherwise
              * @example
-             * const isDisplayed = await browser.window('Google').is.displayed();
+             * const isPresent = await browser.tab('Google').is.present();
              */
-            displayed: async (t) => { return await this._findTarget(false, t); }
+            present: async () => {
+                log.info(`Validating if ${this._label} with ${this._isIndex ? 'index' : 'title'} '${this._targetTitle}' is present`);
+                const result = await this._findTarget(false);
+                if (result) log.info(`${this._label} is present`);
+                else log.warn(`${this._label} is not present`);
+                return result;
+            },
+
+            /**
+             * Negation namespace for presence checks
+             * @example
+             * const isNotPresent = await browser.tab('Google').is.not.present();
+             */
+            not: {
+                /**
+                 * Check if a target is NOT present
+                 *
+                 * @returns {Promise<boolean>} True if target is NOT present, false otherwise
+                 * @example
+                 * const isNotPresent = await browser.tab('Google').is.not.present();
+                 */
+                present: async () => {
+                    log.info(`Validating if ${this._label} with ${this._isIndex ? 'index' : 'title'} '${this._targetTitle}' is not present`);
+                    const result = !(await this._findTarget(false));
+                    if (result) log.info(`${this._label} is not present`);
+                    else log.warn(`${this._label} is present`);
+                    return result;
+                }
+            }
         };
     }
-    
+
+    /**
+     * "Should" style assertions for target validation (BDD-style).
+     * Accessor for target validation operations using "should" syntax.
+     * Usage: await browser.window('Google').should.be.present()
+     */
+    get should() {
+        return {
+            /**
+             * "be" namespace for should-style assertions
+             * @example
+             * await browser.tab('Google').should.be.present();
+             */
+            be: {
+                /**
+                 * Assert that a target should be present. Throws if not found.
+                 *
+                 * @returns {Promise<boolean>} True if target is present
+                 * @throws {Error} If target is not present
+                 * @example
+                 * await browser.tab('Google').should.be.present();
+                 */
+                present: async () => {
+                    const identifier = this._targetTitle;
+                    const isIndex = this._isIndex;
+                    log.info(`Validating that ${this._label} with ${isIndex ? 'index' : 'title'} '${identifier}' should be present`);
+                    const result = await this._findTarget(false);
+                    if (result) {
+                        log.info(`${this._label} is present`);
+                        return true;
+                    } else {
+                        throw new Error(`${this._label} with ${isIndex ? 'index' : 'title'} '${identifier}' is not present`);
+                    }
+                },
+            },
+
+            /**
+             * Negation namespace for should-style presence checks
+             * @example
+             * await browser.tab('Google').should.not.be.present();
+             */
+            not: {
+                be: {
+                    /**
+                     * Assert that a target should NOT be present. Throws if found.
+                     *
+                     * @returns {Promise<boolean>} True if target is NOT present
+                     * @throws {Error} If target is present
+                     * @example
+                     * await browser.tab('Google').should.not.be.present();
+                     */
+                    present: async () => {
+                        const identifier = this._targetTitle;
+                        const isIndex = this._isIndex;
+                        log.info(`Validating that ${this._label} with ${isIndex ? 'index' : 'title'} '${identifier}' should not be present`);
+                        const result = await this._findTarget(false);
+                        if (result) {
+                            throw new Error(`${this._label} with ${isIndex ? 'index' : 'title'} '${identifier}' is present but should not be`);
+                        } else {
+                            log.info(`${this._label} is not present`);
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+    };
+
+
     /**
      * Switch to a target
-     * 
-     * @param {string|number} [t] - Target title or index (optional)
+     *
      * @returns {Promise<boolean>} True if switch was successful
      * @example
      * await browser.window('Google').switch();
      */
-    async switch(t) {
-        const found = await this._findTarget(true, t);
+    async switch() {
+        const found = await this._findTarget(true);
         if (!found) throw new Error(`Target "${this._targetTitle}" not found`);
         return true;
     }
