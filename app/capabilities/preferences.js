@@ -1,8 +1,12 @@
 /**
  * Browser preferences configuration
  * 
- * This module defines default browser preferences for different browsers
- * including download settings, security options, and UI configurations.
+ * This module defines default browser preferences shared across Chrome and Firefox.
+ * Preferences are grouped by browser engine:
+ * - **Chromium** prefs (e.g., `download.default_directory`) apply to Chrome/Edge
+ * - **Gecko** prefs (e.g., `browser.download.dir`) apply to Firefox
+ * - **General** prefs (e.g., spell checking) apply broadly
+ * - Safari does **not** use these preferences
  * 
  * @module preferences
  * @property {Object} prefs - Browser preferences configuration

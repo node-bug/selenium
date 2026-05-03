@@ -22,8 +22,16 @@ const selenium = config('selenium')
 /**
  * Get browser capabilities based on configuration
  * 
+ * Factory function that returns browser-specific capabilities by reading
+ * the `browser` property from the configuration object. The browser name
+ * is compared case-insensitively.
+ * 
  * @param {Object} [configuration=selenium] - Browser configuration object
- * @returns {Object|Error} Browser capabilities or error if browser is not supported
+ * @param {string} configuration.browser - The browser name ('chrome', 'firefox', or 'safari')
+ * @returns {Object|Error} Browser capabilities object on success, or an Error
+ * if the browser name is not recognized
+ * @throws {Error} Returns an Error (not thrown) when `configuration.browser`
+ * is not one of 'chrome', 'firefox', or 'safari'
  * @example
  * const caps = capabilities();
  * console.log(caps);
@@ -40,6 +48,8 @@ function capabilities(configuration = selenium) {
       return new Safari().capabilities
 
     default:
+      // Return an Error for unsupported browsers rather than throwing,
+      // so the caller can handle it gracefully
       return new Error(`${configuration.browser} is not a known platform name. \
               Known platforms are 'Firefox', 'Safari' and 'Chrome'`)
   }

@@ -1185,12 +1185,12 @@ class WebBrowser extends Browser {
     const ontoIndex = this.stack.findIndex(c => c.type === 'action' && c.perform === 'onto');
 
     if (dragIndex === -1 || ontoIndex === -1) {
-      throw new Error('Invalid drag-and-drop stack. Ensure both .drag() and .onto() are used.');
+      throw new Error('Invalid drag-and-drop stack. Ensure both .drag and .onto are used.');
     }
 
-    // Source is everything before .drag()
-    const dragStack = this.stack.slice(0, dragIndex);
-    // Target is everything after .onto()
+    // Source is everything between .drag and .onto
+    const dragStack = this.stack.slice(dragIndex + 1, ontoIndex);
+    // Target is everything after .onto
     const dropStack = this.stack.slice(ontoIndex + 1);
 
     return { dragStack, dropStack };
@@ -1234,15 +1234,15 @@ class WebBrowser extends Browser {
   // --- Stack Builder Methods ---
 
   /**
-   * Initiates a drag operation on an element.
+   * Initiates a drag-and-drop operation.
    * 
-   * Must be followed by onto() to complete the drag-and-drop.
+   * Must be followed by element(), onto, and drop() to complete the operation.
    * 
    * @returns {this} Returns the WebBrowser instance for chaining
    * @example
-   * browser.element('drag-item').drag().onto().element('drop-target').drop();
+   * await browser.drag.element('item 1').onto.element('item 2').drop();
    */
-  drag() {
+  get drag() {
     this.stack.push({ type: 'action', perform: 'drag' });
     return this;
   }
@@ -1250,11 +1250,11 @@ class WebBrowser extends Browser {
   /**
    * Specifies the target element for a drag-and-drop operation.
    * 
-   * Must be used after drag() and before drop().
+   * Must be used after drag and before the target element and drop().
    * 
    * @returns {this} Returns the WebBrowser instance for chaining
    * @example
-   * browser.element('drag-item').drag().onto().element('drop-target').drop();
+   * await browser.drag.element('item 1').onto.element('item 2').drop();
    */
   get onto() {
     this.stack.push({ type: 'action', perform: 'onto' });

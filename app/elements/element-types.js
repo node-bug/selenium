@@ -1,5 +1,21 @@
+/**
+ * Defines XPath constraints for semantic element types (button, textbox, link, etc.)
+ * and provides utilities for building XPath matchers against attributes and text content.
+ *
+ * Each element type maps to an XPath predicate that matches by tag, ARIA role,
+ * or attribute. The {@link buildMatcher} method combines these predicates with
+ * attribute/text comparisons and a recursion guard to target the innermost match.
+ */
 export class ElementTypes {
+  /**
+   * Initializes the list of searchable attributes and the element-type
+   * to XPath-constraint map.
+   */
   constructor() {
+    /**
+     * HTML attributes checked when building XPath matchers.
+     * @type {string[]}
+     */
     this.attributes = [
       'placeholder', 'value', 'data-test-id', 'data-testid', 'id',
       'resource-id', 'name', 'aria-label', 'class', 'hint',
@@ -49,7 +65,11 @@ export class ElementTypes {
 
   /**
    * Properly escapes strings for XPath 1.0.
-   * Logic: If it contains a single quote, wrap in concat() and escape.
+   * If the value contains single quotes, it is split and wrapped in a
+   * `concat()` expression to avoid breaking the XPath syntax.
+   *
+   * @param {*} value - The string value to escape (null/undefined returns an empty string literal).
+   * @returns {string} A valid XPath string literal or `concat()` expression.
    */
   transform(value) {
     // Handle null/undefined values
@@ -65,7 +85,16 @@ export class ElementTypes {
   }
 
   /**
-   * Generates a combined matcher for all attributes and text content
+   * Generates a combined XPath matcher for all configured attributes and text content.
+   *
+   * The resulting expression checks every attribute in {@link attributes} plus the
+   * element's text node (`.`), joined by `or`. A recursion guard is appended to
+   * ensure only the innermost element containing the text is matched.
+   *
+   * @param {string} value - The text or attribute value to match against.
+   * @param {boolean} [exact=false] - If true, uses exact equality (`normalize-space()=...`);
+   *                                 if false, uses substring matching (`contains(...)`).
+   * @returns {string} An XPath expression fragment suitable for embedding inside a larger query.
    */
   buildMatcher(value, exact = false) {
     const val = this.transform(value);
@@ -90,7 +119,14 @@ export class ElementTypes {
   }
 
   /**
-   * Returns an object of XPaths mapped to element types
+   * Returns an object mapping each element type to a full XPath selector.
+   *
+   * Each selector combines the matcher for the given value with the type-specific
+   * XPath constraint (e.g., `self::button or @role='button'`).
+   *
+   * @param {string} value - The text or attribute value to match against.
+   * @param {boolean} [exact=false] - Whether to use exact or substring matching.
+   * @returns {Object.<string, string>} A map of element type names to full XPath strings.
    */
   getSelectors(value, exact = false) {
     const matcherStr = this.buildMatcher(value, exact);
