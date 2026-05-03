@@ -40,6 +40,7 @@ await browser
 - **📍 Smart element prioritization** - Searches text, placeholders, labels, test IDs, ARIA labels automatically
 - **⌨️ Rich interactions** - Click, drag, type, hover, keyboard navigation, file uploads, alerts
 - **📦 Cross-browser** - Chrome, Firefox, Safari with same code
+- **🖼️ Automatic iframe handling** - Elements inside iframes are found automatically—no manual frame switching required
 - **⚙️ Flexible configuration** - JSON config, environment variables, or CLI options
 - **🔍 AI-agent friendly** - Clear, readable code that AI can understand and generate
 

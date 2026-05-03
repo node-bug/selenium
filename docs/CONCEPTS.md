@@ -127,6 +127,25 @@ await browser.textbox('Email').write('user@example.com')
 
 See [Selectors Guide - Form Label Association](SELECTORS.md#form-label-association) for details.
 
+## Automatic iframe Handling
+
+**Elements inside `<iframe>` elements are found automatically.** You never need to manually switch frames.
+
+When you search for an element, the library scans both the main document and all iframes on the page. This means you can interact with elements inside iframes using the same selectors as normal elements:
+
+```javascript
+// This works even if the login form is inside an iframe
+await browser.textbox('Email').write('user@example.com')
+await browser.button('Login').click()
+```
+
+**Why this matters:**
+
+- In traditional Selenium, you must call `driver.switchTo().frame()` before interacting with iframe content, and `driver.switchTo().defaultContent()` to return. This is error-prone and breaks easily.
+- With WebBrowser, frame switching is handled transparently. Just write your selectors as if all elements are in the same document.
+
+> **Note:** This applies to all element types—buttons, textboxes, checkboxes, dropdowns, etc. inside iframes are all accessible without any special handling.
+
 ## Window vs Tab Management
 
 - **Windows** - Separate browser instances with independent contexts (separate cookies, storage)
