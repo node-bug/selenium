@@ -1,12 +1,27 @@
 import { By } from 'selenium-webdriver';
 import { ElementTypes } from './element-types.js';
 
+/**
+ * Core element-finding strategy that extends {@link ElementTypes} with
+ * Selenium WebDriver integration. Handles cross-iframe scanning, spatial
+ * filtering (above, below, left, right, within), and stack-based element
+ * resolution.
+ */
 export class LocatorStrategy extends ElementTypes {
+  /**
+   * @type {import('selenium-webdriver').WebDriver}
+   */
   set driver(value) { this._driver = value; }
   get driver() { return this._driver; }
 
   /**
-   * Helper to switch context safely
+   * Helper to switch context safely.
+   * Switches to the default content, then optionally into a specific frame
+   * before executing the callback. Silently swallows NoSuchFrameError.
+   *
+   * @param {number} frame - The frame index to switch into, or -1 for default content.
+   * @param {Function} callback - The async function to execute within the frame context.
+   * @returns {Promise<*>} The result of the callback, or null if the frame was not found.
    */
   async _withContext(frame, callback) {
     await this.driver.switchTo().defaultContent();
@@ -21,6 +36,16 @@ export class LocatorStrategy extends ElementTypes {
     return callback();
   }
 
+  /**
+   * Finds child elements within a parent element's frame context.
+   * Switches to the parent's frame, queries for matching children using
+   * the childData selector, qualifies them with bounding-box metadata,
+   * and filters out zero-dimension elements.
+   *
+   * @param {WebElement} parent - The parent WebElement whose frame context to use.
+   * @param {Object} childData - The selector descriptor containing `id`, `exact`, and `type`.
+   * @returns {Promise<WebElement[]>} Array of qualified child elements with visible dimensions.
+   */
   async findChildElements(parent, childData) {
     return this._withContext(parent.frame, async () => {
       const xpath = this.getSelectors(childData.id, childData.exact)[childData.type];
@@ -37,6 +62,23 @@ export class LocatorStrategy extends ElementTypes {
     });
   }
 
+  /**
+   * Filters a set of candidate elements based on their spatial relationship
+   * to a reference element.
+   *
+   * Supported locations: 'above', 'below', 'toLeftOf', 'toRightOf', 'within'.
+   * When `rel.exactly` is true, the filter also requires horizontal (for above/below)
+   * or vertical (for left/right) alignment within a 5px buffer.
+   * For 'within', the filter checks that the candidate's midpoint lies inside
+   * the reference element's bounding box.
+   *
+   * If no relative constraint is provided, returns `item.matches` unchanged.
+   *
+   * @param {Object} item - The stack item containing `type` and `matches` array.
+   * @param {Object} [rel] - The relative constraint object with `located` and optional `exactly`.
+   * @param {WebElement} [relativeElement] - The reference element to compare positions against.
+   * @returns {Promise<WebElement[]>} Filtered array of elements matching the spatial constraint.
+   */
   async relativeSearch(item, rel, relativeElement) {
     if (rel?.located) {
       const validLocations = ['above', 'below', 'toLeftOf', 'toRightOf', 'within'];
@@ -74,6 +116,16 @@ export class LocatorStrategy extends ElementTypes {
     return results;
   }
 
+  /**
+   * Injects bounding-box metadata into WebElement(s) by executing a script
+   * in the browser to retrieve `getBoundingClientRect()` data.
+   *
+   * Adds `tagName` (lowercased) and `rect` (with `midx`/`midy` midpoints)
+   * directly onto each WebElement instance.
+   *
+   * @param {WebElement|WebElement[]|null} elements - Single element, array of elements, or null.
+   * @returns {Promise<WebElement[]>} Array of qualified elements with rect metadata.
+   */
   async addQualifiers(elements) {
     if (!elements) return []; // Fix for "should handle null elements"
     const targets = Array.isArray(elements) ? elements : [elements];
@@ -105,6 +157,10 @@ export class LocatorStrategy extends ElementTypes {
   /**
    * Finds the closest element of a specific type relative to a starting element.
    * Calculated using Euclidean distance between midpoints.
+   *
+   * @param {WebElement} originElement - The reference element to measure distance from.
+   * @param {string} [targetType='element'] - The element type to search for.
+   * @returns {Promise<WebElement>} The nearest qualified element, or the origin if no candidates exist.
    */
   async nearestElement(originElement, targetType = 'element') {
     // 1. Find all potential candidates in the same frame
@@ -155,6 +211,20 @@ export class LocatorStrategy extends ElementTypes {
     return winner;
   }
 
+  /**
+   * Finds all matching elements across all frames (including default content).
+   *
+   * Primary pass: queries using the requested element type's XPath selector.
+   * Fallback pass (if primary yields no results): queries using the generic
+   * 'element' selector, then replaces each match with the nearest element
+   * of the requested type via {@link nearestElement}.
+   *
+   * Results are qualified with bounding-box metadata and filtered by visibility
+   * (or hidden status, if `elementData.hidden` is true).
+   *
+   * @param {Object} elementData - The selector descriptor containing `id`, `exact`, `type`, and `hidden`.
+   * @returns {Promise<WebElement[]>} Array of qualified matching elements across all frames.
+   */
   async findElements(elementData) {
     const found = [];
     const frames = await this.driver.findElements(By.xpath('//iframe'));
@@ -221,8 +291,14 @@ export class LocatorStrategy extends ElementTypes {
   }
 
   /**
-   * Iterates through the stack and finds the actual WebElements 
+   * Iterates through the stack and finds the actual WebElements
    * for any entry that doesn't have matches yet.
+   *
+   * Processes items sequentially because frame switching is a stateful
+   * operation on the driver and cannot be done in parallel.
+   *
+   * @param {Object[]} stack - Array of selector descriptor items from the stack builder.
+   * @returns {Promise<Object[]>} Resolved stack with `matches` arrays populated on each item.
    */
   async resolveElements(stack) {
     const ELEMENT_TYPES = new Set([
@@ -255,6 +331,19 @@ export class LocatorStrategy extends ElementTypes {
     return resolvedStack;
   }
 
+  /**
+   * Resolves a selector stack into a single WebElement.
+   *
+   * Traverses the resolved stack from bottom to top, applying relative
+   * spatial filters and index selection at each step. Throws a
+   * ReferenceError if any step yields no matching element.
+   *
+   * Ensures the driver is switched to the correct frame before returning.
+   *
+   * @param {Object[]} stack - Array of selector descriptor items from the stack builder.
+   * @returns {Promise<WebElement>} The final resolved WebElement.
+   * @throws {ReferenceError} If a matching element is not found at any stack level.
+   */
   async find(stack) {
     const data = await this.resolveElements(stack);
     let currentElement = null;
@@ -287,6 +376,13 @@ export class LocatorStrategy extends ElementTypes {
   /**
    * Resolves the entire stack and returns all matching elements.
    * Supports 'OR' conditions and spatial/relative searches for the whole set.
+   *
+   * Traverses the resolved stack from bottom to top, maintaining a context
+   * element (the first match of each step) for relative spatial filtering.
+   *
+   * @param {Object[]} stack - Array of selector descriptor items from the stack builder.
+   * @returns {Promise<WebElement[]>} Array of all matching WebElements.
+   * @throws {ReferenceError} If any step in the chain yields zero matches.
    */
   async findAll(stack) {
     // 1. Resolve logical descriptions into physical WebElements

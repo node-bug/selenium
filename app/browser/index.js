@@ -17,21 +17,21 @@ const selenium = config('selenium')
  * for window management, navigation, and browser state control.
  * 
  * @class Browser
- * @property {Window} window - Window management instance
- * @property {Tab} tab - Tab management instance
+ * @property {Function} window - Window management accessor. Call with a value to set the window identifier.
+ * @property {Function} tab - Tab management accessor. Call with a value to set the tab identifier.
+ * @property {Function} alert - Alert handling accessor. Call with a text identifier to target an alert.
  * @property {Object} capabilities - Browser capabilities configuration
  * @property {Object} driver - Selenium WebDriver instance
+ * @property {string} [hub] - Selenium Grid hub URL (read from config)
  */
 class Browser {
   /**
    * Create a new Browser instance
    * 
+   * Configuration is read from the `selenium` section of the application config.
+   * The `hub` property will be populated if `selenium.hub` is set in config.
+   * 
    * @constructor
-   * @param {Object} [options] - Browser configuration options
-   * @param {string} [options.hub] - Selenium Grid hub URL (optional)
-   * @param {number} [options.timeout] - Default timeout in seconds
-   * @param {number} [options.width] - Default browser width
-   * @param {number} [options.height] - Default browser height
    */
   constructor() {
     this._windowInstance = new Window();
@@ -111,8 +111,11 @@ class Browser {
    * 
    * This method creates a new browser session using the configured capabilities.
    * If a Selenium Grid hub is configured, it will connect to that hub.
+   * Also registers process signal handlers for graceful cleanup.
    * 
    * @returns {Promise<void>} Resolves when the browser session is initialized
+   * @throws {Error} If the WebDriver session cannot be created
+   * @throws {Error} If no window handle appears within the timeout period
    * @example
    * await browser.new();
    */
@@ -185,6 +188,7 @@ class Browser {
    * Closes the current browser session and cleans up resources.
    * 
    * @returns {Promise<boolean>} True if successful
+   * @throws {Error} If the driver cannot be quit or the current URL cannot be retrieved
    * @example
    * await browser.close();
    */
@@ -204,11 +208,14 @@ class Browser {
    * Set browser window size
    * 
    * Resizes the browser window to the specified dimensions.
+   * The method compensates for browser chrome (toolbars, address bar) by measuring
+   * the delta between outer and inner dimensions.
    * 
    * @param {Object} size - Window size object with width and height
    * @param {number} size.width - Width in pixels
    * @param {number} size.height - Height in pixels
-   * @returns {Promise<boolean>} True if successful
+   * @returns {Promise<boolean>} True if successful, false if size is invalid
+   * @throws {Error} If the WebDriver cannot apply the new window dimensions
    * @example
    * await browser.setSize({ width: 1280, height: 800 });
    */
@@ -257,10 +264,12 @@ class Browser {
   /**
    * Navigate to a URL
    * 
-   * Loads the specified URL in the browser.
+   * Loads the specified URL in the browser. Also sets the window size
+   * and configures implicit, page load, and script timeouts.
    * 
    * @param {string} url - URL to navigate to
    * @returns {Promise<boolean>} True if successful
+   * @throws {Error} If the URL is invalid or navigation fails
    * @example
    * await browser.goto('https://www.google.com');
    */
@@ -298,6 +307,7 @@ class Browser {
    * Reloads the current page.
    * 
    * @returns {Promise<void>} Resolves when the page is refreshed
+   * @throws {Error} If the page cannot be refreshed
    * @example
    * await browser.refresh();
    */
@@ -318,6 +328,7 @@ class Browser {
    * Navigates to the previous page in the browser history.
    * 
    * @returns {Promise<boolean>} True if successful
+   * @throws {Error} If navigation fails
    * @example
    * await browser.goBack();
    */
@@ -342,6 +353,7 @@ class Browser {
    * Navigates to the next page in the browser history.
    * 
    * @returns {Promise<boolean>} True if successful
+   * @throws {Error} If navigation fails
    * @example
    * await browser.goForward();
    */
@@ -364,9 +376,10 @@ class Browser {
    * Reset browser state (close all windows, delete cookies, clear storage)
    * 
    * Resets the browser to a clean state by closing all windows, deleting cookies,
-   * and clearing local storage and session storage.
+   * clearing local storage and session storage, and navigating to about:blank.
    * 
    * @returns {Promise<void>} Resolves when the browser is reset
+   * @throws {Error} If the browser cannot be reset
    * @example
    * await browser.reset();
    */
@@ -393,30 +406,73 @@ class Browser {
   }
 
   /**
-   * Get the WebDriver actions instance
-   * @returns {Object} WebDriver actions instance
+   * Get the WebDriver actions sequence builder
+   * 
+   * Returns a WebDriver Actions instance for constructing complex user interactions
+   * such as key presses, mouse movements, drag-and-drop, and multi-step gestures.
+   * 
+   * @returns {WebdriverIO.Actions} WebDriver actions sequence builder
+   * @example
+   * const actions = browser.actions();
+   * await actions.keyDown(Key.SHIFT).sendKeys('a').keyUp(Key.SHIFT).perform();
    */
   actions() {
     return this.driver.actions({ async: true })
   }
 
+  /**
+   * Accessor for retrieving current browser and page state.
+   * 
+   * Provides async methods to query the page title, current URL, browser name,
+   * operating system platform, and viewport dimensions.
+   * 
+   * @type {Object}
+   * @returns {Object} Object containing state accessor methods
+   * @example
+   * const title = await browser.get.title();
+   * const url = await browser.get.url();
+   * const browserName = await browser.get.name();
+   * const platform = await browser.get.os();
+   * const dimensions = await browser.get.size();
+   */
   get get() {
     return {
+      /**
+       * Get the current page title
+       * @returns {Promise<string>} The page title
+       */
       title: async () => {
         return this._windowInstance.get.title()
       },
+      /**
+       * Get the current page URL
+       * @returns {Promise<string>} The current URL
+       */
       url: async () => {
         return this._windowInstance.get.url()
       },
+      /**
+       * Get the browser name (e.g., "chrome", "firefox", "safari")
+       * @returns {Promise<string>} The browser name with whitespace removed
+       */
       name: async () => {
         const capabilities = await this.driver.getCapabilities()
         return capabilities.get('browserName').replace(/\s/g, '')
       },
+      /**
+       * Get the operating system platform name
+       * @returns {Promise<string>} The platform name with whitespace removed
+       */
       os: async () => {
         const capabilities = await this.driver.getCapabilities()
         log.info(`Running tests on platform: '${capabilities.get('platformName')}'`)
         return capabilities.get('platformName').replace(/\s/g, '')
       },
+      /**
+       * Get the current viewport dimensions
+       * @returns {Promise<{width: number, height: number}>} Object with width and height in pixels
+       * @throws {Error} If the viewport size cannot be determined
+       */
       size: async () => {
         try {
           await this.driver.switchTo().defaultContent()

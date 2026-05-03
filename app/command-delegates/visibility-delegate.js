@@ -105,6 +105,7 @@ export class VisibilityDelegate {
    * Checks if an element is disabled (has the 'disabled' attribute or property).
    * 
    * @private
+   * @param {number} [t] - Custom timeout in milliseconds
    * @returns {Promise<boolean>} True if element is disabled
    */
   async #disability(t) {
@@ -117,11 +118,10 @@ export class VisibilityDelegate {
   }
 
   /**
-   * Checks if an element is enabled. 
-   * 
-   * takes timeout in milliseconds
+   * Checks if an element is enabled.
    * 
    * @private
+   * @param {number} [t] - Custom timeout in milliseconds
    * @returns {Promise<boolean>} True if element is enabled
    */
   async _isEnabled(t) {
@@ -148,11 +148,10 @@ export class VisibilityDelegate {
   }
 
   /**
-   * Checks if an element is disabled. 
-   * 
-   * takes timeout in milliseconds
+   * Checks if an element is disabled.
    * 
    * @private
+   * @param {number} [t] - Custom timeout in milliseconds
    * @returns {Promise<boolean>} True if element is disabled
    */
   async _isDisabled(t) {
