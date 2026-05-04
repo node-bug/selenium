@@ -7,6 +7,15 @@ import { BrowserTarget } from './browser-target.js';
  * This class provides methods for managing browser windows including
  * switching, creating, closing, and resizing windows.
  * 
+ * Inherited members from {@link BrowserTarget}:
+ * - {@link BrowserTarget#is} - Validation operations (e.g., `is.present()`)
+ * - {@link BrowserTarget#should} - BDD-style assertions (e.g., `should.be.present()`)
+ * - {@link BrowserTarget#get} - Getters for title, URL, and console errors
+ * - {@link BrowserTarget#identifier} - Set target title or index for switching
+ * - {@link BrowserTarget#with} - Chain method for fluent interface
+ * - {@link BrowserTarget#timeout} - Get the default timeout value
+ * - {@link BrowserTarget#driver} - Get/set the WebDriver instance
+ * 
  * @class Window
  * @extends BrowserTarget
  */
@@ -24,12 +33,13 @@ class Window extends BrowserTarget {
     /**
      * Switch to a window
      * 
-     * @param {string|number} [t] - Window title or index (optional)
+     * @param {string|number} [title] - Window title or index (optional)
      * @returns {Promise<boolean>} True if switch was successful
+     * @throws {Error} If the window is not found
      * @example
      * await browser.window('Google').switch();
      */
-    async switch(t) { return await this._findTarget(true, t); }
+    async switch(title) { return await this._findTarget(true, title); }
 
     /**
      * Open a new browser window
@@ -40,9 +50,8 @@ class Window extends BrowserTarget {
      */
     async new() {
         log.info(`Opening new browser window`);
-        const newHandle = await this.driver.switchTo().newWindow('window');
-        // Switch to the newly created window
-        await this.driver.switchTo().window(newHandle);
+        // switchTo().newWindow() already switches to the new window
+        await this.driver.switchTo().newWindow('window');
     }
 
     /**
@@ -52,7 +61,7 @@ class Window extends BrowserTarget {
      * @example
      * await browser.window().close();
      */
-    async close() { return super.close('Window'); }
+    async close() { return super.close(); }
 
     /**
      * Maximize the browser window

@@ -10,6 +10,18 @@ The library locates elements like humans do:
 2. **By where they are** (position relative to other elements) - spatial context
 3. **By what they are** (type, attributes) - semantic meaning
 
+### Cross-iframe Scanning
+
+Elements inside `<iframe>` elements are found automatically. The library scans both the main document and all iframes on the page, so you never need to manually switch frames:
+
+```javascript
+// Works whether the element is in the main document or inside an iframe
+await browser.textbox('Email').write('user@example.com')
+await browser.button('Submit').click()
+```
+
+See [Core Concepts - Automatic iframe Handling](CONCEPTS.md#automatic-iframe-handling) for more details.
+
 ## Element Types
 
 Specify element types to differentiate elements with identical text:

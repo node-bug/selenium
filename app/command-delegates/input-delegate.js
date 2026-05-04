@@ -155,14 +155,15 @@ export class InputDelegate {
    * @param {string} key - The key to press (e.g., 'Enter', 'Tab', 'Escape', 'a', 'c')
    * @returns {Promise<boolean>} True if successful
    * @example
- * await browser.press('Enter');
- * await browser.press('Tab');
- * await browser.press('Escape');
- * await browser.ctrl.press('c'); // Ctrl+C
- * await browser.ctrl.shift.press('c'); // Ctrl+Shift+C
- * await browser.alt.press('Tab'); // Alt+Tab
- * await browser.meta.press('w'); // Cmd+W on Mac
- */
+   * @example
+   * await browser.press('Enter');
+   * await browser.press('Tab');
+   * await browser.press('Escape');
+   * await browser.ctrl.press('c'); // Ctrl+C
+   * await browser.ctrl.shift.press('c'); // Ctrl+Shift+C
+   * await browser.alt.press('Tab'); // Alt+Tab
+   * await browser.meta.press('w'); // Cmd+W on Mac
+   */
   async press(key) {
     const browser = this.browser;
     const mods = browser._tempMods;
@@ -250,10 +251,11 @@ export class InputDelegate {
    * @param {string} value - The string to type character by character
    * @returns {Promise<boolean>} True if successful
    * @example
- * await browser.element('username').type('myusername');
- * await browser.ctrl.type('a'); // Types 'a' while holding Ctrl
- * await browser.shift.type('abc'); // Types 'abc' while holding Shift
- */
+   * @example
+   * await browser.element('username').type('myusername');
+   * await browser.ctrl.type('a'); // Types 'a' while holding Ctrl
+   * await browser.shift.type('abc'); // Types 'abc' while holding Shift
+   */
   async type(value) {
     const browser = this.browser;
     const mods = browser._tempMods;

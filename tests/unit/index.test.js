@@ -413,8 +413,8 @@ describe('WebBrowser', () => {
         };
 
         browser.stack = [
-            { id: 'drag' },
             { type: 'action', perform: 'drag' },
+            { id: 'drag' },
             { type: 'action', perform: 'onto' },
             { id: 'drop' },
         ];

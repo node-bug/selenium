@@ -15,6 +15,11 @@ const selenium = config('selenium')
 /**
  * Get Safari browser capabilities
  * 
+ * Configures Safari with minimal options. Note:
+ * - Safari does not support headless mode like Chrome/Firefox; a warning is logged if configured
+ * - Safari does not use the shared preferences from preferences.js
+ * - Limited customization is available compared to Chrome and Firefox
+ * 
  * @returns {Object} Safari browser capabilities configuration
  * @example
  * const safariCaps = new Safari().capabilities;
@@ -22,17 +27,25 @@ const selenium = config('selenium')
  */
 class Safari {
   get capabilities() {
+    /**
+     * Safari-specific WebDriver options.
+     * Currently empty as Safari has limited configuration options
+     * compared to Chrome and Firefox.
+     * @type {Object}
+     */
     const options = {}
 
     this._capabilities = Capabilities.safari()
+    // Apply Safari-specific options via the safari:options capability key
     this._capabilities.set('safari:options', options)
+    // Explicitly set the browser name to 'safari'
     this._capabilities.set('browserName', 'safari')
+    // Wait for the full page to load before returning control
     this._capabilities.set('pageLoadStrategy', 'normal')
 
-    // Handle headless mode if needed
+    // Safari does not support true headless mode like Chrome/Firefox.
+    // Log a warning if headless is configured so the user is aware.
     if (selenium.headless === 'true' || selenium.headless === true) {
-      // Safari doesn't support headless mode in the same way as Chrome/Firefox
-      // This is just a placeholder for consistency
       log.warn('Safari does not support headless mode')
     }
 
