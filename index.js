@@ -1164,17 +1164,19 @@ class WebBrowser extends Browser {
   /**
    * Gets a specific occurrence from a list of matching elements (1-based index).
    * 
-   * @param {number} index - 1-based index of element to get
-   * @returns {this} Returns the WebBrowser instance for chaining
-   * @throws {TypeError} If index is not a number
+   * @returns {{index: function(number): WebBrowser}} Object with index method for chaining
    * @example
-   * browser.element('item').atIndex(2).click(); // Selects 2nd matching element
+   * browser.element('item').at.index(2).click(); // Selects 2nd matching element
    */
-  atIndex(index) {
-    if (typeof index !== 'number') throw new TypeError('index must be a number');
-    const last = this.stack[this.stack.length - 1];
-    if (last) last.index = index;
-    return this;
+  get at() {
+    return {
+      index: (index) => {
+        if (typeof index !== 'number') throw new TypeError('index must be a number');
+        const last = this.stack[this.stack.length - 1];
+        if (last) last.index = index;
+        return this;
+      }
+    };
   }
 
   /**
