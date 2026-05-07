@@ -1390,13 +1390,13 @@ const os = await browser.get.os()
 
 These are intermediate operations for refining element selection:
 
-### atIndex(index)
+### at.index(index)
 
 Get specific element occurrence (0-based).
 
 ```javascript
-await browser.element('Item').atIndex(0).click()
-await browser.textbox('Email').atIndex(2).write('...')
+await browser.element('Item').at.index(0).click()
+await browser.textbox('Email').at.index(2).write('...')
 ```
 
 ### exact

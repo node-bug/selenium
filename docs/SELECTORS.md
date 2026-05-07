@@ -407,7 +407,7 @@ await browser.textbox('email_address').write('...') // by name
 await browser.button('Delete').click() // Gets first
 
 // ✓ Specify which one
-await browser.button('Delete').atIndex(1).click() // Get second
+await browser.button('Delete').at.index(1).click() // Get second
 ```
 
 ### Common Patterns That Fail
@@ -466,7 +466,7 @@ Do you know the visible text or placeholder?
                  │
                  └─ NO → Use generic + index:
                          await browser.element('Text')
-                           .atIndex(2).click()
+                           .at.index(2).click()
 ```
 
 ---

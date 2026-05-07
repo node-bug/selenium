@@ -247,7 +247,7 @@ const email = await browser.column('Email').within.row('Jane Smith').get.text()
 A: `is.*` returns boolean (use in conditionals), `should.*` throws error (use in tests). [Learn more](CONCEPTS.md)
 
 **Q: How do I find elements with duplicate text?**  
-A: Use spatial context: `button.below.element()`, or target by position with `atIndex()`. [Examples](SELECTORS.md#spatial-references)
+A: Use spatial context: `button.below.element()`, or target by position with `at.index()`. [Examples](SELECTORS.md#spatial-references)
 
 **Q: Can I use XPath or CSS selectors?**  
 A: No. WebBrowser uses human-like text matching and spatial context. It's simpler. [How it works](CONCEPTS.md)

@@ -10,7 +10,7 @@ The library uses a two-step operation model:
 
 Build the selector stack without executing actions. They return the `WebBrowser` instance for method chaining.
 
-**Examples**: `element()`, `button()`, `above`, `below`, `within`, `atIndex()`, `exact`, `hidden`
+**Examples**: `element()`, `button()`, `above`, `below`, `within`, `at.index()`, `exact`, `hidden`
 
 ```javascript
 await browser.element('submit').above.button('cancel').click()
@@ -257,7 +257,7 @@ This section helps AI systems understand WebBrowser's design for code generation
 **4. Operation Types (Strict)**
 
 - **Intermediate**: Return `browser` instance (chainable) - no execution
-  - Examples: `element()`, `button()`, `below`, `within`, `atIndex()`, `exact`
+  - Examples: `element()`, `button()`, `below`, `within`, `at.index()`, `exact`
 - **Terminal**: Execute action (return value) - clears stack
   - Examples: `click()`, `write()`, `is.visible()`, `should.be.visible()`, `get.text()`
 - Always end chains with terminal operation
