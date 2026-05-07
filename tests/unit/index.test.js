@@ -371,8 +371,8 @@ describe('WebBrowser', () => {
 
         expect(() => browser.upload('/file')).rejects.toThrow();
     });
-    test('atIndex throws if not number', () => {
-        expect(() => browser.atIndex('x')).toThrow(TypeError);
+    test('at.index throws if not number', () => {
+        expect(() => browser.at.index('x')).toThrow(TypeError);
     });
     test('or getter adds condition to stack', () => {
         browser.stack = [{ id: 1 }];

@@ -395,7 +395,7 @@ await browser.row('John Doe').should.not.be.visible()
 
 **Windows/Tabs/Alerts**: `window()`, `tab()`, `alert()`
 
-**Spatial Positioning**: `above`, `below`, `toLeftOf`, `toRightOf`, `within`, `near`, `exactly`, `or`, `exact`, `atIndex()`
+**Spatial Positioning**: `above`, `below`, `toLeftOf`, `toRightOf`, `within`, `near`, `exactly`, `or`, `exact`, `at.index()`
 
 **Drag & Drop**: `drag()`, `onto()`, `drop()`
 
