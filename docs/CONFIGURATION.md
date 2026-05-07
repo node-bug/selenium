@@ -25,6 +25,7 @@ Create `.config/selenium.json`:
 ## Configuration Options
 
 ### browser
+
 Browser to use. Cannot be set programmatically.
 
 - `"chrome"` (default)
@@ -36,6 +37,7 @@ Browser to use. Cannot be set programmatically.
 ```
 
 ### headless
+
 Run in headless mode (no GUI). Useful for CI/CD.
 
 ```json
@@ -45,6 +47,7 @@ Run in headless mode (no GUI). Useful for CI/CD.
 **Default**: `false`
 
 ### incognito
+
 Private browsing mode (no cookies/history saved).
 
 ```json
@@ -54,6 +57,7 @@ Private browsing mode (no cookies/history saved).
 **Default**: `false`
 
 ### timeout
+
 Default timeout in seconds for element operations.
 
 ```json
@@ -63,6 +67,7 @@ Default timeout in seconds for element operations.
 **Default**: `30`
 
 ### height / width
+
 Browser window dimensions in pixels. `null` = default size.
 
 ```json
@@ -75,6 +80,7 @@ Browser window dimensions in pixels. `null` = default size.
 **Default**: `null` (driver default)
 
 ### downloadsPath
+
 Directory for downloaded files.
 
 ```json
@@ -82,6 +88,7 @@ Directory for downloaded files.
 ```
 
 ### hub
+
 Selenium Grid hub URL for distributed testing.
 
 ```json
@@ -90,19 +97,26 @@ Selenium Grid hub URL for distributed testing.
 
 **Default**: `null` (local WebDriver)
 
+### debug
+
+Enable debug mode. When enabled, found elements will be highlighted with a thick red outline.
+
+```json
+{ "debug": true }
+```
+
+**Default**: `false`
+
 ### Browser-Specific Options
 
 #### Chrome Options
+
 Passed as `goog:chromeOptions`:
 
 ```json
 {
   "goog:chromeOptions": {
-    "args": [
-      "--no-sandbox",
-      "--disable-dev-shm-usage",
-      "--disable-gpu"
-    ],
+    "args": ["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu"],
     "prefs": {
       "profile.default_content_settings.popups": 0,
       "download.default_directory": "./reports/downloads"
@@ -112,6 +126,7 @@ Passed as `goog:chromeOptions`:
 ```
 
 #### Firefox Options
+
 Passed as `moz:firefoxOptions`:
 
 ```json
@@ -131,11 +146,13 @@ Passed as `moz:firefoxOptions`:
 Configuration can be set via (in priority order):
 
 1. **Command-line parameters**
+
    ```bash
    node script.js --browser=firefox
    ```
 
 2. **Environment variables**
+
    ```bash
    export browser=firefox
    export headless=true
@@ -151,6 +168,7 @@ Configuration can be set via (in priority order):
 ## Usage Examples
 
 ### Development (Visible Browser)
+
 ```json
 {
   "browser": "chrome",
@@ -162,6 +180,7 @@ Configuration can be set via (in priority order):
 ```
 
 ### CI/CD Pipeline
+
 ```json
 {
   "browser": "chrome",
@@ -174,6 +193,7 @@ Configuration can be set via (in priority order):
 ```
 
 ### Testing with Private Session
+
 ```json
 {
   "browser": "chrome",
@@ -184,6 +204,7 @@ Configuration can be set via (in priority order):
 ```
 
 ### Selenium Grid
+
 ```json
 {
   "browser": "chrome",
