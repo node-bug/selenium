@@ -1341,13 +1341,17 @@ const classes = await browser.button('Submit').get.attribute('class')
 
 ### get.screenshot()
 
-Capture element screenshot.
+Capture a screenshot — of a specific element if one is selected, otherwise of the full page.
 
 ```javascript
-const screenshot = await browser.element('chart').get.screenshot()
+// Full page screenshot (no element selected)
+const pageShot = await browser.get.screenshot()
+
+// Element screenshot (element selected)
+const elementShot = await browser.element('chart').get.screenshot()
 ```
 
-**Returns**: `Promise<Buffer>`
+**Returns**: `Promise<string>` — Base64-encoded image data URL.
 
 ### get.size()
 
