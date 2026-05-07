@@ -222,10 +222,17 @@ All return `WebBrowser` for chaining:
 - `image(selector)` - Image
 - `element(selector)` - Generic element
 
+**selector** accepts:
+
+- `string` — text or attribute value to match against
+- `number` — 1-based index to select the Nth matching element (no text filtering)
+
 ```javascript
-await browser.button('Submit').click()
-await browser.textbox('Email').write('user@example.com')
-await browser.checkbox('Remember Me').check()
+await browser.button('Submit').click() // By text
+await browser.textbox('Email').write('user@example.com') // By text
+await browser.row(2).click() // 2nd row (no text filter)
+await browser.column(1).click() // 1st column
+await browser.button(3).click() // 3rd button on page
 ```
 
 ### find()
@@ -603,7 +610,7 @@ Handle `<select>` elements and custom combobox widgets. Use `dropdown()` to sele
 
 ### option(value)
 
-Specify an option to select. Accepts text, value, or a numeric index (0-based).
+Specify an option to select. Accepts text, value, or a numeric index (1-based).
 
 ```javascript
 // By text (partial match, case-insensitive)
@@ -612,9 +619,9 @@ await browser.dropdown('Country').option('United States').select()
 // By value
 await browser.dropdown('Country').option('US').select()
 
-// By index (0-based)
-await browser.dropdown('Country').option(0).select() // First option
-await browser.dropdown('Country').option(2).select() // Third option
+// By index (1-based)
+await browser.dropdown('Country').option(1).select() // First option
+await browser.dropdown('Country').option(3).select() // Third option
 ```
 
 **Parameters**:
@@ -629,7 +636,7 @@ Select the previously specified option. Supports both native `<select>` elements
 
 ```javascript
 await browser.dropdown('Country').option('United States').select()
-await browser.dropdown('Country').option(0).select()
+await browser.dropdown('Country').option(1).select() // First option (1-based)
 ```
 
 **Returns**: `Promise<boolean>`
@@ -1392,12 +1399,14 @@ These are intermediate operations for refining element selection:
 
 ### at.index(index)
 
-Get specific element occurrence (0-based).
+Get specific element occurrence (1-based). Use this when you need to target a specific match among multiple elements with the same text.
 
 ```javascript
-await browser.element('Item').at.index(0).click()
-await browser.textbox('Email').at.index(2).write('...')
+await browser.element('Item').at.index(1).click() // 1st matching element
+await browser.textbox('Email').at.index(2).write('..') // 2nd matching textbox
 ```
+
+> **Tip:** You can also pass a number directly to the element type selector instead of chaining `.at.index()`. For example, `browser.row(2)` is equivalent to `browser.row('').at.index(2)`.
 
 ### exact
 

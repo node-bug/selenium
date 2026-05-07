@@ -64,7 +64,7 @@ const ELEMENT_TYPES = new Set([
   'link', 'navigation', 'heading', 'button', 'checkbox',
   'radio', 'slider', 'dropdown', 'textbox', 'file', 'list',
   'listitem', 'menu', 'menuitem', 'toolbar', 'dialog',
-  'row', 'column', 'image', 'element', 'switch'
+  'row', 'column', 'image', 'element', 'switch', 'table'
 ]);
 
 /**
@@ -80,8 +80,10 @@ export default function messenger(a) {
     if (ELEMENT_TYPES.has(obj.type)) {
       const exact = obj.exact ? 'exact ' : '';
       const hidden = obj.hidden ? 'hidden ' : '';
-      const index = obj.index ? `of index '${obj.index}' ` : '';
-      return `${exact}${hidden}${obj.type} '${obj.id}' ${index}`;
+      const atIndex = obj.index ? `at index '${obj.index}' ` : '';
+      // When id is empty or numeric, skip quoting the id
+      const idPart = obj.id ? (/^\d+$/.test(obj.id) ? `at index '${obj.id}' ` : `'${obj.id}' `) : '';
+      return `${exact}${hidden}${obj.type} ${idPart}${atIndex}`;
     }
 
     if (obj.type === 'location') {

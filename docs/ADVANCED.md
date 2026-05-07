@@ -42,7 +42,7 @@ await browser.tab().new()
 
 ### Switch Between Tabs
 
-By index (0-based):
+By index (0-based - tabs/windows use 0-based indexing):
 
 ```javascript
 await browser.tab(0).switch() // First tab
@@ -167,7 +167,7 @@ await browser.window().new()
 
 ### Switch Between Windows
 
-By index (0-based):
+By index (0-based - tabs/windows use 0-based indexing):
 
 ```javascript
 await browser.window(0).switch() // First window
