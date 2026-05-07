@@ -1,5 +1,8 @@
 import { By } from 'selenium-webdriver';
+import config from '@nodebug/config';
 import { ElementTypes } from './element-types.js';
+
+const selenium = config('selenium');
 
 /**
  * Core element-finding strategy that extends {@link ElementTypes} with
@@ -13,6 +16,11 @@ export class LocatorStrategy extends ElementTypes {
    */
   set driver(value) { this._driver = value; }
   get driver() { return this._driver; }
+
+  /**
+   * @type {boolean}
+   */
+  get debug() { return selenium.debug ?? false; }
 
   /**
    * Helper to switch context safely.
@@ -51,14 +59,12 @@ export class LocatorStrategy extends ElementTypes {
       const xpath = this.getSelectors(childData.id, childData.exact)[childData.type];
       const elements = await parent.findElements(By.xpath(xpath));
 
-      const qualified = await Promise.all(
-        elements.map(async (el) => {
-          el.frame = parent.frame;
-          return this.addQualifiers(el);
-        })
-      );
+      elements.forEach(el => el.frame = parent.frame);
+      const qualified = await this.addQualifiers(elements);
 
-      return qualified.filter(e => e.rect.height > 0 && e.rect.width > 0);
+      const filtered = qualified.filter(e => e.rect.height > 0 && e.rect.width > 0);
+
+      return filtered;
     });
   }
 
@@ -92,28 +98,24 @@ export class LocatorStrategy extends ElementTypes {
     const { rect: r } = relativeElement;
     const BUFFER = 5;
 
+    // For 'within' with type 'element', resolve child elements of the reference
+    // element *before* filtering to avoid mutating item.matches mid-iteration.
+    if (rel.located === 'within' && item.type === 'element') {
+      item.matches = await this.findChildElements(relativeElement, item);
+    }
+
     const spatialFilters = {
       above: (e) => r.top >= e.rect.bottom && (!rel.exactly || (r.left - BUFFER <= e.rect.left && r.right + BUFFER >= e.rect.right)),
       below: (e) => r.bottom <= e.rect.top && (!rel.exactly || (r.left - BUFFER <= e.rect.left && r.right + BUFFER >= e.rect.right)),
       toLeftOf: (e) => r.left >= e.rect.right && (!rel.exactly || (r.top - BUFFER <= e.rect.top && r.bottom + BUFFER >= e.rect.bottom)),
       toRightOf: (e) => r.right <= e.rect.left && (!rel.exactly || (r.top - BUFFER <= e.rect.top && r.bottom + BUFFER >= e.rect.bottom)),
-      within: async (e) => {
-        if (item.type === 'element') {
-          item.matches = await this.findChildElements(relativeElement, item);
-        }
-        return (r.left <= e.rect.midx && r.right >= e.rect.midx && r.top <= e.rect.midy && r.bottom >= e.rect.midy);
-      }
+      within: (e) => r.left <= e.rect.midx && r.right >= e.rect.midx && r.top <= e.rect.midy && r.bottom >= e.rect.midy
     };
 
     const filterFn = spatialFilters[rel.located];
     if (!filterFn) throw new ReferenceError(`Location '${rel.located}' is not supported`);
 
-    // Handle the 'within' async exception separately or use a regular filter
-    const results = [];
-    for (const el of item.matches) {
-      if (await filterFn(el)) results.push(el);
-    }
-    return results;
+    return item.matches.filter(filterFn);
   }
 
   /**
@@ -307,7 +309,7 @@ export class LocatorStrategy extends ElementTypes {
       'textbox', 'file',
       'list', 'listitem', 'menu', 'menuitem',
       'toolbar', 'dialog',
-      'row', 'column',
+      'table', 'row', 'column',
       'image',
       'element'
     ]);
@@ -370,6 +372,15 @@ export class LocatorStrategy extends ElementTypes {
     await this.driver.switchTo().defaultContent();
     if (currentElement.frame >= 0) await this.driver.switchTo().frame(currentElement.frame);
 
+    // Highlight the element with a thick red box when debug is enabled
+    if (this.debug) {
+      await this.driver.executeScript(`
+        const el = arguments[0];
+        el.style.outline = '4px solid red';
+        el.style.outlineOffset = '2px';
+      `, currentElement);
+    }
+
     return currentElement;
   }
 
@@ -417,6 +428,16 @@ export class LocatorStrategy extends ElementTypes {
           `'${item.id}' ${isLocation ? item.located : ''} resulted in 0 matching elements.`
         );
       }
+    }
+
+    // Highlight all elements with a thick red box when debug is enabled
+    if (this.debug) {
+      await this.driver.executeScript(`
+        Array.from(arguments).forEach(el => {
+          el.style.outline = '4px solid red';
+          el.style.outlineOffset = '2px';
+        });
+      `, ...elements);
     }
 
     // 3. Return the final collection of elements

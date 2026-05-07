@@ -73,7 +73,7 @@ describe('messenger', () => {
     };
 
     const result = messenger(action);
-    expect(result).toBe("Clicking on element 'list-item' of index '2'");
+    expect(result).toBe("Clicking on element 'list-item' at index '2'");
   });
 
   test('should handle location type in stack', () => {

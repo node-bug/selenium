@@ -50,7 +50,38 @@ jest.unstable_mockModule('@nodebug/config', () => ({
 // Mock dependencies
 jest.unstable_mockModule('../../app/elements/locator-strategy.js', () => {
     const mockLocatorStrategy = {
-        definitions: { element: true },
+        definitions: {
+            // Navigation & Structure
+            link: true,
+            navigation: true,
+            heading: true,
+            // Interactive Controls
+            button: true,
+            checkbox: true,
+            switch: true,
+            radio: true,
+            slider: true,
+            dropdown: true,
+            // Forms & Inputs
+            textbox: true,
+            file: true,
+            // Lists & Menus
+            list: true,
+            listitem: true,
+            menu: true,
+            menuitem: true,
+            // Containers & Layout
+            toolbar: true,
+            dialog: true,
+            // Tables / Grids
+            table: true,
+            row: true,
+            column: true,
+            // Media
+            image: true,
+            // Global Fallback
+            element: true,
+        },
         find: jest.fn(),
         findAll: jest.fn(),
     };
@@ -117,6 +148,48 @@ describe('WebBrowser', () => {
     test('should initialize correctly', () => {
         expect(browser.stack).toEqual([]);
         expect(browser.locatorStrategy).toBeDefined();
+    });
+
+    test('should throw error when element type is called with empty string', () => {
+        expect(() => browser.element('')).toThrow(
+            /Invalid argument: element\(\) requires a non-empty string identifier/
+        );
+    });
+
+    describe('element type validation', () => {
+        const elementTypes = [
+            'button', 'textbox', 'checkbox', 'radio', 'dropdown',
+            'link', 'heading', 'image', 'file', 'dialog',
+            'row', 'column', 'table', 'list', 'listitem',
+            'menu', 'menuitem', 'toolbar', 'navigation', 'slider',
+            'switch', 'element'
+        ];
+
+        test.each(elementTypes)('should throw when %s() is called with empty string', (type) => {
+            expect(() => browser[type]('')).toThrow(
+                new RegExp(`Invalid argument: ${type}\\(\\) requires a non-empty string identifier`)
+            );
+        });
+
+        test.each(elementTypes)('should throw when %s() is called with null', (type) => {
+            expect(() => browser[type](null)).toThrow(
+                new RegExp(`Invalid argument: ${type}\\(\\) requires a non-empty string identifier`)
+            );
+        });
+
+        test.each(elementTypes)('should throw when %s() is called with undefined', (type) => {
+            expect(() => browser[type](undefined)).toThrow(
+                new RegExp(`Invalid argument: ${type}\\(\\) requires a non-empty string identifier`)
+            );
+        });
+
+        test.each(elementTypes)('should work when %s() is called with valid string', (type) => {
+            expect(() => browser[type]('test')).not.toThrow();
+        });
+
+        test.each(elementTypes)('should work when %s() is called with valid number index', (type) => {
+            expect(() => browser[type](1)).not.toThrow();
+        });
     });
 
     test('message getter/setter works', () => {

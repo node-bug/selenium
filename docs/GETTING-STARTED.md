@@ -418,6 +418,7 @@ WebBrowser supports 20+ element types for semantic selection:
 | `dropdown` | `browser.dropdown('Country')`      |
 | `heading`  | `browser.heading('Title')`         |
 | `dialog`   | `browser.dialog('Modal')`          |
+| `table`    | `browser.table('Users')`           |
 | `row`      | `browser.row('John Doe')`          |
 | `element`  | `browser.element('Any')` (generic) |
 

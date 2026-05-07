@@ -1045,8 +1045,22 @@ class WebBrowser extends Browser {
 
   // STACK BUILDERS
   #typefixer(data, type) {
+    if ((typeof data === 'string' && data === '') || data === null || data === undefined) {
+      log.error(`Invalid argument: ${type}() accepts index, string. String value requires a non-empty string identifier.`);
+      throw new Error(`Invalid argument: ${type}() requires a non-empty string identifier`);
+    }
+
     this.#element(data);
-    this.stack[this.stack.length - 1].type = type;
+    const item = this.stack[this.stack.length - 1];
+    item.type = type;
+
+    // If data is a positive integer, treat it as a 1-based index
+    // and clear the id so it matches any element of that type
+    if (typeof data === 'number' && Number.isInteger(data) && data > 0) {
+      item.index = data;
+      item.id = '';
+    }
+
     return this;
   }
 

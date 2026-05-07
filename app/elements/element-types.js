@@ -19,7 +19,7 @@ export class ElementTypes {
     this.attributes = [
       'placeholder', 'value', 'data-test-id', 'data-testid', 'id',
       'resource-id', 'name', 'aria-label', 'class', 'hint',
-      'title', 'tooltip', 'alt', 'src', 'role'
+      'title', 'tooltip', 'alt', 'src', 'role', 'aria-labelledby'
     ];
 
     this.definitions = {
@@ -52,6 +52,7 @@ export class ElementTypes {
       dialog: `@role='dialog'`,
 
       // Tables / Grids
+      table: `self::table or @role='table'`,
       row: `self::tr or @role='row'`,
       column: `self::td or self::th or @role='cell' or @role='gridcell' or @role='columnheader'`,
 
