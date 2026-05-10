@@ -1219,10 +1219,14 @@ class WebBrowser extends Browser {
       // 1. Find source element
       this.message = messenger({ stack: dragStack, action: 'drag' });
       const dragLocator = await this.locatorStrategy.find(dragStack);
+      // Scroll the source element into view
+      await this.driver.executeScript('arguments[0].scrollIntoView(true);', dragLocator);
 
       // 2. Find target element
       this.message = messenger({ stack: dropStack, action: 'drop' });
       const dropLocator = await this.locatorStrategy.find(dropStack);
+      // Scroll the target element into view
+      await this.driver.executeScript('arguments[0].scrollIntoView(true);', dropLocator);
 
       // 3. Execute precise Action sequence
       const actions = this.driver.actions({ async: true });
@@ -1231,9 +1235,9 @@ class WebBrowser extends Browser {
         .move({ origin: dragLocator, x: 5, y: 5 }) // Small offset to avoid center-point deadzones
         .press()
         .pause(500) // Brief pause to trigger the 'dragstart' event
-        .move({ origin: dragLocator, x: 20, y: 20 }) // "Nudge" to confirm drag state
+        .move({ origin: 'pointer', x: 20, y: 20, duration: 100 }) // "Nudge" to confirm drag state
         .pause(200)
-        .move({ origin: dropLocator })
+        .move({ origin: dropLocator }) // Move to the center of the target element
         .pause(500) // Wait for target to acknowledge the hover
         .release()
         .perform();

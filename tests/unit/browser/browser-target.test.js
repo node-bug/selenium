@@ -264,5 +264,111 @@ describe('is.present()', () => {
       await expect(browserTarget.switch()).rejects.toThrow();
       browserTarget._findTarget = originalFindTarget;
     });
+
+    test('throws error when target is not found during switch (return false)', async () => {
+      browserTarget._targetTitle = 'Non-existent Title';
+      mockDriver.getTitle.mockResolvedValue('Different Title');
+      Object.defineProperty(browserTarget, 'timeout', { get: () => 100 });
+
+      await expect(browserTarget.switch()).rejects.toThrow('TestTarget was not found on screen after \'100 ms\' timeout');
+    });
+  });
+
+  describe('is.not.present()', () => {
+    test('returns true when target is not present', async () => {
+      browserTarget._targetTitle = 'Non-existent Title';
+      mockDriver.getTitle.mockResolvedValue('Different Title');
+      Object.defineProperty(browserTarget, 'timeout', { get: () => 100 });
+
+      const result = await browserTarget.is.not.present();
+      expect(result).toBe(true);
+    });
+
+    test('returns false when target is present', async () => {
+      browserTarget._targetTitle = 'Test Title';
+      mockDriver.getTitle.mockResolvedValue('Test Title');
+
+      const result = await browserTarget.is.not.present();
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('should.be.present()', () => {
+    test('returns true when target is present', async () => {
+      browserTarget._targetTitle = 'Test Title';
+      mockDriver.getTitle.mockResolvedValue('Test Title');
+
+      const result = await browserTarget.should.be.present();
+      expect(result).toBe(true);
+    });
+
+    test('throws error when target is not present', async () => {
+      browserTarget._targetTitle = 'Non-existent Title';
+      mockDriver.getTitle.mockResolvedValue('Different Title');
+      Object.defineProperty(browserTarget, 'timeout', { get: () => 100 });
+
+      await expect(browserTarget.should.be.present()).rejects.toThrow('TestTarget with title \'Non-existent Title\' is not present');
+    });
+  });
+
+  describe('should.not.be.present()', () => {
+    test('returns true when target is not present', async () => {
+      browserTarget._targetTitle = 'Non-existent Title';
+      mockDriver.getTitle.mockResolvedValue('Different Title');
+      Object.defineProperty(browserTarget, 'timeout', { get: () => 100 });
+
+      const result = await browserTarget.should.not.be.present();
+      expect(result).toBe(true);
+    });
+
+    test('throws error when target is present', async () => {
+      browserTarget._targetTitle = 'Test Title';
+      mockDriver.getTitle.mockResolvedValue('Test Title');
+
+      await expect(browserTarget.should.not.be.present()).rejects.toThrow('TestTarget with title \'Test Title\' is present but should not be');
+    });
+  });
+
+  describe('_findTarget() edge cases', () => {
+    test('returns true immediately if no target title is specified', async () => {
+      browserTarget._targetTitle = undefined;
+      const result = await browserTarget._findTarget(false);
+      expect(result).toBe(true);
+    });
+
+    test('handles index out of bounds (too high)', async () => {
+      browserTarget._targetTitle = 5;
+      browserTarget._isIndex = true;
+      mockDriver.getAllWindowHandles.mockResolvedValue(['h1', 'h2']);
+      
+      const result = await browserTarget._findTarget(false);
+      expect(result).toBe(false);
+    });
+
+    test('handles index out of bounds (negative)', async () => {
+      browserTarget._targetTitle = -1;
+      browserTarget._isIndex = true;
+      mockDriver.getAllWindowHandles.mockResolvedValue(['h1', 'h2']);
+      
+      const result = await browserTarget._findTarget(false);
+      expect(result).toBe(false);
+    });
+
+    test('handles NoSuchWindowError when getting original handle', async () => {
+      browserTarget._targetTitle = 'Some Title';
+      mockDriver.getWindowHandle.mockRejectedValue({ name: 'NoSuchWindowError' });
+      mockDriver.getTitle.mockResolvedValue('Different Title');
+      Object.defineProperty(browserTarget, 'timeout', { get: () => 100 });
+
+      const result = await browserTarget._findTarget(false);
+      expect(result).toBe(false);
+    });
+
+    test('throws error when getWindowHandle fails with other error', async () => {
+      browserTarget._targetTitle = 'Some Title';
+      mockDriver.getWindowHandle.mockRejectedValue(new Error('Unexpected Error'));
+      
+      await expect(browserTarget._findTarget(false)).rejects.toThrow('Unexpected Error');
+    });
   });
 });

@@ -51,7 +51,7 @@ describe('ClickDelegate (ESM)', () => {
     middleClick: jest.fn().mockReturnThis(),
     keyDown: jest.fn().mockReturnThis(),
     keyUp: jest.fn().mockReturnThis(),
-    clickAndHold: jest.fn().mockReturnThis(),
+    press: jest.fn().mockReturnThis(),
     pause: jest.fn().mockReturnThis(),
     release: jest.fn().mockReturnThis(),
     move: jest.fn().mockReturnThis(),
@@ -173,7 +173,7 @@ describe('ClickDelegate (ESM)', () => {
     test('works', async () => {
       await clickDelegate.longPress();
 
-      expect(actionsMock.clickAndHold).toHaveBeenCalled();
+      expect(actionsMock.press).toHaveBeenCalled();
       expect(actionsMock.release).toHaveBeenCalled();
     });
   });

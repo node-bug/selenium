@@ -199,7 +199,9 @@ class Browser {
       await this.driver.quit()
     } catch (err) {
       log.error(`Error closing browser session: ${err.message}`)
-      throw err
+      // If driver is already null or session is gone, we can just return true
+      if (!this.driver || err.message.includes('no session')) return true;
+      throw err;
     }
     return true
   }

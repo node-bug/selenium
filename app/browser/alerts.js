@@ -1,5 +1,8 @@
 import { log } from '@nodebug/logger'
 import { until } from 'selenium-webdriver'
+import config from '@nodebug/config';
+
+const selenium = config('selenium');
 
 /**
  * Alert class for handling browser alerts and prompts
@@ -17,6 +20,7 @@ class Alert {
     initialize(driver) { this._driver = driver; }
     get driver() { return this._driver; }
     set driver(value) { this.initialize(value); }
+    get timeout() { return (selenium.timeout || 10) * 1000; }
 
     /**
      * Chain method for fluent interface
@@ -46,7 +50,7 @@ class Alert {
      */
     async isVisible() {
         try {
-            await this.driver.wait(until.alertIsPresent(), 10000)
+            await this.driver.wait(until.alertIsPresent(), this.timeout)
             await this.driver.sleep(1000) // Small delay to ensure alert is fully loaded
             const alert = await this.driver.switchTo().alert()
             const actualText = await alert.getText()
@@ -152,8 +156,65 @@ class Alert {
             visible: async () => {
                 return await this.isVisible();
             },
+            /**
+             * Check if an alert is NOT visible or does not match expected text
+             * 
+             * @returns {Promise<boolean>} True if alert is not visible or text does not match
+             * @example
+             * await browser.alert().is.not.visible();
+             * await browser.alert('Expected Text').is.not.visible();
+             */
+            not: {
+                visible: async () => {
+                    return !(await this.isVisible());
+                }
+            }
+        };
+    }
+    /**
+     * "Namespace" or "Sub-resource" pattern for organized access to assertion operations.
+     * Accessor for alert assertions.
+     * Usage: await browser.alert().should.be.visible()
+     */
+    get should() {
+        return {
+            be: {
+                /**
+                 * Assert that an alert is visible and matches expected text
+                 * 
+                 * @throws {Error} If alert is not visible or text does not match
+                 * @example
+                 * await browser.alert().should.be.visible();
+                 * await browser.alert('Expected Text').should.be.visible();
+                 */
+                visible: async () => {
+                    const visible = await this.isVisible();
+                    if (!visible) {
+                        throw new Error('Expected alert to be visible, but it was not');
+                    }
+                }
+            },
+            not: {
+                be: {
+                    /**
+                     * Assert that an alert is NOT visible or does not match expected text
+                     * 
+                     * @throws {Error} If alert is visible and text matches
+                     * @example
+                     * await browser.alert().should.not.be.visible();
+                     * await browser.alert('Expected Text').should.not.be.visible();
+                     */
+                    visible: async () => {
+                        const visible = await this.isVisible();
+                        if (visible) {
+                            throw new Error('Expected alert to not be visible, but it was');
+                        }
+                    }
+                }
+            }
         };
     }
 }
+
 
 export default Alert

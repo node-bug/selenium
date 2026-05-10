@@ -16,8 +16,8 @@ await browser.checkbox('Subscribe').should.not.be.checked()
 // Switches
 await browser.switch('Dark Mode').on()
 await browser.switch('Dark Mode').off()
-await browser.switch('Dark Mode').isOn()
-await browser.switch('Dark Mode').isOff()
+await browser.switch('Dark Mode').is.on()
+await browser.switch('Dark Mode').is.off()
 
 // Radio Buttons
 await browser.radio('Male').set()
@@ -182,24 +182,24 @@ await browser.switch('Dark Mode').off()
 
 **Returns**: `Promise<boolean>`
 
-### isOn()
+### is.on()
 
 Assert that switch is currently on:
 
 ```javascript
-await browser.switch('Dark Mode').isOn()
+await browser.switch('Dark Mode').is.on()
 ```
 
 **Throws**: Error if switch is off
 
 **Returns**: `Promise<boolean>`
 
-### isOff()
+### is.off()
 
 Assert that switch is currently off:
 
 ```javascript
-await browser.switch('Notifications').isOff()
+await browser.switch('Notifications').is.off()
 ```
 
 **Throws**: Error if switch is on
@@ -212,7 +212,7 @@ await browser.switch('Notifications').isOff()
 
 ```javascript
 if (await browser.switch('Feature').is.visible()) {
-  if (await browser.switch('Feature').isOn()) {
+  if (await browser.switch('Feature').is.on()) {
     await browser.switch('Feature').off()
   } else {
     await browser.switch('Feature').on()
