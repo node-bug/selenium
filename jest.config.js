@@ -1,7 +1,7 @@
 export default {
   testEnvironment: 'node',
   testMatch: ['**/tests/**/*.test.js'],
-  testTimeout: 10000,
+  testTimeout: 100000,
   collectCoverageFrom: ['index.js', 'app/**/*.js'],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov'],

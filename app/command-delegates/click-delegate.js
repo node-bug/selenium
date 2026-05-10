@@ -194,9 +194,9 @@ export class ClickDelegate {
   }
 
   /**
-   * Performs a long press click on the element.
+   * Performs a long press on an element.
    * 
-   * Uses Selenium WebDriver Actions API to simulate a long press.
+   * Simulates a long press by holding the mouse button down for a specified duration.
    * 
    * @param {number} [duration=1000] - Duration of the long press in milliseconds
    * @returns {Promise<boolean>} True if successful
@@ -210,7 +210,7 @@ export class ClickDelegate {
     try {
       const locator = await browser._finder();
       // longPress is the Selenium equivalent of a long press
-      await browser.actions().clickAndHold(locator).pause(duration).release().perform();
+      await browser.actions().move({origin: locator}).press().pause(duration).release().perform();
     } catch (err) {
       browser.handleError(err, 'long pressing');
     } finally {
