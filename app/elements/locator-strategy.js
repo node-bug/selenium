@@ -217,6 +217,8 @@ export class LocatorStrategy extends ElementTypes {
    * Finds all matching elements across all frames (including default content).
    *
    * Primary pass: queries using the requested element type's XPath selector.
+   * For 'column' type, expands the match to include all cells in the matched
+   * column index within the same table.
    * Fallback pass (if primary yields no results): queries using the generic
    * 'element' selector, then replaces each match with the nearest element
    * of the requested type via {@link nearestElement}.
@@ -238,6 +240,11 @@ export class LocatorStrategy extends ElementTypes {
         const targetXpath = xpaths[elementData.type] || xpaths['element'];
 
         let elements = await this.driver.findElements(By.xpath(targetXpath));
+
+        // For 'column' type, expand matches to include all cells in the matched column
+        if (elementData.type === 'column' && elements.length > 0) {
+          elements = await this.expandColumnMatches(elements);
+        }
 
         if (elements.length > 0) {
           // 1. Tag the elements with the frame index first
@@ -271,6 +278,11 @@ export class LocatorStrategy extends ElementTypes {
             elements[index] = await this.nearestElement(element, elementData.type)
           }
 
+          // For 'column' type, expand matches to include all cells in the matched column
+          if (elementData.type === 'column' && elements.length > 0) {
+            elements = await this.expandColumnMatches(elements);
+          }
+
           if (elements.length > 0) {
             // 1. Tag the elements with the frame index first
             elements.forEach(el => el.frame = i);
@@ -290,6 +302,62 @@ export class LocatorStrategy extends ElementTypes {
       }
     }
     return found;
+  }
+
+  /**
+   * Expands column header matches to include all cells in the same column index.
+   *
+   * For each matched header cell, determines its column index within the table,
+   * then finds all cells (both headers and data cells) at that index across all rows.
+   *
+   * @param {WebElement[]} headerElements - Array of matched header cells.
+   * @returns {Promise<WebElement[]>} Array of all cells in the matched columns.
+   */
+  async expandColumnMatches(headerElements) {
+    if (headerElements.length === 0) return [];
+
+    const allCells = await this.driver.executeScript(`
+      const headers = Array.from(arguments[0]);
+      const allColumnCells = [];
+      const processedTables = new Set();
+
+      headers.forEach(header => {
+        // Find the containing table
+        let table = header.closest('table');
+        if (!table) return;
+
+        // Prevent duplicate processing for the same table/column combination
+        const tableKey = table.outerHTML.substring(0, 50);
+        if (processedTables.has(tableKey)) return;
+
+        // Determine column index by finding the header's position in its row
+        const headerRow = header.closest('tr');
+        if (!headerRow) return;
+
+        const cellsInRow = Array.from(headerRow.children);
+        const columnIndex = cellsInRow.indexOf(header);
+        if (columnIndex === -1) return;
+
+        // Get all rows in the table and collect cells at the matching column index
+        const rows = table.querySelectorAll('tr');
+        rows.forEach(row => {
+          const cells = row.children;
+          if (columnIndex < cells.length) {
+            const cell = cells[columnIndex];
+            // Avoid duplicates
+            if (!allColumnCells.includes(cell)) {
+              allColumnCells.push(cell);
+            }
+          }
+        });
+
+        processedTables.add(tableKey);
+      });
+
+      return allColumnCells;
+    `, ...headerElements);
+
+    return allCells;
   }
 
   /**
