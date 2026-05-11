@@ -17,16 +17,13 @@ describe('WebBrowser Drag and Drop Tests', () => {
     // Using a page that supports drag and drop
     await browser.goto('https://the-internet.herokuapp.com/drag_and_drop');
 
-    // Get the draggable elements
-    const columnA = browser.element('A');
-    const columnB = browser.element('B');
-
     // Perform drag and drop using the fluent API
     await browser.drag.element('A').onto.element('B').drop();
 
-    // Verify the swap occurred
-    const textA = await columnA.get.text();
-    const textB = await columnB.get.text();
+    // Re-query elements after the swap to avoid stale element references
+    // The library matches by id attribute, so 'column-a' finds id="column-a"
+    const textA = await browser.element('column-a').get.text();
+    const textB = await browser.element('column-b').get.text();
 
     expect(textA).toBe('B');
     expect(textB).toBe('A');
