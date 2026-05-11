@@ -475,6 +475,7 @@ describe('WebBrowser', () => {
         const perform = jest.fn().mockResolvedValue();
 
         browser.driver = {
+            executeScript: jest.fn().mockResolvedValue(),
             actions: jest.fn().mockReturnValue({
                 move: jest.fn().mockReturnThis(),
                 press: jest.fn().mockReturnThis(),

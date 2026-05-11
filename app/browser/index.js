@@ -252,7 +252,7 @@ class Browser {
         await this.driver.manage().window().setRect(lSize)
         log.info(`Resizing the browser to (${JSON.stringify(size)}).`)
 
-        return await this.driver.manage().window().setRect(size)
+        return true
       } else {
         log.info(`Invalid size provided (${JSON.stringify(size)}). Browser will not be resized.`)
       }

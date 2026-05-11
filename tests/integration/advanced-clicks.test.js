@@ -49,7 +49,6 @@ describe('WebBrowser Advanced Click Integration Tests', () => {
     const element = browser.element('Click Me (Green)');
     
     // Try to click far outside the element's bounds to trigger the error in _clicker
-    // We expect this to be handled by browser.handleError, but we can verify it doesn't crash the process
-    await element.click(10000, 10000);
+    await expect(element.click(10000, 10000)).rejects.toThrow('Click out of bounds');
   });
 });
