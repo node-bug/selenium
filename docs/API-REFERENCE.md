@@ -1002,26 +1002,26 @@ await browser.checkbox('Subscribe').should.not.be.checked()
 
 **Throws**: Error if checkbox is checked - **Test execution stops**
 
-### isOn()
+### is.on()
 
 **Assertion that throws an error and stops test execution on failure.**
 
 Check if a switch is currently on.
 
 ```javascript
-const on = await browser.switch('Dark Mode').isOn()
+const on = await browser.switch('Dark Mode').is.on()
 ```
 
 **Throws**: Error if switch is off - **Test execution stops**
 
-### isOff()
+### is.off()
 
 **Assertion that throws an error and stops test execution on failure.**
 
 Check if a switch is currently off.
 
 ```javascript
-const off = await browser.switch('Dark Mode').isOff()
+const off = await browser.switch('Dark Mode').is.off()
 ```
 
 **Throws**: Error if switch is on - **Test execution stops**
