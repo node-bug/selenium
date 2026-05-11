@@ -42,4 +42,15 @@ describe('Element State Integration Tests', () => {
       await browser.radio('Radio 2').should.not.be.set();
     
   });
+
+  test('should assert switch state', async () => {
+      await browser.goto('https://www.w3schools.com/howto/tryitdemo/howto_try_toggle_switches.htm');
+      const switchElement = browser.switch('Toggle switch 1');
+      
+      await switchElement.on();
+      await switchElement.should.be.on();
+      
+      await switchElement.off();
+      await switchElement.should.be.off();
+  });
 });
