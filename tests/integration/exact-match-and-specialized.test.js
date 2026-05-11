@@ -26,7 +26,7 @@ describe('WebBrowser Exact Match and Specialized Elements Tests', () => {
   });
 
   test('should handle switch elements', async () => {
-    await browser.goto('https://www.w3schools.com/howto/tryitdemo/howto_try_toggle_switches.htm');
+    await browser.goto('https://www.w3schools.com/howto/howto_css_switch.asp');
     
     // Toggle switch 1 starts as Off, turn it On
     await browser.switch('Toggle switch 1').on();

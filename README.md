@@ -383,7 +383,7 @@ await browser.row('John Doe').should.not.be.visible()
 
 **Text Input**: `write()`, `clear()`, `overwrite()`, `type()`, `press()`, `left()`, `right()`, `up()`, `down()`
 
-**Form Elements**: `check()`, `uncheck()`, `set()`, `on()`, `off()`, `option()`, `select()`
+**Form Elements**: `check()`, `uncheck()`, `on()`, `off()`, `option()`, `select()`
 
 **Element State**: `is.visible()`, `is.enabled()`, `is.checked()`, `should.be.visible()`, `should.be.disabled()`
 
