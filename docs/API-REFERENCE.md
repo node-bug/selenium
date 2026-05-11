@@ -279,7 +279,6 @@ All return `WebBrowser` for chaining:
 - `checkbox(selector)` - Checkbox
 - `switch(selector)` - Switch
 - `radio(selector)` - Radio button
-- `slider(selector)` - Slider
 - `dropdown(selector)` - Dropdown
 - `textbox(selector)` - Text input
 - `file(selector)` - File input

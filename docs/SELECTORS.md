@@ -35,7 +35,6 @@ Specify element types to differentiate elements with identical text:
 | `checkbox`   | `browser.checkbox('Subscribe').check()`             |
 | `switch`     | `browser.switch('Dark Mode').on()`                  |
 | `radio`      | `browser.radio('Male').check()`                     |
-| `slider`     | `browser.slider('Volume').set(50)`                  |
 | `dropdown`   | `browser.dropdown('Country').option('US').select()` |
 | `textbox`    | `browser.textbox('Email').write('...')`             |
 | `file`       | `browser.file('Upload').upload('file.txt')`         |
