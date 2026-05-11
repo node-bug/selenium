@@ -558,8 +558,8 @@ class WebBrowser extends Browser {
       on: async () => {
         this.message = messenger({ stack: this.stack, action: 'isOn' });
         const result = await this.#switchDelegate._isOn();
-        if (result) log.info(`Switch is on`);
-        else log.warn(`Switch is not on`);
+        if (result) log.info(`Switch is ON`);
+        else log.warn(`Switch is not ON`);
         return result;
       },
 
@@ -571,8 +571,8 @@ class WebBrowser extends Browser {
       off: async () => {
         this.message = messenger({ stack: this.stack, action: 'isOff' });
         const result = !(await this.#switchDelegate._isOn());
-        if (result) log.info(`Switch is off`);
-        else log.warn(`Switch is not off`);
+        if (result) log.info(`Switch is OFF`);
+        else log.warn(`Switch is not OFF`);
         return result;
       },
 
@@ -738,11 +738,11 @@ class WebBrowser extends Browser {
           const test = await this.#switchDelegate._isOn();
           if (!test) {
             log.warn(`Switch is not on`);
-            const err = new Error('Switch should be on')
-            this.handleError(err, 'validating switch to be on');
+            const err = new Error('Switch should be ON')
+            this.handleError(err, 'validating switch to be ON');
             throw err
           } else {
-            log.info(`Switch is on`);
+            log.info(`Switch is ON`);
           }
         },
 
@@ -756,11 +756,11 @@ class WebBrowser extends Browser {
           const test = !(await this.#switchDelegate._isOn());
           if (!test) {
             log.warn(`Switch is not off`);
-            const err = new Error('Switch should be off')
-            this.handleError(err, 'validating switch to be off');
+            const err = new Error('Switch should be OFF')
+            this.handleError(err, 'validating switch to be OFF');
             throw err
           } else {
-            log.info(`Switch is off`);
+            log.info(`Switch is OFF`);
           }
         },
 

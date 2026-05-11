@@ -130,8 +130,8 @@ export default function messenger(a) {
       }
       return '';
     },
-    on: ' to on',
-    off: ' to off',
+    on: ' to ON',
+    off: ' to OFF',
     isVisible: ' is visible',
     isNotVisible: ' is not visible',
     shouldBeVisible: ' is visible',

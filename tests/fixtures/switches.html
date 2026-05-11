@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Switch Test Fixtures</title>
+  <style>
+    body { font-family: sans-serif; padding: 2rem; }
+    .section { margin-bottom: 2rem; }
+    h2 { margin-bottom: 0.5rem; }
+
+    /* Button-style switch (like W3C APG switch-button) */
+    .switch-button {
+      position: relative;
+      display: inline-block;
+      width: 60px;
+      height: 30px;
+    }
+    .switch-button input { opacity: 0; width: 0; height: 0; }
+    .switch-button .slider {
+      position: absolute; cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #ccc; transition: .4s;
+      border-radius: 30px;
+    }
+    .switch-button .slider:before {
+      position: absolute; content: "";
+      height: 22px; width: 22px;
+      left: 4px; bottom: 4px;
+      background-color: white; transition: .4s;
+      border-radius: 50%;
+    }
+    .switch-button input:checked + .slider { background-color: #2196F3; }
+    .switch-button input:checked + .slider:before { transform: translateX(30px); }
+
+    /* Label-wrapped checkbox */
+    .label-switch {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+    }
+
+    /* Hide native checkbox inputs visually while keeping them accessible */
+    .label-switch input[type="checkbox"],
+    #notifications {
+      position: absolute;
+      opacity: 0;
+      width: 0;
+      height: 0;
+      pointer-events: none;
+    }
+
+    /* Multiple switches section */
+    .multi-switches .switch-item {
+      margin-bottom: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>Switch Test Fixtures</h1>
+
+  <!-- Section 1: Button-style switch (role="switch" with aria-checked) -->
+  <div class="section">
+    <h2>1. Button-Style Switch (role="switch")</h2>
+    <button
+      id="env-controls"
+      class="switch-button"
+      role="switch"
+      aria-checked="false"
+      aria-label="Environmental Controls"
+      onclick="toggleSwitch(this)"
+    >
+      <span class="slider"></span>
+    </button>
+    <span id="env-controls-status">Off</span>
+  </div>
+
+  <!-- Section 2: Native checkbox with label wrapper -->
+  <div class="section">
+    <h2>2. Label-Wrapped Checkbox</h2>
+    <label class="label-switch">
+      <input type="checkbox" id="accessibility-pref" />
+      Accessibility Preferences
+    </label>
+  </div>
+
+  <!-- Section 3: Native checkbox (no label wrapper) -->
+  <div class="section">
+    <h2>3. Native Checkbox (Notifications)</h2>
+    <input type="checkbox" id="notifications" />
+    <label for="notifications">Notifications</label>
+  </div>
+
+  <!-- Section 4: Multiple switches for index testing -->
+  <div class="section multi-switches">
+    <h2>4. Multiple Switches</h2>
+    <div class="switch-item">
+      <button role="switch" aria-checked="false" aria-label="Dark Mode" onclick="toggleSwitch(this)">
+        <span class="slider"></span>
+      </button>
+      <span>Dark Mode</span>
+    </div>
+    <div class="switch-item">
+      <button role="switch" aria-checked="true" aria-label="Notifications" onclick="toggleSwitch(this)">
+        <span class="slider"></span>
+      </button>
+      <span>Notifications</span>
+    </div>
+    <div class="switch-item">
+      <button role="switch" aria-checked="false" aria-label="Auto Save" onclick="toggleSwitch(this)">
+        <span class="slider"></span>
+      </button>
+      <span>Auto Save</span>
+    </div>
+    <div class="switch-item">
+      <button role="switch" aria-checked="true" aria-label="Sound Effects" onclick="toggleSwitch(this)">
+        <span class="slider"></span>
+      </button>
+      <span>Sound Effects</span>
+    </div>
+    <div class="switch-item">
+      <button role="switch" aria-checked="false" aria-label="Analytics" onclick="toggleSwitch(this)">
+        <span class="slider"></span>
+      </button>
+      <span>Analytics</span>
+    </div>
+  </div>
+
+  <!-- Section 5: Disabled switch -->
+  <div class="section">
+    <h2>5. Disabled Switch</h2>
+    <button
+      id="disabled-switch"
+      role="switch"
+      aria-checked="false"
+      aria-label="Disabled Switch"
+      disabled
+      onclick="toggleSwitch(this)"
+    >
+      <span class="slider"></span>
+    </button>
+    <span>Disabled Switch</span>
+  </div>
+
+  <script>
+    function toggleSwitch(el) {
+      const isChecked = el.getAttribute('aria-checked') === 'true';
+      el.setAttribute('aria-checked', String(!isChecked));
+    }
+  </script>
+</body>
+</html>
