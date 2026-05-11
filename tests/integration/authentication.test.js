@@ -16,23 +16,20 @@ describe('WebBrowser Authentication Tests', () => {
   test('should handle complex user authentication flow', async () => {
     // Using a test authentication page
     await browser.goto('https://the-internet.herokuapp.com/login');
-    
-    try {
-      // Enter credentials
-      await browser.element('username').write('tomsmith');
-      await browser.element('password').write('SuperSecretPassword!');
-      await browser.element('Login').click();
-      
-      // Verify successful login
-      const successMessage = await browser.element('flash success').get.text();
-      expect(successMessage).toContain('You logged into a secure area!');
-      
-      // Test logout
-      await browser.element('Logout').click();
-      const logoutMessage = await browser.element('flash').get.text();
-      expect(logoutMessage).toContain('You logged out');
-    } catch (error) {
-      console.log('Authentication test skipped - functionality not available:', error.message);
-    }
+
+
+    await browser.element('username').write('tomsmith');
+    await browser.element('password').write('SuperSecretPassword!');
+    await browser.element('Login').click();
+
+    // Verify successful login
+    const successMessage = await browser.element('flash success').get.text();
+    expect(successMessage).toContain('You logged into a secure area!');
+
+    // Test logout
+    await browser.element('Logout').click();
+    const logoutMessage = await browser.element('flash').get.text();
+    expect(logoutMessage).toContain('You logged out');
+
   });
 });

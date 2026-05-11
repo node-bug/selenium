@@ -21,11 +21,8 @@ describe('WebBrowser Exact Match and Specialized Elements Tests', () => {
     
     // Test that exact matching fails for partial text if it's not an exact match
     // (Assuming .exact modifier enforces strict equality)
-    try {
-      await browser.exact.element('Text Input').should.be.visible();
-    } catch {
-      // Expected to fail because 'Text Input' is not 'Text Input Field:'
-    }
+     await browser.exact.element('Text Input').should.be.visible();
+    
   });
 
   test('should handle switch elements', async () => {
@@ -34,11 +31,8 @@ describe('WebBrowser Exact Match and Specialized Elements Tests', () => {
     // The demo page doesn't seem to have a standard 'switch' element in the snapshot,
     // but we can test the API using a checkbox as a fallback or just verify the API call.
     // Since we want to test the 'switch' specialized element:
-    try {
       await browser.switch('Dark Mode').on();
-    } catch {
-      // Expected if 'Dark Mode' switch doesn't exist on this specific page
-    }
+    
   });
 
   test('should handle file upload elements', async () => {
@@ -46,11 +40,8 @@ describe('WebBrowser Exact Match and Specialized Elements Tests', () => {
     
     // The demo page doesn't have a visible file upload in the snapshot,
     // but we verify the API can be called.
-    try {
       await browser.file('Upload Resume').upload('/tmp/dummy-file.txt');
-    } catch {
-      // Expected if element not found
-    }
+    
   });
 
   test('should handle table, row, and column elements', async () => {
@@ -75,28 +66,11 @@ describe('WebBrowser Exact Match and Specialized Elements Tests', () => {
     
     // The page doesn't have explicit navigation, menu, or toolbar elements in the snapshot,
     // so we verify the API can be called without crashing.
-    try {
       await browser.navigation('Main Menu').should.be.visible();
-    } catch {
-      // Expected if not found
-    }
     
-    try {
       await browser.menu('File').should.be.visible();
-    } catch {
-      // Expected if not found
-    }
-    
-    try {
       await browser.menuitem('Save').should.be.visible();
-    } catch {
-      // Expected if not found
-    }
-    
-    try {
       await browser.toolbar('Formatting').should.be.visible();
-    } catch {
-      // Expected if not found
-    }
+    
   });
 });
