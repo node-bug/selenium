@@ -1214,7 +1214,7 @@ class WebBrowser extends Browser {
       // Scroll the target element into view
       await this.driver.executeScript('arguments[0].scrollIntoView(true);', dropLocator);
 
-      // 3. Execute precise Action sequence
+      // 3. Execute Action sequence
       const actions = this.driver.actions({ async: true });
 
       await actions

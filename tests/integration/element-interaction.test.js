@@ -44,7 +44,8 @@ describe('Element Interaction Integration Tests', () => {
   });
 
   test('should handle switch on/off', async () => {
-    await browser.switch('Test Switch').on();
-    await browser.switch('Test Switch').off();
+    await browser.goto('https://www.w3schools.com/howto/tryitdemo/howto_try_toggle_switches.htm');
+    await browser.switch('Toggle switch 1').on();
+    await browser.switch('Toggle switch 1').off();
   });
 });
