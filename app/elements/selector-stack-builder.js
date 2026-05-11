@@ -95,14 +95,16 @@ export class SelectorStackBuilder {
       this.stack.push(og);
     }
 
+    const value = data?.toString() ?? undefined;
     const member = {
       type: 'element',
-      id: data.toString(),
+      id: value,
       exact: flags.exact,
       hidden: flags.hidden,
       matches: [],
       index: false
     };
+    if (value === undefined) member.index = 1;
 
     this.stack.push(member);
     

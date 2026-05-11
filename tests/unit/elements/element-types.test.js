@@ -101,5 +101,50 @@ describe('ElementTypes', () => {
         expect(exactSelectors[type]).toContain('normalize-space(.)=');
       });
     });
+
+    it('should return type-only selectors when value is null', () => {
+      const selectors = elementTypes.getSelectors(null);
+      expect(selectors).toBeDefined();
+      expect(typeof selectors).toBe('object');
+
+      // Should use only the definition constraint, no matcher
+      Object.entries(elementTypes.definitions).forEach(([type, constraint]) => {
+        expect(selectors[type]).toBe(`//[${constraint}]`);
+      });
+    });
+
+    it('should return type-only selectors when value is undefined', () => {
+      const selectors = elementTypes.getSelectors(undefined);
+      expect(selectors).toBeDefined();
+      expect(typeof selectors).toBe('object');
+
+      // Should use only the definition constraint, no matcher
+      Object.entries(elementTypes.definitions).forEach(([type, constraint]) => {
+        expect(selectors[type]).toBe(`//[${constraint}]`);
+      });
+    });
+
+    it('should have valid XPath for null value selectors', () => {
+      const selectors = elementTypes.getSelectors(null);
+
+      // button selector should match buttons without text constraint
+      expect(selectors.button).toBe("//[self::button or @role='button' or @type='button' or @type='submit']");
+
+      // link selector should match links without text constraint
+      expect(selectors.link).toBe("//[self::a or @role='link' or @href]");
+
+      // element selector should match all elements
+      expect(selectors.element).toBe("//[true()]");
+    });
+
+    it('should not include matcher components when value is null', () => {
+      const selectors = elementTypes.getSelectors(null);
+
+      Object.values(selectors).forEach(xpath => {
+        expect(xpath).not.toContain('contains(');
+        expect(xpath).not.toContain('normalize-space(');
+        expect(xpath).not.toContain('//*[(');
+      });
+    });
   });
 });
