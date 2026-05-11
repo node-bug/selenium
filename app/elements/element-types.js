@@ -33,7 +33,6 @@ export class ElementTypes {
       checkbox: `(self::input and @type='checkbox') or @role='checkbox'`,
       switch: `@role='switch'`,
       radio: `(self::input and @type='radio') or @role='radio'`,
-      slider: `@role='slider'`,
       // dropdown: `@role='combobox' or self::select`,
       dropdown: `@role='combobox' or self::select or .//option`,
 

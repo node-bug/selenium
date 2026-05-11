@@ -60,7 +60,6 @@ jest.unstable_mockModule('../../app/elements/locator-strategy.js', () => {
             checkbox: true,
             switch: true,
             radio: true,
-            slider: true,
             dropdown: true,
             // Forms & Inputs
             textbox: true,
@@ -161,7 +160,7 @@ describe('WebBrowser', () => {
             'button', 'textbox', 'checkbox', 'radio', 'dropdown',
             'link', 'heading', 'image', 'file', 'dialog',
             'row', 'column', 'table', 'list', 'listitem',
-            'menu', 'menuitem', 'toolbar', 'navigation', 'slider',
+            'menu', 'menuitem', 'toolbar', 'navigation',
             'switch', 'element'
         ];
 

@@ -28,22 +28,6 @@ describe('WebBrowser Exact Match and Specialized Elements Tests', () => {
     }
   });
 
-  test('should handle slider elements', async () => {
-    await browser.goto('https://seleniumbase.io/demo_page');
-    
-    // The page has "Input Slider Control:" with a slider
-    // We use the label text to find the slider
-    await browser.slider('Input Slider Control:').set(75);
-    
-    // Verify we can call it (value retrieval might be implementation specific)
-    try {
-      const value = await browser.slider('Input Slider Control:').get.value();
-      expect(typeof value).toBe('string');
-    } catch {
-      // If .get.value() is not implemented for sliders, we just verify .set() worked
-    }
-  });
-
   test('should handle switch elements', async () => {
     await browser.goto('https://seleniumbase.io/demo_page');
     
