@@ -33,7 +33,7 @@ describe('WebBrowser Form Elements Tests', () => {
     expect(await browser.checkbox('CheckBox').is.checked()).toBe(true);
     
     // Radio button
-    await browser.radio('RadioButton 1').set();
+    await browser.radio('RadioButton 1').click();
     expect(await browser.radio('RadioButton 1').is.set()).toBe(true);
     
     // Dropdown

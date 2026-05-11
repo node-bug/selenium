@@ -42,9 +42,9 @@ describe('WebBrowser Interaction Tests', () => {
     expect(await browser.checkbox('CheckBox').is.checked()).toBe(false);
     
     // Radio button verification
-    await browser.radio('RadioButton 1').set();
+    await browser.radio('RadioButton 1').click();
     expect(await browser.radio('RadioButton 1').is.set()).toBe(true);
-    await browser.radio('RadioButton 2').set();
+    await browser.radio('RadioButton 2').click();
     expect(await browser.radio('RadioButton 2').is.set()).toBe(true);
     expect(await browser.radio('RadioButton 1').is.set()).toBe(false);
   });

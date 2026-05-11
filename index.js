@@ -920,20 +920,6 @@ class WebBrowser extends Browser {
   }
 
   /**
-   * Sets a radio button.
-   * 
-   * Clicks the radio button if it's not already set. Falls back to JavaScript
-   * click if Selenium click fails.
-   * 
-   * @returns {Promise<boolean>} True if successful
-   * @example
-   * await browser.radio('option-a').set();
-   */
-  async set() {
-    return await this.#radioDelegate.set();
-  }
-
-  /**
    * Turns a switch element on.
    * 
    * Clicks the switch if it's not already on. Falls back to JavaScript

@@ -20,7 +20,7 @@ describe('WebBrowser Form Validation Tests', () => {
     await browser.textbox('Text Input Field').write('Test User');
     await browser.textbox('myTextarea').write('This is a test textarea\nWith multiple lines');
     await browser.checkbox('CheckBox').check();
-    await browser.radio('RadioButton').set();
+    await browser.radio('RadioButton').click();
     await browser.dropdown('Select Dropdown').option('Set to 50%').select();
     
     // Verify all values
@@ -34,7 +34,7 @@ describe('WebBrowser Form Validation Tests', () => {
     await browser.textbox('Text Input Field').clear();
     await browser.textbox('myTextarea').clear();
     await browser.checkbox('CheckBox').uncheck();
-    await browser.radio('RadioButton 2').set(); // Select different radio
+    await browser.radio('RadioButton 2').click(); // Select different radio
     await browser.dropdown('Select Dropdown').option('Set to 25%').select();
     
     expect(await browser.textbox('Text Input Field').get.value()).toBe('');
