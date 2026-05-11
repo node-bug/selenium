@@ -252,6 +252,58 @@ await browser.down(2) // Press down arrow 2 times
 - Move cursor in text field
 - Scroll page content
 
+## Keyboard Modifiers
+
+Chain modifier keys (`ctrl`, `shift`, `alt`, `meta`) before click or type actions to simulate keyboard combinations.
+
+### Modifier Keys
+
+Available modifiers:
+
+- `ctrl` / `control` - Control key (Ctrl on Windows/Linux, Cmd+Ctrl on Mac)
+- `shift` - Shift key
+- `alt` - Alt key (Option on Mac)
+- `meta` / `command` / `win` - Meta/Command/Windows key (Cmd on Mac, Win on Windows/Linux)
+
+### Examples
+
+**Click with modifiers:**
+
+```javascript
+await browser.ctrl.click() // Ctrl+click
+await browser.button('Link').meta.click() // Cmd/Win+click
+await browser.element('item').shift.alt.click() // Shift+Alt+click
+```
+
+**Press keys with modifiers:**
+
+```javascript
+await browser.ctrl.press('c') // Ctrl+C (copy)
+await browser.ctrl.press('v') // Ctrl+V (paste)
+await browser.ctrl.press('a') // Ctrl+A (select all)
+await browser.shift.press('Tab') // Shift+Tab (focus previous)
+await browser.alt.press('Tab') // Alt+Tab (switch window)
+await browser.meta.press('Enter') // Cmd+Enter / Win+Enter
+```
+
+**Type with modifiers:**
+
+```javascript
+await browser.shift.type('abc') // Types 'ABC' (capital letters)
+await browser.ctrl.type('text') // Ctrl held while typing
+await browser.ctrl.shift.type('z') // Ctrl+Shift held while typing
+```
+
+**Chaining modifiers:**
+
+```javascript
+// Multiple modifiers together
+await browser.ctrl.shift.press('s') // Ctrl+Shift+S
+await browser.alt.shift.click() // Alt+Shift+click
+```
+
+**Note:** Modifiers reset after each action, so you must re-specify them for the next action.
+
 ## Hover Interactions
 
 ### hover()

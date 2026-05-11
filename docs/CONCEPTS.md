@@ -99,6 +99,39 @@ Available types include: `button`, `textbox`, `checkbox`, `switch`, `radio`, `dr
 
 See [Selectors Guide - Element Types](SELECTORS.md#element-types) for complete list.
 
+## Keyboard Modifiers
+
+Chain modifier keys (`ctrl`, `shift`, `alt`, `meta`) before actions to simulate keyboard combinations:
+
+```javascript
+// Clicks
+await browser.ctrl.click() // Ctrl+click
+await browser.button('Link').meta.click() // Cmd/Win+click
+await browser.element('item').shift.alt.click() // Shift+Alt+click
+
+// Keyboard presses
+await browser.ctrl.press('c') // Ctrl+C
+await browser.shift.press('Enter') // Shift+Enter
+await browser.alt.press('Tab') // Alt+Tab
+await browser.meta.press('w') // Cmd+W (Mac) or Win+W
+
+// Text input
+await browser.shift.type('abc') // Types 'ABC' (capital letters)
+await browser.ctrl.type('a') // Ctrl+A (select all)
+await browser.ctrl.shift.type('x') // Ctrl+Shift held while typing
+```
+
+**Available modifiers:**
+
+- `ctrl` / `control` - Control key
+- `shift` - Shift key
+- `alt` - Alt key
+- `meta` / `command` / `win` - Meta/Command/Windows key
+
+**Note:** Modifiers are reset after each action, so you must re-specify them for each use.
+
+See [INTERACTIONS.md - Keyboard Modifiers](INTERACTIONS.md#keyboard-modifiers) for comprehensive examples.
+
 ## Multiple References with or
 
 Target elements with different possible names:
