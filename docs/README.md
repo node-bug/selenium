@@ -96,7 +96,7 @@ await browser.dropdown('Country').option('United States').select()
 **Radio buttons:**
 
 ```javascript
-await browser.radio('Option A').set()
+await browser.radio('Option A').click()
 ```
 
 ---

@@ -24,7 +24,6 @@ jest.unstable_mockModule('../../../app/messenger.js', () => ({
 }));
 
 // ---------------- IMPORTS ----------------
-const { log } = await import('@nodebug/logger');
 
 const { RadioDelegate } = await import(
   '../../../app/command-delegates/radio-delegate.js'
@@ -62,65 +61,6 @@ describe('RadioDelegate (ESM)', () => {
   describe('constructor', () => {
     test('should create a new RadioDelegate instance', () => {
       expect(delegate).toBeInstanceOf(RadioDelegate);
-    });
-  });
-
-  // ---------------- SET ----------------
-  describe('set()', () => {
-    test('should set a radio button if it is currently not set', async () => {
-      mockLocator.isSelected
-        .mockResolvedValueOnce(false) // Initial state: not set
-        .mockResolvedValueOnce(true);  // Verification state: set
-
-      const result = await delegate.set();
-
-      expect(mockLocator.click).toHaveBeenCalled();
-      expect(mockBrowser.stack).toEqual([]); // Finally block clears stack
-      expect(result).toBe(true);
-    });
-
-    test('should skip clicking if radio button is already set', async () => {
-      mockLocator.isSelected.mockResolvedValue(true); // Already set
-
-      await delegate.set();
-
-      expect(mockLocator.click).not.toHaveBeenCalled();
-      expect(log.info).toHaveBeenCalledWith(expect.stringContaining('already set'));
-    });
-
-    test('should use JS click fallback if standard click fails', async () => {
-      mockLocator.isSelected
-        .mockResolvedValueOnce(false)
-        .mockResolvedValueOnce(true);
-
-      mockLocator.click.mockRejectedValue(new Error('Element click intercepted'));
-
-      await delegate.set();
-
-      expect(mockBrowser.driver.executeScript).toHaveBeenCalledWith(
-        'arguments[0].click();',
-        mockLocator
-      );
-    });
-
-    test('should throw error if state does not change after click', async () => {
-      mockLocator.isSelected.mockResolvedValue(false); // Stays false despite click
-
-      await delegate.set();
-
-      expect(mockBrowser.handleError).toHaveBeenCalledWith(
-        expect.any(Error),
-        'setting radio button'
-      );
-      expect(mockBrowser.handleError.mock.calls[0][0].message).toContain('State did not change');
-    });
-
-    test('should catch and handle errors during the setting process', async () => {
-      mockBrowser._finder.mockRejectedValue(new Error('Finder failed'));
-
-      await delegate.set();
-
-      expect(mockBrowser.handleError).toHaveBeenCalledWith(expect.any(Error), 'setting radio button');
     });
   });
 

@@ -120,7 +120,7 @@ async function registrationTest() {
     await browser.textbox('Email').write('john@example.com')
 
     // Step 2: Choose Options
-    await browser.radio('Basic Plan').set()
+    await browser.radio('Basic Plan').click()
     await browser.checkbox('Subscribe to newsletter').check()
 
     // Step 3: Select from Dropdown

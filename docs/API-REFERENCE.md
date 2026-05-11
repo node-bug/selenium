@@ -114,7 +114,6 @@ The following methods are fully supported and tested in WebBrowser:
 
 - `check()` - Check a checkbox
 - `uncheck()` - Uncheck a checkbox
-- `set()` - Set/select a radio button
 - `on()` - Turn on a switch
 - `off()` - Turn off a switch
 - `option(value).select()` - Select dropdown option
@@ -605,12 +604,12 @@ await browser.checkbox('Subscribe').check()
 
 **Returns**: `Promise<boolean>`
 
-### set()
+### click()
 
-Set a radio button.
+Click a radio button.
 
 ```javascript
-await browser.radio('Male').set()
+await browser.radio('Male').click()
 ```
 
 **Returns**: `Promise<boolean>`

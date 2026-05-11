@@ -20,7 +20,7 @@ await browser.switch('Dark Mode').is.on()
 await browser.switch('Dark Mode').is.off()
 
 // Radio Buttons
-await browser.radio('Male').set()
+await browser.radio('Male').click()
 await browser.radio('Male').is.set()
 await browser.radio('Male').is.not.set()
 await browser.radio('Male').should.be.set()
@@ -224,22 +224,21 @@ if (await browser.switch('Feature').is.visible()) {
 
 Radio buttons allow selecting one option from a group.
 
-### set()
+### click()
 
-Set a radio button:
+Click a radio button:
 
 ```javascript
-await browser.radio('Male').set()
-await browser.radio('Female').set()
-await browser.radio('Prefer not to say').set()
+await browser.radio('Male').click()
+await browser.radio('Female').click()
+await browser.radio('Prefer not to say').click()
 ```
 
 **Behavior**:
 
-- If already set → skips (no action)
-- If not set → clicks to set
-- Falls back to JavaScript click if standard click fails
-- Verifies final state
+- Clicks the radio button to select it.
+- Falls back to JavaScript click if standard click fails.
+- Verifies final state.
 
 **Returns**: `Promise<boolean>`
 
@@ -306,7 +305,7 @@ await browser.radio('Female').should.not.be.set()
 **Gender selection**:
 
 ```javascript
-await browser.radio('Female').set()
+await browser.radio('Female').click()
 await browser.radio('Female').should.be.set()
 ```
 
@@ -323,7 +322,7 @@ await browser.radio('Express (2-3 days)').should.not.be.set()
 
 ```javascript
 // Select shipping method
-await browser.radio('Express (2-3 days)').set()
+await browser.radio('Express (2-3 days)').click()
 await browser.radio('Express (2-3 days)').should.be.set()
 await browser.radio('Standard (5-7 days)').should.not.be.set()
 ```

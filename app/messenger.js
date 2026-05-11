@@ -20,6 +20,7 @@ const ACTION_MAP = {
   press: (a) => `Pressing key '${a.data}' in `,
   type: (a) => `Typing '${a.data}' into `,
   select: (a) => `Selecting '${a.data}' from `,
+  set: (a) => `Setting '${a.data}' to `,
   waitVisibility: () => 'Waiting for ',
   waitInvisibility: () => 'Waiting for ',
   check: () => 'Checking ',
