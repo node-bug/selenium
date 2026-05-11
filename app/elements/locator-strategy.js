@@ -70,19 +70,19 @@ export class LocatorStrategy extends ElementTypes {
 
   /**
    * Filters a set of candidate elements based on their spatial relationship
-   * to a reference element.
+   * to a reference element (or array of reference elements for 'within').
    *
    * Supported locations: 'above', 'below', 'toLeftOf', 'toRightOf', 'within'.
    * When `rel.exactly` is true, the filter also requires horizontal (for above/below)
    * or vertical (for left/right) alignment within a 5px buffer.
    * For 'within', the filter checks that the candidate's midpoint lies inside
-   * the reference element's bounding box.
+   * at least one of the reference elements' bounding boxes.
    *
    * If no relative constraint is provided, returns `item.matches` unchanged.
    *
    * @param {Object} item - The stack item containing `type` and `matches` array.
    * @param {Object} [rel] - The relative constraint object with `located` and optional `exactly`.
-   * @param {WebElement} [relativeElement] - The reference element to compare positions against.
+   * @param {WebElement|WebElement[]} [relativeElement] - The reference element(s) to compare positions against.
    * @returns {Promise<WebElement[]>} Filtered array of elements matching the spatial constraint.
    */
   async relativeSearch(item, rel, relativeElement) {
@@ -95,14 +95,28 @@ export class LocatorStrategy extends ElementTypes {
 
     if (!rel?.located || !relativeElement) return item.matches;
 
-    const { rect: r } = relativeElement;
     const BUFFER = 5;
 
     // For 'within' with type 'element', resolve child elements of the reference
     // element *before* filtering to avoid mutating item.matches mid-iteration.
     if (rel.located === 'within' && item.type === 'element') {
-      item.matches = await this.findChildElements(relativeElement, item);
+      const refEl = Array.isArray(relativeElement) ? relativeElement[0] : relativeElement;
+      item.matches = await this.findChildElements(refEl, item);
     }
+
+    // For 'within', support an array of reference elements (e.g., all cells in a column)
+    if (rel.located === 'within' && Array.isArray(relativeElement)) {
+      const refs = relativeElement;
+      return item.matches.filter(candidate =>
+        refs.some(ref => {
+          const r = ref.rect;
+          return r.left <= candidate.rect.midx && r.right >= candidate.rect.midx &&
+                 r.top <= candidate.rect.midy && r.bottom >= candidate.rect.midy;
+        })
+      );
+    }
+
+    const { rect: r } = relativeElement;
 
     const spatialFilters = {
       above: (e) => r.top >= e.rect.bottom && (!rel.exactly || (r.left - BUFFER <= e.rect.left && r.right + BUFFER >= e.rect.right)),
@@ -417,6 +431,7 @@ export class LocatorStrategy extends ElementTypes {
   async find(stack) {
     const data = await this.resolveElements(stack);
     let currentElement = null;
+    let currentMatches = [];
 
     // Process from bottom of stack up
     for (let i = data.length - 1; i >= 0; i--) {
@@ -424,11 +439,16 @@ export class LocatorStrategy extends ElementTypes {
 
       if (item.type === 'location') {
         const target = data[--i];
-        const results = await this.relativeSearch(target, item, currentElement);
+        // For 'within', pass all matches from the previous step so the filter
+        // can check against any of them (e.g., all cells in a column).
+        const refElement = item.located === 'within' ? currentMatches : currentElement;
+        const results = await this.relativeSearch(target, item, refElement);
         currentElement = results[target.index ? target.index - 1 : 0];
+        currentMatches = results;
       } else {
         const results = await this.relativeSearch(item);
         currentElement = results[item.index ? item.index - 1 : 0];
+        currentMatches = results;
       }
 
       if (!currentElement) {
@@ -469,6 +489,7 @@ export class LocatorStrategy extends ElementTypes {
 
     let elements = [];
     let currentContextElement = null;
+    let currentMatches = [];
 
     // 2. Traverse the stack from bottom to top (Reverse)
     for (let i = data.length - 1; i >= 0; i--) {
@@ -479,9 +500,10 @@ export class LocatorStrategy extends ElementTypes {
         // If we hit a location (above, below, etc.), the target is the NEXT item in the loop
         const target = data[--i];
 
-        // We perform a relative search against the 'currentContextElement' 
-        // established by the previous step in the chain
-        elements = await this.relativeSearch(target, item, currentContextElement);
+        // For 'within', pass all matches from the previous step so the filter
+        // can check against any of them (e.g., all cells in a column).
+        const refElement = item.located === 'within' ? currentMatches : currentContextElement;
+        elements = await this.relativeSearch(target, item, refElement);
       } else {
         // Standard search or the start of a chain
         elements = await this.relativeSearch(item);
@@ -490,6 +512,7 @@ export class LocatorStrategy extends ElementTypes {
       // In a findAll chain, the 'context' for the next step is usually 
       // the first match of the current set (standard index behavior)
       currentContextElement = elements[0];
+      currentMatches = elements;
 
       if (elements.length === 0) {
         throw new ReferenceError(

@@ -1339,6 +1339,54 @@ if (present) {
 
 **Returns**: `Promise<boolean>`
 
+### alert().timeout
+
+Get the configured timeout value (in milliseconds) for alert operations. Uses the `selenium.timeout` config value (default: 10 seconds).
+
+```javascript
+const timeout = browser.alert().timeout // Returns milliseconds
+```
+
+**Returns**: `number` (milliseconds)
+
+### alert().is.not.visible()
+
+Check if an alert is **not** present or does not match expected text.
+
+```javascript
+const notVisible = await browser.alert().is.not.visible()
+if (notVisible) {
+  console.log('No alert present')
+}
+```
+
+**Returns**: `Promise<boolean>`
+
+### alert().should.be.visible()
+
+Assert that an alert is present and matches expected text. Throws an error if the alert is not visible.
+
+```javascript
+// Will throw if alert is not present
+await browser.alert().should.be.visible()
+await browser.alert('Expected Text').should.be.visible()
+```
+
+**Throws**: `Error` if alert is not visible
+
+### alert().should.not.be.visible()
+
+Assert that an alert is **not** present. Throws an error if an alert is visible.
+
+```javascript
+// Will throw if alert is present
+await browser.alert().should.not.be.visible()
+```
+
+**Throws**: `Error` if alert is visible
+
+---
+
 ### alert().accept()
 
 Accept alert.
