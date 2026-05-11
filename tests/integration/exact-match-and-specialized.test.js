@@ -26,12 +26,19 @@ describe('WebBrowser Exact Match and Specialized Elements Tests', () => {
   });
 
   test('should handle switch elements', async () => {
-    await browser.goto('https://seleniumbase.io/demo_page');
+    await browser.goto('https://www.w3schools.com/howto/tryitdemo/howto_try_toggle_switches.htm');
     
-    // The demo page doesn't seem to have a standard 'switch' element in the snapshot,
-    // but we can test the API using a checkbox as a fallback or just verify the API call.
-    // Since we want to test the 'switch' specialized element:
-      await browser.switch('Dark Mode').on();
+    // Toggle switch 1 starts as Off, turn it On
+    await browser.switch('Toggle switch 1').on();
+    expect(await browser.switch('Toggle switch 1').is.on()).toBe(true);
+    
+    // Toggle switch 2 starts as On, turn it Off
+    await browser.switch('Toggle switch 2').off();
+    expect(await browser.switch('Toggle switch 2').is.off()).toBe(true);
+    
+    // Toggle back: turn switch 1 Off and switch 2 On
+    await browser.switch('Toggle switch 1').off();
+    await browser.switch('Toggle switch 2').on();
     
   });
 

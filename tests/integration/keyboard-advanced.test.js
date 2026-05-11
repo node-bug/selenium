@@ -55,23 +55,16 @@ describe('WebBrowser Keyboard and Advanced Interaction Tests', () => {
   });
 
   test('should handle switch elements', async () => {
-    await browser.goto('https://seleniumbase.io/demo_page');
+    await browser.goto('https://www.w3schools.com/howto/tryitdemo/howto_try_toggle_switches.htm');
     
-    // Test switch functionality - assuming there's a switch element on the page
-    // If not, this test will demonstrate the API but may fail if element not found
-    try {
-      // Turn switch on
-      await browser.switch('Test Switch').on();
-      expect(await browser.switch('Test Switch').isOn()).toBe(true);
-      
-      // Turn switch off
-      await browser.switch('Test Switch').off();
-      expect(await browser.switch('Test Switch').isOff()).toBe(true);
-    } catch {
-      // If switch element doesn't exist, we'll skip the test but document the API
-      console.log('Switch test skipped - element not found on demo page');
-      // This is acceptable for documentation purposes
-    }
+    // Test switch functionality with real toggle switches
+    // Turn switch on
+    await browser.switch('Toggle switch 1').on();
+    expect(await browser.switch('Toggle switch 1').is.on()).toBe(true);
+    
+    // Turn switch off
+    await browser.switch('Toggle switch 1').off();
+    expect(await browser.switch('Toggle switch 1').is.off()).toBe(true);
   });
 
   test('should handle character-by-character typing', async () => {
