@@ -627,9 +627,13 @@ await browser.checkbox('Newsletter').uncheck()
 
 Turn a switch element on.
 
+Supports three element types: native checkboxes, ARIA switches (`role="switch"`), and label-wrapped checkboxes.
+
 ```javascript
 await browser.switch('Dark Mode').on()
 ```
+
+**Behavior**: Idempotent — skips if already on. Falls back to JavaScript click if Selenium click fails. Verifies final state.
 
 **Returns**: `Promise<boolean>`
 
@@ -637,9 +641,13 @@ await browser.switch('Dark Mode').on()
 
 Turn a switch element off.
 
+Supports three element types: native checkboxes, ARIA switches (`role="switch"`), and label-wrapped checkboxes.
+
 ```javascript
 await browser.switch('Dark Mode').off()
 ```
+
+**Behavior**: Idempotent — skips if already off. Falls back to JavaScript click if Selenium click fails. Verifies final state.
 
 **Returns**: `Promise<boolean>`
 
@@ -1004,27 +1012,27 @@ await browser.checkbox('Subscribe').should.not.be.checked()
 
 ### is.on()
 
-**Assertion that throws an error and stops test execution on failure.**
+**Returns a boolean indicating whether the switch is currently on.**
 
-Check if a switch is currently on.
+Check if a switch is currently on. Supports native checkboxes, ARIA switches (`role="switch"`), and label-wrapped checkboxes.
 
 ```javascript
 const on = await browser.switch('Dark Mode').is.on()
 ```
 
-**Throws**: Error if switch is off - **Test execution stops**
+**Returns**: `Promise<boolean>`
 
 ### is.off()
 
-**Assertion that throws an error and stops test execution on failure.**
+**Returns a boolean indicating whether the switch is currently off.**
 
-Check if a switch is currently off.
+Check if a switch is currently off. Supports native checkboxes, ARIA switches (`role="switch"`), and label-wrapped checkboxes.
 
 ```javascript
 const off = await browser.switch('Dark Mode').is.off()
 ```
 
-**Throws**: Error if switch is on - **Test execution stops**
+**Returns**: `Promise<boolean>`
 
 ### is.set()
 

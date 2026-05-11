@@ -31,7 +31,7 @@ export class ElementTypes {
       // Interactive Controls
       button: `self::button or @role='button' or @type='button' or @type='submit'`,
       checkbox: `(self::input and @type='checkbox') or @role='checkbox'`,
-      switch: `@role='switch' or (self::input and @type='checkbox') or @role='checkbox'`,
+      switch: `self::button[@role='switch'] or (self::input and @type='checkbox') or @role='switch' or @role='checkbox'`,
       radio: `(self::input and @type='radio') or @role='radio'`,
       // dropdown: `@role='combobox' or self::select`,
       dropdown: `@role='combobox' or self::select or .//option`,
@@ -142,9 +142,19 @@ export class ElementTypes {
 
     // Convert definitions into full XPaths
     return Object.fromEntries(
-      Object.entries(this.definitions).map(([name, constraint]) => [
-        name, `//*[(${matcherStr}) and (${constraint})]`
-      ])
+      Object.entries(this.definitions).map(([name, constraint]) => {
+        if (name === 'switch') {
+          const isCheckboxOrSwitch = `((self::input and @type='checkbox') or @role='checkbox' or (@role='switch' and not(self::button)))`;
+          const isCheckboxOnly = `((self::input and @type='checkbox') or @role='checkbox')`;
+          
+          return ['switch', [
+            `//*[${isCheckboxOrSwitch} and (${matcherStr})]/ancestor::label[1]`,
+            `//*[${isCheckboxOnly} and (${matcherStr})]/parent::*`,
+            `//*[@role='switch' and (${matcherStr})]`
+          ].join(' | ')];
+        }
+        return [name, `//*[(${matcherStr}) and (${constraint})]`];
+      })
     );
   }
 }

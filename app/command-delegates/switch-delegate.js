@@ -1,15 +1,25 @@
 import { log } from '@nodebug/logger';
 import messenger from '../messenger.js';
+import { By } from "selenium-webdriver"
 
 /**
  * Switch delegate for handling switch/toggle operations
  * 
- * This class encapsulates all switch-related functionality for elements
- * with role='switch', including on, off, and state validation operations.
+ * Supports three element types:
+ * - Native checkboxes (`<input type="checkbox">`)
+ * - Elements with `role='switch'` (checked via `aria-checked`)
+ * - `<label>` wrappers (locates child checkbox/switch via `findElement`)
+ * 
+ * Each operation includes a JS-click fallback for switches that are
+ * visually rendered but have zero-size Selenium targets.
  * 
  * @class SwitchDelegate
+ * @param {object} browser - The browser instance providing `_finder`, `handleError`, and `driver`.
  */
 export class SwitchDelegate {
+  /**
+   * @param {object} browser - The browser instance.
+   */
   constructor(browser) {
     this.browser = browser;
   }
@@ -17,17 +27,23 @@ export class SwitchDelegate {
   /**
    * Internal helper to set switch state
    * 
+   * Clicks the element if the current state differs from the target.
+   * Falls back to a JavaScript click if the Selenium click fails.
+   * Always returns `true`; errors are delegated to `browser.handleError`.
+   * 
    * @private
    * @param {string} targetState - 'on' or 'off'
-   * @returns {Promise<boolean>} True if successful
+   * @returns {Promise<boolean>} Always returns true
    */
   async #toggleSwitch(targetState) {
     const browser = this.browser;
     browser.message = messenger({ stack: browser.stack, action: targetState });
 
     try {
+      let ogStack = browser.stack
       const locator = await browser._finder(null, targetState);
-      const isOn = await locator.isSelected();
+      const isOn = await this._isOn();
+      browser.stack = ogStack
       const needsChange = (targetState === 'on' && !isOn) ||
         (targetState === 'off' && isOn);
 
@@ -42,8 +58,9 @@ export class SwitchDelegate {
         }
 
         // Final verification
-        const finalState = await locator.isSelected();
+        const finalState = await this._isOn();
         if (finalState === isOn) {
+          log.error(`Failed to set switch ${targetState}. State did not change.`)
           throw new Error(`Failed to set switch ${targetState}. State did not change.`);
         }
       } else {
@@ -61,9 +78,11 @@ export class SwitchDelegate {
    * Turns a switch element on.
    * 
    * Clicks the switch if it's not already on. Falls back to JavaScript
-   * click if Selenium click fails.
+   * click if the Selenium click fails (e.g., zero-size targets covered
+   * by a `<label>`). Always returns `true`; errors are logged via
+   * `browser.handleError`.
    * 
-   * @returns {Promise<boolean>} True if successful
+   * @returns {Promise<boolean>} Always returns true
    * @example
    * await browser.switch('dark mode').on();
    */
@@ -75,9 +94,11 @@ export class SwitchDelegate {
    * Turns a switch element off.
    * 
    * Clicks the switch if it's not already off. Falls back to JavaScript
-   * click if Selenium click fails.
+   * click if the Selenium click fails (e.g., zero-size targets covered
+   * by a `<label>`). Always returns `true`; errors are logged via
+   * `browser.handleError`.
    * 
-   * @returns {Promise<boolean>} True if successful
+   * @returns {Promise<boolean>} Always returns true
    * @example
    * await browser.switch('dark mode').off();
    */
@@ -88,15 +109,38 @@ export class SwitchDelegate {
   /**
    * Internal helper to check if switch is on.
    * 
+   * Determines state by inspecting the element type:
+   * - `<label>`: finds child checkbox/switch and checks `isSelected()`
+   * - `role='switch'`: reads `aria-checked` attribute
+   * - Default: calls `isSelected()` (native checkboxes)
+   * 
    * @private
-   * @returns {Promise<boolean>} True if switch is on
+   * @returns {Promise<boolean>} True if on, false if off or on error
    */
   async _isOn() {
     const browser = this.browser;
     let result = false;
     try {
       const locator = await browser._finder();
-      result = await locator.isSelected();
+
+      if (locator.tagName === 'label') {
+        // If the locator is a label, we must find the actual checkbox/input child to check its state
+        const checkbox = await locator.findElement(By.css(
+          "input[type='checkbox'], [role='checkbox'], [role='switch']"
+        ));
+        if (!checkbox) {
+          log.error('Switch locator is a label, but no child checkbox/switch element was found.')
+          throw new Error('Switch locator is a label, but no child checkbox/switch element was found.');
+        }
+        result = await checkbox.isSelected();
+      } else if (await locator.getAttribute('role') === 'switch') {
+        // If it's a button/element with role='switch', check aria-checked
+        const ariaChecked = await locator.getAttribute('aria-checked');
+        result = ariaChecked === 'true';
+      } else {
+        // Default fallback to isSelected (works for native checkboxes)
+        result = await locator.isSelected();
+      }
     } catch (err) {
       browser.handleError(err, 'validating switch state');
     } finally {

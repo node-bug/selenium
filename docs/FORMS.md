@@ -159,7 +159,11 @@ await browser.checkbox('Push Alerts').check()
 
 ## Switches
 
-Switches are toggle controls (similar to checkboxes but styled as on/off).
+Switches are toggle controls (similar to checkboxes but styled as on/off). The switch API supports **three element types** automatically:
+
+1. **Native checkboxes** (`<input type="checkbox">`) — checked via `isSelected()`
+2. **ARIA switches** (`role="switch"`) — checked via `aria-checked` attribute
+3. **Label-wrapped checkboxes** (`<label>` containing a checkbox) — the child input is located and toggled
 
 ### on()
 
@@ -169,6 +173,13 @@ Turn a switch on:
 await browser.switch('Dark Mode').on()
 await browser.switch('Notifications').on()
 ```
+
+**Behavior**:
+
+- If already on → skips (idempotent, no action)
+- If off → clicks to turn on
+- Falls back to JavaScript click if standard Selenium click fails (e.g., zero-size targets covered by a `<label>`)
+- Verifies final state after clicking
 
 **Returns**: `Promise<boolean>`
 
@@ -180,31 +191,38 @@ Turn a switch off:
 await browser.switch('Dark Mode').off()
 ```
 
+**Behavior**:
+
+- If already off → skips (idempotent, no action)
+- If on → clicks to turn off
+- Falls back to JavaScript click if standard Selenium click fails
+- Verifies final state after clicking
+
 **Returns**: `Promise<boolean>`
 
 ### is.on()
 
-Assert that switch is currently on:
+Return whether the switch is currently on:
 
 ```javascript
-await browser.switch('Dark Mode').is.on()
+const on = await browser.switch('Dark Mode').is.on()
 ```
 
-**Throws**: Error if switch is off
-
 **Returns**: `Promise<boolean>`
+
+**Use when**: You need to read the switch state without failing the test
 
 ### is.off()
 
-Assert that switch is currently off:
+Return whether the switch is currently off:
 
 ```javascript
-await browser.switch('Notifications').is.off()
+const off = await browser.switch('Notifications').is.off()
 ```
 
-**Throws**: Error if switch is on
-
 **Returns**: `Promise<boolean>`
+
+**Use when**: You need to read the switch state without failing the test
 
 ### Switch Patterns
 
@@ -218,6 +236,24 @@ if (await browser.switch('Feature').is.visible()) {
     await browser.switch('Feature').on()
   }
 }
+```
+
+**Idempotent toggling** (safe to call multiple times):
+
+```javascript
+// These are safe to call repeatedly — no error if already in target state
+await browser.switch('Dark Mode').on()
+await browser.switch('Dark Mode').on() // no-op, already on
+await browser.switch('Dark Mode').off()
+await browser.switch('Dark Mode').off() // no-op, already off
+```
+
+**Using switch API on native checkboxes**:
+
+```javascript
+// The switch API also works on native checkboxes
+await browser.switch('Check this').on()
+await browser.switch('Check this').off()
 ```
 
 ## Radio Buttons

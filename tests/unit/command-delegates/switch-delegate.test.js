@@ -7,7 +7,9 @@ const mockDriver = {
 
 jest.unstable_mockModule('selenium-webdriver', () => ({
   Builder: jest.fn(),
-  By: {},
+  By: {
+    css: jest.fn((selector) => selector),
+  },
   until: {},
   WebDriver: jest.fn(() => mockDriver),
 }));
@@ -16,6 +18,7 @@ jest.unstable_mockModule('@nodebug/logger', () => ({
   log: {
     info: jest.fn(),
     debug: jest.fn(),
+    error: jest.fn(),
   },
 }));
 
@@ -37,8 +40,10 @@ describe('SwitchDelegate (ESM)', () => {
   let mockLocator;
 
   const createLocatorMock = (overrides = {}) => ({
+    tagName: 'input',
     isSelected: jest.fn(),
     click: jest.fn(),
+    getAttribute: jest.fn().mockResolvedValue(null),
     ...overrides,
   });
 
@@ -198,6 +203,119 @@ describe('SwitchDelegate (ESM)', () => {
       expect(result).toBe(false);
       expect(mockBrowser.handleError).toHaveBeenCalledWith(expect.any(Error), 'validating switch state');
       expect(mockBrowser.stack).toEqual([]);
+    });
+
+    test('should check aria-checked when element has role="switch"', async () => {
+      mockLocator.getAttribute.mockResolvedValueOnce('switch'); // role
+      mockLocator.getAttribute.mockResolvedValueOnce('true');   // aria-checked
+
+      const result = await delegate._isOn();
+
+      expect(result).toBe(true);
+      expect(mockLocator.isSelected).not.toHaveBeenCalled();
+    });
+
+    test('should return false when aria-checked is "false"', async () => {
+      mockLocator.getAttribute.mockResolvedValueOnce('switch'); // role
+      mockLocator.getAttribute.mockResolvedValueOnce('false');  // aria-checked
+
+      const result = await delegate._isOn();
+
+      expect(result).toBe(false);
+      expect(mockLocator.isSelected).not.toHaveBeenCalled();
+    });
+
+    test('should find child checkbox when locator is a label', async () => {
+      const mockCheckbox = {
+        isSelected: jest.fn().mockResolvedValue(true),
+      };
+
+      const labelLocator = createLocatorMock({
+        tagName: 'label',
+        findElement: jest.fn().mockResolvedValue(mockCheckbox),
+      });
+
+      mockBrowser._finder.mockResolvedValue(labelLocator);
+
+      const result = await delegate._isOn();
+
+      expect(result).toBe(true);
+      expect(labelLocator.findElement).toHaveBeenCalled();
+      expect(mockCheckbox.isSelected).toHaveBeenCalled();
+    });
+
+    test('should throw error when label has no child checkbox', async () => {
+      const labelLocator = createLocatorMock({
+        tagName: 'label',
+        findElement: jest.fn().mockResolvedValue(null),
+      });
+
+      mockBrowser._finder.mockResolvedValue(labelLocator);
+
+      const result = await delegate._isOn();
+
+      expect(result).toBe(false);
+      expect(mockBrowser.handleError).toHaveBeenCalledWith(
+        expect.any(Error),
+        'validating switch state'
+      );
+      expect(mockBrowser.handleError.mock.calls[0][0].message).toContain('no child checkbox');
+    });
+
+    test('should fall back to isSelected when role is not "switch"', async () => {
+      mockLocator.getAttribute.mockResolvedValueOnce(null); // No role attribute
+      mockLocator.isSelected.mockResolvedValueOnce(true);
+
+      const result = await delegate._isOn();
+
+      expect(result).toBe(true);
+      expect(mockLocator.isSelected).toHaveBeenCalled();
+    });
+  });
+
+  // ---------------- OFF ERROR HANDLING ----------------
+  describe('off() error handling', () => {
+    test('should throw error if state does not change after click', async () => {
+      mockLocator.isSelected.mockResolvedValue(true); // Stays true despite click
+
+      await delegate.off();
+
+      expect(mockBrowser.handleError).toHaveBeenCalledWith(
+        expect.any(Error),
+        'setting switch off'
+      );
+      expect(mockBrowser.handleError.mock.calls[0][0].message).toContain('State did not change');
+    });
+
+    test('should return true after successful toggle', async () => {
+      mockLocator.isSelected
+        .mockResolvedValueOnce(true)
+        .mockResolvedValueOnce(false);
+
+      const result = await delegate.off();
+
+      expect(result).toBe(true);
+    });
+  });
+
+  // ---------------- ON RETURN VALUE ----------------
+  describe('on() return value', () => {
+    test('should return true after successful toggle', async () => {
+      mockLocator.isSelected
+        .mockResolvedValueOnce(false)
+        .mockResolvedValueOnce(true);
+
+      const result = await delegate.on();
+
+      expect(result).toBe(true);
+    });
+
+    test('should return true when switch is already on (idempotent)', async () => {
+      mockLocator.isSelected.mockResolvedValue(true);
+
+      const result = await delegate.on();
+
+      expect(result).toBe(true);
     });
   });
 });
