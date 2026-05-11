@@ -437,12 +437,14 @@ await browser.button('Delete').at.index(2).click() // Get second
 
 **Pattern: Hidden Elements**
 
-```javascript
-// ✗ Hidden element not found
-await browser.element('Hidden Text').click()
+Elements that are visually hidden (via CSS opacity, display: none, etc.) can be selected using the `.hidden` modifier:
 
-// ✓ Make visible first or use within visible container
-await browser.element('Hidden Text').hidden.click() // if library supports this
+```javascript
+// ✗ Hidden element not found by default
+await browser.element('Hidden Text').click() // Fails - element is hidden
+
+// ✓ Use .hidden modifier to target hidden elements
+await browser.hidden.element('Hidden Text').click() // Successfully finds hidden element
 ```
 
 **Pattern: Dynamic Content**

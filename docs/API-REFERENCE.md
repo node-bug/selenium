@@ -6,6 +6,7 @@ Complete method reference for WebBrowser. See [Core Concepts](CONCEPTS.md) for u
 
 - [Browser Control](#browser-control) - Session management
 - [Element Selection](#element-selection) - Finding elements
+- [Element Search](#element-search) - find() and findAll() methods
 - [Element Interaction](#element-interaction) - Clicking, typing, etc.
 - [Dropdown Operations](#dropdown-operations) - Select/dropdown handling
 - [Element State](#element-state) - Visibility, disabled, etc.
@@ -13,6 +14,78 @@ Complete method reference for WebBrowser. See [Core Concepts](CONCEPTS.md) for u
 - [Tab Management](#tab-management) - Multi-tab operations
 - [Alert Handling](#alert-handling) - JavaScript alerts/prompts
 - [Data Retrieval](#data-retrieval) - Getting element properties
+
+---
+
+## Element Search
+
+### find()
+
+Finds a single element matching the current selector stack.
+
+```javascript
+const element = await browser.button('Submit').find()
+```
+
+**Returns**: `Promise<WebElement>` - The Selenium WebElement
+
+**Behavior**:
+
+- Returns first matching element
+- Throws error if no element found within timeout
+- Clears selector stack after execution
+
+**Example**:
+
+```javascript
+// Find and store reference
+const submitBtn = await browser.button('Submit').find()
+
+// Use with multiple spatial conditions
+const element = await browser
+  .button('Save')
+  .below.element('Form Title')
+  .within.dialog('Confirm')
+  .find()
+```
+
+### findAll()
+
+Finds all elements matching the current selector stack.
+
+```javascript
+const elements = await browser.element('item').findAll()
+```
+
+**Parameters**:
+
+- `t` (number, optional): Custom timeout in milliseconds
+
+**Returns**: `Promise<Array<WebElement>>` - Array of matching WebElements
+
+**Behavior**:
+
+- Returns all matching elements
+- Throws error if no elements found within timeout
+- Clears selector stack after execution
+- Supports OR conditions for multiple selectors
+
+**Examples**:
+
+```javascript
+// Get all items
+const items = await browser.element('item').findAll()
+console.log(`Found ${items.length} items`)
+
+// Get all links
+const links = await browser.link('nav-link').findAll()
+
+// Custom timeout (5 seconds)
+const results = await browser.button('result').findAll(5000)
+
+// OR condition - find buttons with either text
+const buttons = await browser.button('Save').or.button('Submit').findAll()
+```
 
 ---
 
