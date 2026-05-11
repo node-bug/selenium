@@ -45,7 +45,12 @@ describe('Element Interaction Integration Tests', () => {
 
   test('should handle switch on/off', async () => {
     await browser.goto('https://www.w3schools.com/howto/tryitdemo/howto_try_toggle_switches.htm');
-    await browser.switch('Toggle switch 1').on();
-    await browser.switch('Toggle switch 1').off();
+    const switchElement = browser.switch('Toggle switch 1');
+    
+    await switchElement.on();
+    expect(await switchElement.should.be.on()).toBe(true);
+    
+    await switchElement.off();
+    expect(await switchElement.should.be.off()).toBe(true);
   });
 });

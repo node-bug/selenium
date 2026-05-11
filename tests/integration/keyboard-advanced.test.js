@@ -3,13 +3,13 @@ import WebBrowser from '../../index.js';
 describe('WebBrowser Keyboard and Advanced Interaction Tests', () => {
   let browser;
 
-  beforeAll(async () => {
+  beforeEach(async () => {
     browser = new WebBrowser();
     // We use a default config or environment variables for headless mode in CI
     await browser.start();
   });
 
-  afterAll(async () => {
+  afterEach(async () => {
     await browser.close();
   });
 
