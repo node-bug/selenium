@@ -72,11 +72,13 @@ export class LocatorStrategy extends ElementTypes {
    * Filters a set of candidate elements based on their spatial relationship
    * to a reference element (or array of reference elements for 'within').
    *
-   * Supported locations: 'above', 'below', 'toLeftOf', 'toRightOf', 'within'.
+   * Supported locations: 'above', 'below', 'toLeftOf', 'toRightOf', 'within', 'near'.
    * When `rel.exactly` is true, the filter also requires horizontal (for above/below)
    * or vertical (for left/right) alignment within a 5px buffer.
    * For 'within', the filter checks that the candidate's midpoint lies inside
    * at least one of the reference elements' bounding boxes.
+   * For 'near', the filter checks that the candidate vertically overlaps with the
+   * reference element (i.e., they are on the same row).
    *
    * If no relative constraint is provided, returns `item.matches` unchanged.
    *
@@ -87,7 +89,7 @@ export class LocatorStrategy extends ElementTypes {
    */
   async relativeSearch(item, rel, relativeElement) {
     if (rel?.located) {
-      const validLocations = ['above', 'below', 'toLeftOf', 'toRightOf', 'within'];
+      const validLocations = ['above', 'below', 'toLeftOf', 'toRightOf', 'within', 'near'];
       if (!validLocations.includes(rel.located)) {
         throw new ReferenceError(`Location '${rel.located}' is not supported`);
       }
@@ -123,7 +125,8 @@ export class LocatorStrategy extends ElementTypes {
       below: (e) => r.bottom <= e.rect.top && (!rel.exactly || (r.left - BUFFER <= e.rect.left && r.right + BUFFER >= e.rect.right)),
       toLeftOf: (e) => r.left >= e.rect.right && (!rel.exactly || (r.top - BUFFER <= e.rect.top && r.bottom + BUFFER >= e.rect.bottom)),
       toRightOf: (e) => r.right <= e.rect.left && (!rel.exactly || (r.top - BUFFER <= e.rect.top && r.bottom + BUFFER >= e.rect.bottom)),
-      within: (e) => r.left <= e.rect.midx && r.right >= e.rect.midx && r.top <= e.rect.midy && r.bottom >= e.rect.midy
+      within: (e) => r.left <= e.rect.midx && r.right >= e.rect.midx && r.top <= e.rect.midy && r.bottom >= e.rect.midy,
+      near: (e) => !(r.bottom < e.rect.top - (BUFFER * 20) || r.top > e.rect.bottom + (BUFFER * 20))
     };
 
     const filterFn = spatialFilters[rel.located];

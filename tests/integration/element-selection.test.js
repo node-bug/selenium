@@ -18,15 +18,12 @@ describe('Element Selection Integration Tests', () => {
     // Note: These depend on the demo page having these elements. 
     // We use try-catch or generic elements if specific ones aren't guaranteed.
     
-    try {
       await browser.button('Submit').should.be.visible();
       await browser.textbox('Text Input Field').should.be.visible();
       await browser.checkbox('Check this').should.be.visible();
       await browser.radio('Radio 1').should.be.visible();
       await browser.dropdown('Dropdown').should.be.visible();
-    } catch {
-      console.log('Some type-specific selectors not found on demo page, but API is called');
-    }
+    
   });
 
   test('should find a single element using find()', async () => {

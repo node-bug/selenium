@@ -31,7 +31,7 @@ export class ElementTypes {
       // Interactive Controls
       button: `self::button or @role='button' or @type='button' or @type='submit'`,
       checkbox: `(self::input and @type='checkbox') or @role='checkbox'`,
-      switch: `@role='switch'`,
+      switch: `@role='switch' or (self::input and @type='checkbox') or @role='checkbox'`,
       radio: `(self::input and @type='radio') or @role='radio'`,
       // dropdown: `@role='combobox' or self::select`,
       dropdown: `@role='combobox' or self::select or .//option`,
