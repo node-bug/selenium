@@ -1031,11 +1031,6 @@ class WebBrowser extends Browser {
 
   // STACK BUILDERS
   #typefixer(data, type) {
-    if ((typeof data === 'string' && data === '') || data === null || data === undefined) {
-      log.error(`Invalid argument: ${type}() accepts index, string. String value requires a non-empty string identifier.`);
-      throw new Error(`Invalid argument: ${type}() requires a non-empty string identifier`);
-    }
-
     this.#element(data);
     const item = this.stack[this.stack.length - 1];
     item.type = type;
@@ -1171,9 +1166,15 @@ class WebBrowser extends Browser {
   get at() {
     return {
       index: (index) => {
-        if (typeof index !== 'number') throw new TypeError('index must be a number');
+        // Only positive integers are valid indices; everything else defaults to 1 (first element)
+        if (typeof index !== 'number' || !Number.isInteger(index) || index <= 0 || Number.isNaN(index)) {
+          index = 1;
+        }
         const last = this.stack[this.stack.length - 1];
-        if (last) last.index = index;
+        if (last) {
+          last.index = index;
+          last.id = '';
+        }
         return this;
       }
     };

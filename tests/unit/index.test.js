@@ -443,8 +443,96 @@ describe('WebBrowser', () => {
 
         expect(() => browser.upload('/file')).rejects.toThrow();
     });
-    test('at.index throws if not number', () => {
-        expect(() => browser.at.index('x')).toThrow(TypeError);
+    test('at.index sets index and clears id on last stack item', () => {
+        browser.stack = [{ id: 'some-text', index: false }];
+
+        browser.at.index(2);
+
+        expect(browser.stack[0].index).toBe(2);
+        expect(browser.stack[0].id).toBe('');
+    });
+    test('at.index returns browser for chaining', () => {
+        browser.stack = [{ id: 'text' }];
+
+        const result = browser.at.index(1);
+
+        expect(result).toBe(browser);
+    });
+    test('at.index does nothing when stack is empty', () => {
+        browser.stack = [];
+
+        const result = browser.at.index(1);
+
+        expect(result).toBe(browser);
+        expect(browser.stack).toEqual([]);
+    });
+    test('at.index defaults to 1 when called with 0', () => {
+        browser.stack = [{ id: 'text', index: false }];
+
+        browser.at.index(0);
+
+        expect(browser.stack[0].index).toBe(1);
+        expect(browser.stack[0].id).toBe('');
+    });
+    test('at.index defaults to 1 when called with negative number', () => {
+        browser.stack = [{ id: 'text', index: false }];
+
+        browser.at.index(-1);
+
+        expect(browser.stack[0].index).toBe(1);
+        expect(browser.stack[0].id).toBe('');
+    });
+    test('at.index defaults to 1 when called with NaN', () => {
+        browser.stack = [{ id: 'text', index: false }];
+
+        browser.at.index(NaN);
+
+        expect(browser.stack[0].index).toBe(1);
+        expect(browser.stack[0].id).toBe('');
+    });
+    test('at.index defaults to 1 when called with null', () => {
+        browser.stack = [{ id: 'text', index: false }];
+
+        browser.at.index(null);
+
+        expect(browser.stack[0].index).toBe(1);
+        expect(browser.stack[0].id).toBe('');
+    });
+    test('at.index defaults to 1 when called with undefined', () => {
+        browser.stack = [{ id: 'text', index: false }];
+
+        browser.at.index(undefined);
+
+        expect(browser.stack[0].index).toBe(1);
+        expect(browser.stack[0].id).toBe('');
+    });
+    test('at.index defaults to 1 when called with non-number string', () => {
+        browser.stack = [{ id: 'text', index: false }];
+
+        browser.at.index('x');
+
+        expect(browser.stack[0].index).toBe(1);
+        expect(browser.stack[0].id).toBe('');
+    });
+    test('at.index defaults to 1 when called with non-integer float', () => {
+        browser.stack = [{ id: 'text', index: false }];
+
+        browser.at.index(1.5);
+
+        expect(browser.stack[0].index).toBe(1);
+        expect(browser.stack[0].id).toBe('');
+    });
+    test('element(1) and element().at.index(1) produce equivalent stack items', () => {
+        const browser1 = new WebBrowser();
+        const browser2 = new WebBrowser();
+
+        browser1.element(1);
+        browser2.element('some-text').at.index(1);
+
+        expect(browser1.stack[0].index).toBe(1);
+        expect(browser1.stack[0].id).toBe('');
+        expect(browser2.stack[0].index).toBe(1);
+        expect(browser2.stack[0].id).toBe('');
     });
     test('or getter adds condition to stack', () => {
         browser.stack = [{ id: 1 }];

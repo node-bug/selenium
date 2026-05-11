@@ -129,6 +129,15 @@ export class ElementTypes {
    * @returns {Object.<string, string>} A map of element type names to full XPath strings.
    */
   getSelectors(value, exact = false) {
+    // When value is null/undefined, use only the type-specific constraints
+    if (value === null || value === undefined) {
+      return Object.fromEntries(
+        Object.entries(this.definitions).map(([name, constraint]) => [
+          name, `//[${constraint}]`
+        ])
+      );
+    }
+
     const matcherStr = this.buildMatcher(value, exact);
 
     // Convert definitions into full XPaths
