@@ -11,6 +11,7 @@ import { CheckboxDelegate } from './app/command-delegates/checkbox-delegate.js';
 import { SelectDelegate } from './app/command-delegates/select-delegate.js';
 import { RadioDelegate } from './app/command-delegates/radio-delegate.js';
 import { SwitchDelegate } from './app/command-delegates/switch-delegate.js';
+import { SliderDelegate } from './app/command-delegates/slider-delegate.js';
 
 const selenium = config('selenium');
 
@@ -37,6 +38,7 @@ class WebBrowser extends Browser {
   #selectDelegate;
   #radioDelegate;
   #switchDelegate;
+  #sliderDelegate;
 
   constructor() {
     super()
@@ -49,6 +51,7 @@ class WebBrowser extends Browser {
     this.#selectDelegate = new SelectDelegate(this);
     this.#radioDelegate = new RadioDelegate(this);
     this.#switchDelegate = new SwitchDelegate(this);
+    this.#sliderDelegate = new SliderDelegate(this);
 
     Object.keys(this.locatorStrategy.definitions).forEach(type => {
       this[type] = (data) => {
@@ -441,7 +444,7 @@ class WebBrowser extends Browser {
 
       let result = textContent;
 
-      if ((!result || result.trim() === '') && ['input', 'textarea'].includes(tagName)) {
+      if (['input', 'textarea'].includes(tagName)) {
         result = valueAttr;
       }
 
@@ -511,6 +514,78 @@ class WebBrowser extends Browser {
    *        await browser.element('id').is.visible(5000)
    *        await browser.element('id').is.not.visible(5000)
    */
+  get has() {
+    return {
+      /**
+       * Checks that the element has a specific value.
+       *
+       * @param {string} expectedValue - The expected value to check for
+       * @returns {Promise<boolean>}
+       */
+      value: async (expectedValue) => {
+        this.message = messenger({ stack: this.stack, action: 'hasValue', data: expectedValue });
+        const actualValue = await this.#retrieveElementText('Value');
+        const result = actualValue === expectedValue;
+        if (result) log.info(`Value '${actualValue}' has '${expectedValue}'`);
+        else log.warn(`Value '${actualValue}' does not have '${expectedValue}'`);
+        return result;
+      },
+
+      /**
+       * Checks that the element has specific text.
+       *
+       * @param {string} expectedText - The expected text to check for
+       * @returns {Promise<boolean>}
+       */
+      text: async (expectedText) => {
+        this.message = messenger({ stack: this.stack, action: 'hasText', data: expectedText });
+        const actualText = await this.#retrieveElementText('Text');
+        const result = actualText === expectedText;
+        if (result) log.info(`Text '${actualText}' has '${expectedText}'`);
+        else log.warn(`Text '${actualText}' does not have '${expectedText}'`);
+        return result;
+      },
+    }
+  }
+
+  get does() {
+    return {
+      not: {
+        have: {
+          /**
+           * Checks that the element does not have a specific value.
+           *
+           * @param {string} unexpectedValue - The value that should not be present
+           * @returns {Promise<boolean>}
+           */
+          value: async (unexpectedValue) => {
+            this.message = messenger({ stack: this.stack, action: 'doesNotHaveValue', data: unexpectedValue });
+            const actualValue = await this.#retrieveElementText('Value');
+            const result = actualValue !== unexpectedValue;
+            if (result) log.info(`Value '${actualValue}' does not have '${unexpectedValue}'`);
+            else log.warn(`Value '${actualValue}' has '${unexpectedValue}'`);
+            return result;
+          },
+
+          /**
+           * Checks that the element does not have specific text.
+           *
+           * @param {string} unexpectedText - The text that should not be present
+           * @returns {Promise<boolean>}
+           */
+          text: async (unexpectedText) => {
+            this.message = messenger({ stack: this.stack, action: 'doesNotHaveText', data: unexpectedText });
+            const actualText = await this.#retrieveElementText('Text');
+            const result = actualText !== unexpectedText;
+            if (result) log.info(`Text '${actualText}' does not have '${unexpectedText}'`);
+            else log.warn(`Text '${actualText}' has '${unexpectedText}'`);
+            return result;
+          },
+        },
+      },
+    };
+  }
+
   get is() {
     return {
       /**
@@ -815,7 +890,86 @@ class WebBrowser extends Browser {
         },
       },
 
+      have: {
+        /**
+         * Asserts that the element has a specific value.
+         *
+         * @param {string} expectedValue - The expected value to match
+         * @returns {Promise<void>}
+         */
+        value: async (expectedValue) => {
+          this.message = messenger({ stack: this.stack, action: 'shouldHaveValue', data: expectedValue });
+          const actualValue = await this.#retrieveElementText('Value');
+          if (actualValue !== expectedValue) {
+            log.warn(`Value '${actualValue}' does not match expected '${expectedValue}'`);
+            const err = new Error(`Element value '${actualValue}' should be '${expectedValue}'`)
+            this.handleError(err, 'validating element value');
+            throw err
+          } else {
+            log.info(`Value '${actualValue}' matches expected '${expectedValue}'`);
+          }
+        },
+
+        /**
+         * Asserts that the element has specific text.
+         *
+         * @param {string} expectedText - The expected text to match
+         * @returns {Promise<void>}
+         */
+        text: async (expectedText) => {
+          this.message = messenger({ stack: this.stack, action: 'shouldHaveText', data: expectedText });
+          const actualText = await this.#retrieveElementText('Text');
+          if (actualText !== expectedText) {
+            log.warn(`Text '${actualText}' does not match expected '${expectedText}'`);
+            const err = new Error(`Element text '${actualText}' should be '${expectedText}'`)
+            this.handleError(err, 'validating element text');
+            throw err
+          } else {
+            log.info(`Text '${actualText}' matches expected '${expectedText}'`);
+          }
+        },
+      },
+
       not: {
+        have: {
+          /**
+           * Asserts that the element does not have a specific value.
+           *
+           * @param {string} unexpectedValue - The value that should not match
+           * @returns {Promise<void>}
+           */
+          value: async (unexpectedValue) => {
+            this.message = messenger({ stack: this.stack, action: 'shouldNotHaveValue', data: unexpectedValue });
+            const actualValue = await this.#retrieveElementText('Value');
+            if (actualValue === unexpectedValue) {
+              log.warn(`Value '${actualValue}' matches unexpected '${unexpectedValue}'`);
+              const err = new Error(`Element value '${actualValue}' should not be '${unexpectedValue}'`)
+              this.handleError(err, 'validating element value');
+              throw err
+            } else {
+              log.info(`Value '${actualValue}' does not match unexpected '${unexpectedValue}'`);
+            }
+          },
+
+          /**
+           * Asserts that the element does not have specific text.
+           *
+           * @param {string} unexpectedText - The text that should not match
+           * @returns {Promise<void>}
+           */
+          text: async (unexpectedText) => {
+            this.message = messenger({ stack: this.stack, action: 'shouldNotHaveText', data: unexpectedText });
+            const actualText = await this.#retrieveElementText('Text');
+            if (actualText === unexpectedText) {
+              log.warn(`Text '${actualText}' matches unexpected '${unexpectedText}'`);
+              const err = new Error(`Element text '${actualText}' should not be '${unexpectedText}'`)
+              this.handleError(err, 'validating element text');
+              throw err
+            } else {
+              log.info(`Text '${actualText}' does not match unexpected '${unexpectedText}'`);
+            }
+          },
+        },
         be: {
           /**
            * Asserts that the element is not visible within the given timeout.
@@ -945,6 +1099,18 @@ class WebBrowser extends Browser {
    */
   async off() {
     return await this.#switchDelegate.off();
+  }
+
+  /**
+   * Sets the slider to the specified value.
+   *
+   * @param {string|number} value - The value to set on the slider
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.slider('Input Slider Control').slide.to.value(75);
+   */
+  get slide() {
+    return this.#sliderDelegate.slide;
   }
 
   /**

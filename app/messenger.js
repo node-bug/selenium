@@ -21,6 +21,7 @@ const ACTION_MAP = {
   type: (a) => `Typing '${a.data}' into `,
   select: (a) => `Selecting '${a.data}' from `,
   set: (a) => `Setting '${a.data}' to `,
+  slide: (a) => `Sliding to value ${a.data} `,
   waitVisibility: () => 'Waiting for ',
   waitInvisibility: () => 'Waiting for ',
   check: () => 'Checking ',
@@ -57,13 +58,21 @@ const ACTION_MAP = {
   isSelected: (a) => `Validating if option '${a.data}' in `,
   isNotSelected: (a) => `Validating if option '${a.data}' in `,
   shouldBeSelected: (a) => `Validating that option '${a.data}' in `,
+  hasValue: () => 'Validating if ',
+  hasText: () => 'Validating if ',
+  doesNotHaveValue: () => 'Validating if ',
+  doesNotHaveText: () => 'Validating if ',
+  shouldHaveValue: () => 'Validating that ',
+  shouldHaveText: () => 'Validating that ',
+  shouldNotHaveValue: () => 'Validating that ',
+  shouldNotHaveText: () => 'Validating that ',
   shouldNotBeSelected: (a) => `Validating that option '${a.data}' in `,
 };
 
 // 2. Define valid element types
 const ELEMENT_TYPES = new Set([
   'link', 'navigation', 'heading', 'button', 'checkbox',
-  'radio', 'dropdown', 'textbox', 'file', 'list',
+  'radio', 'slider', 'dropdown', 'textbox', 'file', 'list',
   'listitem', 'menu', 'menuitem', 'toolbar', 'dialog',
   'row', 'column', 'image', 'element', 'switch', 'table'
 ]);
@@ -130,6 +139,7 @@ export default function messenger(a) {
       }
       return '';
     },
+    slide: (a) => {return ` to value ${a.data}`},
     on: ' to ON',
     off: ' to OFF',
     isVisible: ' is visible',
@@ -156,6 +166,16 @@ export default function messenger(a) {
     isNotSelected: ` is not selected`,
     shouldBeSelected: ` is selected`,
     shouldNotBeSelected: ` is not selected`,
+    getValue: ' is value',
+    getText: ' is text',
+    hasValue: ' has value',
+    hasText: ' has text',
+    doesNotHaveValue: ' does not have value',
+    doesNotHaveText: ' does not have text',
+    shouldHaveValue: ' should have value',
+    shouldHaveText: ' should have text',
+    shouldNotHaveValue: ' should not have value',
+    shouldNotHaveText: ' should not have text',
   };
 
   if (suffixes[a.action]) {

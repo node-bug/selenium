@@ -280,6 +280,7 @@ All return `WebBrowser` for chaining:
 - `switch(selector)` - Switch
 - `radio(selector)` - Radio button
 - `dropdown(selector)` - Dropdown
+- `slider(selector)` - Slider control
 - `textbox(selector)` - Text input
 - `file(selector)` - File input
 - `list(selector)` - List
@@ -650,6 +651,37 @@ await browser.switch('Dark Mode').off()
 **Behavior**: Idempotent — skips if already off. Falls back to JavaScript click if Selenium click fails. Verifies final state.
 
 **Returns**: `Promise<boolean>`
+
+## Slider Operations
+
+Handle `<input type="range">` slider controls. Use `slider()` to select the slider element, then chain the methods below.
+
+### slide.to.value(value)
+
+Set the slider to a specific value.
+
+```javascript
+await browser.slider('Input Slider Control').slide.to.value(75)
+```
+
+**Parameters**:
+
+- `value` (string|number): The value to set on the slider
+
+**Returns**: `Promise<boolean>`
+
+### get.value()
+
+Get the current value of the slider.
+
+```javascript
+const value = await browser.slider('Input Slider Control').get.value()
+console.log(value) // e.g., '75'
+```
+
+**Returns**: `Promise<string>` - The current slider value
+
+**Throws**: Error if slider not found.
 
 ### drag()
 
@@ -1081,6 +1113,87 @@ await browser.radio('Female').should.not.be.set()
 ```
 
 **Throws**: Error if radio button is set - **Test execution stops**
+
+### has.value(expectedValue)
+
+**Returns `true`/`false` for conditional logic** - Does not throw errors.
+
+Check if an element has a specific value. Use this **only in if conditions** for branching logic. This method returns a boolean value and is intended for runtime decision-making, not for QA test assertions.
+
+```javascript
+const hasValue = await browser.textbox('Email').has.value('user@example.com')
+if (hasValue) {
+  await browser.button('Submit').click()
+}
+```
+
+**Parameters**:
+
+- `expectedValue` (string): The expected value to check for
+
+**Returns**: `Promise<boolean>` - `true` if element has the value, `false` otherwise
+
+**QA Best Practice**: For test validations that validate whether an element has a specific value, use `should.have.value()` or `should.not.have.value()` instead.
+
+### does.not.have.value(unexpectedValue)
+
+**Returns `true`/`false` for conditional logic** - Does not throw errors.
+
+Check if an element does NOT have a specific value. Use this **only in if conditions** for branching logic. This method returns a boolean value and is intended for runtime decision-making, not for QA test assertions.
+
+```javascript
+const notHaveValue = await browser
+  .textbox('Username')
+  .does.not.have.value('admin')
+if (notHaveValue) {
+  await browser.button('Submit').click()
+}
+```
+
+**Parameters**:
+
+- `unexpectedValue` (string): The value that should not be present
+
+**Returns**: `Promise<boolean>` - `true` if element does not have the value, `false` otherwise
+
+**QA Best Practice**: For test validations that validate whether an element does not have a specific value, use `should.not.have.value()` instead.
+
+### should.have.value(expectedValue)
+
+**Assertion that throws an error and stops test execution on failure.**
+
+Validate that an element has a specific value. Use this for QA test validations and verifications.
+
+```javascript
+await browser.textbox('Email').should.have.value('user@example.com')
+await browser.slider('Range').should.have.value('75')
+```
+
+**Parameters**:
+
+- `expectedValue` (string): The expected value to match
+
+**Throws**: Error if element value does not match - **Test execution stops**
+
+**QA Best Practice**: Use this method to assert and validate that an element has the expected value in your test cases.
+
+### should.not.have.value(unexpectedValue)
+
+**Assertion that throws an error and stops test execution on failure.**
+
+Validate that an element does NOT have a specific value. Use this for QA test validations and verifications.
+
+```javascript
+await browser.textbox('Username').should.not.have.value('admin')
+```
+
+**Parameters**:
+
+- `unexpectedValue` (string): The value that should not be present
+
+**Throws**: Error if element value matches unexpected value - **Test execution stops**
+
+**QA Best Practice**: Use this method to assert and validate that an element does not have an unexpected value in your test cases.
 
 ### scroll([alignToTop])
 

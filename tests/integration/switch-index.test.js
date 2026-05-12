@@ -1,4 +1,3 @@
-import { jest } from '@jest/globals';
 import WebBrowser from '../../index.js';
 
 describe('Switch Index Test', () => {
