@@ -157,7 +157,7 @@ describe('WebBrowser', () => {
 
     describe('element type validation', () => {
         const elementTypes = [
-            'button', 'textbox', 'checkbox', 'radio', 'dropdown',
+            'button', 'textbox', 'checkbox', 'radio', 'slider', 'dropdown',
             'link', 'heading', 'image', 'file', 'dialog',
             'row', 'column', 'table', 'list', 'listitem',
             'menu', 'menuitem', 'toolbar', 'navigation',
@@ -820,6 +820,54 @@ describe('WebBrowser', () => {
                 expect(result).toBe(false);
             });
         });
+
+        describe('has.value()', () => {
+            test('should return true when element value matches', async () => {
+                const locator = {
+                    tagName: 'input',
+                    getAttribute: jest.fn().mockResolvedValueOnce('').mockResolvedValueOnce('75'),
+                };
+                browser._finder = jest.fn().mockResolvedValue(locator);
+                browser.stack = [{ id: 1 }];
+                const result = await browser.has.value('75');
+                expect(result).toBe(true);
+            });
+
+            test('should return false when element value does not match', async () => {
+                const locator = {
+                    tagName: 'input',
+                    getAttribute: jest.fn().mockResolvedValueOnce('').mockResolvedValueOnce('50'),
+                };
+                browser._finder = jest.fn().mockResolvedValue(locator);
+                browser.stack = [{ id: 1 }];
+                const result = await browser.has.value('75');
+                expect(result).toBe(false);
+            });
+        });
+
+        describe('has.text()', () => {
+            test('should return true when element text matches', async () => {
+                const locator = {
+                    tagName: 'span',
+                    getAttribute: jest.fn().mockResolvedValueOnce('Hello World').mockResolvedValueOnce('Hello World'),
+                };
+                browser._finder = jest.fn().mockResolvedValue(locator);
+                browser.stack = [{ id: 1 }];
+                const result = await browser.has.text('Hello World');
+                expect(result).toBe(true);
+            });
+
+            test('should return false when element text does not match', async () => {
+                const locator = {
+                    tagName: 'span',
+                    getAttribute: jest.fn().mockResolvedValueOnce('Goodbye World').mockResolvedValueOnce(''),
+                };
+                browser._finder = jest.fn().mockResolvedValue(locator);
+                browser.stack = [{ id: 1 }];
+                const result = await browser.has.text('Hello World');
+                expect(result).toBe(false);
+            });
+        });
     });
 
     // ------------------------------------------------------------------
@@ -943,6 +991,142 @@ describe('WebBrowser', () => {
 
             test('should throw when radio is set', async () => {
                 await expect(browser.should.not.be.set()).rejects.toThrow('Radiobutton should not be set');
+            });
+        });
+
+        describe('should.have.value()', () => {
+            test('should not throw when element value matches', async () => {
+                const locator = {
+                    tagName: 'input',
+                    getAttribute: jest.fn().mockResolvedValueOnce('').mockResolvedValueOnce('75'),
+                };
+                browser._finder = jest.fn().mockResolvedValue(locator);
+                browser.stack = [{ id: 1 }];
+                await expect(browser.should.have.value('75')).resolves.not.toThrow();
+            });
+
+            test('should throw when element value does not match', async () => {
+                const locator = {
+                    tagName: 'input',
+                    getAttribute: jest.fn().mockResolvedValueOnce('').mockResolvedValueOnce('50'),
+                };
+                browser._finder = jest.fn().mockResolvedValue(locator);
+                browser.stack = [{ id: 1 }];
+                await expect(browser.should.have.value('75')).rejects.toThrow('Element value');
+            });
+        });
+
+        describe('should.not.have.value()', () => {
+            test('should not throw when element value does not match', async () => {
+                const locator = {
+                    tagName: 'input',
+                    getAttribute: jest.fn().mockResolvedValueOnce('').mockResolvedValueOnce('50'),
+                };
+                browser._finder = jest.fn().mockResolvedValue(locator);
+                browser.stack = [{ id: 1 }];
+                await expect(browser.should.not.have.value('75')).resolves.not.toThrow();
+            });
+
+            test('should throw when element value matches', async () => {
+                const locator = {
+                    tagName: 'input',
+                    getAttribute: jest.fn().mockResolvedValueOnce('').mockResolvedValueOnce('75'),
+                };
+                browser._finder = jest.fn().mockResolvedValue(locator);
+                browser.stack = [{ id: 1 }];
+                await expect(browser.should.not.have.value('75')).rejects.toThrow('Element value');
+            });
+        });
+
+        describe('should.have.text()', () => {
+            test('should not throw when element text matches', async () => {
+                const locator = {
+                    tagName: 'span',
+                    getAttribute: jest.fn().mockResolvedValueOnce('Hello World').mockResolvedValueOnce('Hello World'),
+                };
+                browser._finder = jest.fn().mockResolvedValue(locator);
+                browser.stack = [{ id: 1 }];
+                await expect(browser.should.have.text('Hello World')).resolves.not.toThrow();
+            });
+
+            test('should throw when element text does not match', async () => {
+                const locator = {
+                    tagName: 'span',
+                    getAttribute: jest.fn().mockResolvedValueOnce('Goodbye World').mockResolvedValueOnce(''),
+                };
+                browser._finder = jest.fn().mockResolvedValue(locator);
+                browser.stack = [{ id: 1 }];
+                await expect(browser.should.have.text('Hello World')).rejects.toThrow('Element text');
+            });
+        });
+
+        describe('should.not.have.text()', () => {
+            test('should not throw when element text does not match', async () => {
+                const locator = {
+                    tagName: 'span',
+                    getAttribute: jest.fn().mockResolvedValueOnce('Goodbye World').mockResolvedValueOnce(''),
+                };
+                browser._finder = jest.fn().mockResolvedValue(locator);
+                browser.stack = [{ id: 1 }];
+                await expect(browser.should.not.have.text('Hello World')).resolves.not.toThrow();
+            });
+
+            test('should throw when element text matches', async () => {
+                const locator = {
+                    tagName: 'span',
+                    getAttribute: jest.fn().mockResolvedValueOnce('Hello World').mockResolvedValueOnce('Hello World'),
+                };
+                browser._finder = jest.fn().mockResolvedValue(locator);
+                browser.stack = [{ id: 1 }];
+                await expect(browser.should.not.have.text('Hello World')).rejects.toThrow('Element text');
+            });
+        });
+
+        describe('does.not.have.value()', () => {
+            test('should return true when element value does not match', async () => {
+                const locator = {
+                    tagName: 'input',
+                    getAttribute: jest.fn().mockResolvedValueOnce('').mockResolvedValueOnce('50'),
+                };
+                browser._finder = jest.fn().mockResolvedValue(locator);
+                browser.stack = [{ id: 1 }];
+                const result = await browser.does.not.have.value('75');
+                expect(result).toBe(true);
+            });
+
+            test('should return false when element value matches', async () => {
+                const locator = {
+                    tagName: 'input',
+                    getAttribute: jest.fn().mockResolvedValueOnce('').mockResolvedValueOnce('75'),
+                };
+                browser._finder = jest.fn().mockResolvedValue(locator);
+                browser.stack = [{ id: 1 }];
+                const result = await browser.does.not.have.value('75');
+                expect(result).toBe(false);
+            });
+        });
+
+        describe('does.not.have.text()', () => {
+            test('should return true when element text does not match', async () => {
+                const locator = {
+                    tagName: 'span',
+                    getAttribute: jest.fn().mockResolvedValueOnce('Goodbye World').mockResolvedValueOnce(''),
+                };
+                browser._finder = jest.fn().mockResolvedValue(locator);
+                browser.stack = [{ id: 1 }];
+                const result = await browser.does.not.have.text('Hello World');
+                expect(result).toBe(true);
+            });
+
+            test('should return false when element text matches', async () => {
+                const locator = {
+                    tagName: 'span',
+                    getAttribute: jest.fn().mockResolvedValueOnce('Hello World').mockResolvedValueOnce('Hello World'),
+                };
+                browser._finder = jest.fn().mockResolvedValue(locator);
+                browser.stack = [{ id: 1 }];
+                const result = await browser.does.not.have.text('Hello World');
+                expect(result).toBe(false);
             });
         });
     });

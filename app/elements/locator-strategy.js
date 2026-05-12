@@ -390,7 +390,7 @@ export class LocatorStrategy extends ElementTypes {
   async resolveElements(stack) {
     const ELEMENT_TYPES = new Set([
       'link', 'navigation', 'heading',
-      'button', 'checkbox', 'switch', 'radio', 'dropdown',
+      'button', 'checkbox', 'switch', 'radio', 'slider', 'dropdown',
       'textbox', 'file',
       'list', 'listitem', 'menu', 'menuitem',
       'toolbar', 'dialog',
