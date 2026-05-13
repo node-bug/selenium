@@ -18,9 +18,32 @@ describe('Element State Integration Tests', () => {
   });
 
   test('should check enabled/disabled state', async () => {
-    const isEnabled = await browser.element('Text Input Field').is.enabled();
+    const isDisabled = await browser.button('Click Me').is.disabled();
+    expect(typeof isDisabled).toBe('boolean');
+    
+    const isEnabled = await browser.button('Click Me').is.enabled();
     expect(typeof isEnabled).toBe('boolean');
     
-    await browser.element('Text Input Field').should.be.enabled();
+    await browser.button('Click Me').should.be.enabled();
+  });
+
+  test('should check checkbox not checked state', async () => {
+    const isNotChecked = await browser.checkbox('CheckBox').is.not.checked();
+    expect(typeof isNotChecked).toBe('boolean');
+    
+    await browser.checkbox('CheckBox').should.not.be.checked();
+  });
+
+  test('should check pre-checked checkbox state', async () => {
+    const isChecked = await browser.checkbox('Pre-Check Box').is.checked();
+    expect(typeof isChecked).toBe('boolean');
+    expect(isChecked).toBe(true);
+    
+    await browser.checkbox('Pre-Check Box').should.be.checked();
+  });
+
+  test('should assert radio button set/not set', async () => {
+    await browser.radio('RadioButton 1').should.be.set();
+    await browser.radio('RadioButton 2').should.not.be.set();
   });
 });

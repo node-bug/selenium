@@ -131,10 +131,7 @@ export class SwitchDelegate {
 
       let result = false;
       if (isWrapper && !isActualSwitch) {
-        // If the locator is a label, we must find the actual checkbox/input child to check its state
-        const checkbox = await locator.findElement(By.css(
-          "input[type='checkbox'], [role='checkbox'], [role='switch']"
-        ));
+        const checkbox = await locator.findElement(By.xpath(".//*[self::input[@type='checkbox'] or @role='checkbox' or @role='switch']"));
         if (!checkbox) {
           log.error('Switch locator is a wrapper, but no child checkbox/switch element was found.');
           throw new Error('Switch locator is a wrapper, but no child checkbox/switch element was found.');

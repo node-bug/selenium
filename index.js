@@ -1381,19 +1381,15 @@ class WebBrowser extends Browser {
       // Scroll the target element into view
       await this.driver.executeScript('arguments[0].scrollIntoView(true);', dropLocator);
 
-      // 3. Execute precise Action sequence
+      // 3. Execute precise Action sequence using built-in dragAndDrop
       const actions = this.driver.actions({ async: true });
 
       await actions
-        .move({ origin: dragLocator, x: 5, y: 5 }) // Small offset to avoid center-point deadzones
-        .press()
-        .pause(500) // Brief pause to trigger the 'dragstart' event
-        .move({ origin: 'pointer', x: 20, y: 20, duration: 100 }) // "Nudge" to confirm drag state
-        .pause(200)
-        .move({ origin: dropLocator }) // Move to the center of the target element
-        .pause(500) // Wait for target to acknowledge the hover
-        .release()
+        .dragAndDrop(dragLocator, dropLocator)
         .perform();
+
+      // Allow the page's drag-and-drop handlers time to update the DOM
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       log.info(`Successfully dragged ${dragStack[0].id} onto ${dropStack[0].id}`);
     } catch (err) {

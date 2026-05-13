@@ -20,6 +20,7 @@ jest.unstable_mockModule('selenium-webdriver', () => ({
 jest.unstable_mockModule('@nodebug/logger', () => ({
   log: {
     info: jest.fn(),
+    warn: jest.fn(),
     debug: jest.fn(),
     error: jest.fn(),
   },
@@ -766,6 +767,21 @@ describe('SelectDelegate (ESM)', () => {
       };
       mockSelectInstance.getFirstSelectedOption.mockResolvedValue(mockSelectedOption);
 
+      // Options must include the searched option so existence check passes
+      const mockOptions = [
+        {
+          getAttribute: jest.fn()
+            .mockResolvedValueOnce('United States')
+            .mockResolvedValueOnce('us'),
+        },
+        {
+          getAttribute: jest.fn()
+            .mockResolvedValueOnce('Canada')
+            .mockResolvedValueOnce('ca'),
+        },
+      ];
+      mockSelectInstance.getOptions.mockResolvedValue(mockOptions);
+
       delegate.option('United');
       const result = await delegate._isSelected();
 
@@ -782,13 +798,23 @@ describe('SelectDelegate (ESM)', () => {
       };
       mockSelectInstance.getFirstSelectedOption.mockResolvedValue(mockSelectedOption);
 
+      // Options must include the searched option so existence check passes
+      const mockOptions = [
+        {
+          getAttribute: jest.fn()
+            .mockResolvedValueOnce('Country Name')
+            .mockResolvedValueOnce('us'),
+        },
+      ];
+      mockSelectInstance.getOptions.mockResolvedValue(mockOptions);
+
       delegate.option('us');
       const result = await delegate._isSelected();
 
       expect(result).toBe(true);
     });
 
-    test('should return false when option is not selected in native select', async () => {
+    test('should return false when option exists but is not selected in native select', async () => {
       mockLocator.tagName = 'select';
 
       const mockSelectedOption = {
@@ -798,15 +824,77 @@ describe('SelectDelegate (ESM)', () => {
       };
       mockSelectInstance.getFirstSelectedOption.mockResolvedValue(mockSelectedOption);
 
+      // "United States" exists in the options list but is NOT the selected one
+      const mockOptions = [
+        {
+          getAttribute: jest.fn()
+            .mockResolvedValueOnce('United States')
+            .mockResolvedValueOnce('us'),
+        },
+        {
+          getAttribute: jest.fn()
+            .mockResolvedValueOnce('Canada')
+            .mockResolvedValueOnce('ca'),
+        },
+      ];
+      mockSelectInstance.getOptions.mockResolvedValue(mockOptions);
+
       delegate.option('United States');
       const result = await delegate._isSelected();
 
       expect(result).toBe(false);
     });
 
+    test('should throw when option does not exist in native select', async () => {
+      mockLocator.tagName = 'select';
+
+      const mockSelectedOption = {
+        getAttribute: jest.fn()
+          .mockResolvedValueOnce('Canada')
+          .mockResolvedValueOnce('ca'),
+      };
+      mockSelectInstance.getFirstSelectedOption.mockResolvedValue(mockSelectedOption);
+
+      // "United States" is NOT in the options list
+      const mockOptions = [
+        {
+          getAttribute: jest.fn()
+            .mockResolvedValueOnce('Canada')
+            .mockResolvedValueOnce('ca'),
+        },
+        {
+          getAttribute: jest.fn()
+            .mockResolvedValueOnce('Mexico')
+            .mockResolvedValueOnce('mx'),
+        },
+      ];
+      mockSelectInstance.getOptions.mockResolvedValue(mockOptions);
+
+      delegate.option('United States');
+      await expect(delegate._isSelected()).rejects.toThrow(
+        "Option 'United States' does not exist in dropdown"
+      );
+    });
+
     test('should return true when option is selected in combobox', async () => {
       mockLocator.tagName = 'div';
       mockLocator.getAttribute.mockResolvedValue('United States');
+      mockLocator.click.mockResolvedValue();
+
+      // Mock option elements in the opened dropdown — "United States" exists
+      const mockOptionElements = [
+        {
+          getAttribute: jest.fn()
+            .mockResolvedValueOnce('United States')
+            .mockResolvedValueOnce('us'),
+        },
+        {
+          getAttribute: jest.fn()
+            .mockResolvedValueOnce('Canada')
+            .mockResolvedValueOnce('ca'),
+        },
+      ];
+      mockBrowser.driver.findElements.mockResolvedValue(mockOptionElements);
 
       delegate.option('United');
       const result = await delegate._isSelected();
@@ -814,13 +902,55 @@ describe('SelectDelegate (ESM)', () => {
       expect(result).toBe(true);
     });
 
-    test('should throw when option is not selected in combobox', async () => {
+    test('should return false when option exists but is not selected in combobox', async () => {
       mockLocator.tagName = 'div';
       mockLocator.getAttribute.mockResolvedValue('Canada');
+      mockLocator.click.mockResolvedValue();
+
+      // "United States" exists in the dropdown options but is NOT the current value
+      const mockOptionElements = [
+        {
+          getAttribute: jest.fn()
+            .mockResolvedValueOnce('United States')
+            .mockResolvedValueOnce('us'),
+        },
+        {
+          getAttribute: jest.fn()
+            .mockResolvedValueOnce('Canada')
+            .mockResolvedValueOnce('ca'),
+        },
+      ];
+      mockBrowser.driver.findElements.mockResolvedValue(mockOptionElements);
+
+      delegate.option('United States');
+      const result = await delegate._isSelected();
+
+      expect(result).toBe(false);
+    });
+
+    test('should throw when option does not exist in combobox', async () => {
+      mockLocator.tagName = 'div';
+      mockLocator.getAttribute.mockResolvedValue('Canada');
+      mockLocator.click.mockResolvedValue();
+
+      // "United States" is NOT in the dropdown options
+      const mockOptionElements = [
+        {
+          getAttribute: jest.fn()
+            .mockResolvedValueOnce('Canada')
+            .mockResolvedValueOnce('ca'),
+        },
+        {
+          getAttribute: jest.fn()
+            .mockResolvedValueOnce('Mexico')
+            .mockResolvedValueOnce('mx'),
+        },
+      ];
+      mockBrowser.driver.findElements.mockResolvedValue(mockOptionElements);
 
       delegate.option('United States');
       await expect(delegate._isSelected()).rejects.toThrow(
-        "Option 'United States' is not selected"
+        "Option 'United States' does not exist in combobox"
       );
     });
 
@@ -897,7 +1027,9 @@ describe('SelectDelegate (ESM)', () => {
       mockLocator.getAttribute.mockResolvedValue(null);
 
       delegate.option('anything');
-      await expect(delegate._isSelected()).rejects.toThrow();
+      await expect(delegate._isSelected()).rejects.toThrow(
+        'Combobox has no text content'
+      );
     });
 
     test('should handle null text in native _isSelected', async () => {
@@ -916,9 +1048,20 @@ describe('SelectDelegate (ESM)', () => {
 
     test('should set browser message via messenger', async () => {
       mockLocator.tagName = 'select';
-      mockSelectInstance.getFirstSelectedOption.mockResolvedValue({
+
+      const mockSelectedOption = {
         getAttribute: jest.fn().mockResolvedValue('test'),
-      });
+      };
+      mockSelectInstance.getFirstSelectedOption.mockResolvedValue(mockSelectedOption);
+
+      const mockOptions = [
+        {
+          getAttribute: jest.fn()
+            .mockResolvedValueOnce('test')
+            .mockResolvedValueOnce('test-val'),
+        },
+      ];
+      mockSelectInstance.getOptions.mockResolvedValue(mockOptions);
 
       delegate.option('test');
       await delegate._isSelected();
@@ -949,6 +1092,16 @@ describe('SelectDelegate (ESM)', () => {
           .mockResolvedValueOnce('us'),
       };
       mockSelectInstance.getFirstSelectedOption.mockResolvedValue(mockSelectedOption);
+
+      // Options must include the searched option so existence check passes
+      const mockOptions = [
+        {
+          getAttribute: jest.fn()
+            .mockResolvedValueOnce('United States')
+            .mockResolvedValueOnce('us'),
+        },
+      ];
+      mockSelectInstance.getOptions.mockResolvedValue(mockOptions);
 
       delegate.option('United');
       const result = await delegate._isSelected();

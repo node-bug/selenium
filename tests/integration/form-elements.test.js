@@ -28,7 +28,7 @@ describe('WebBrowser Form Elements Tests', () => {
   test('should handle form elements (checkbox, radio, dropdown)', async () => {
     await browser.goto('https://seleniumbase.io/demo_page');
     
-    // Checkbox - using generic element to avoid type-matching issues
+    // Checkbox
     await browser.checkbox('CheckBox').check();
     expect(await browser.checkbox('CheckBox').is.checked()).toBe(true);
     

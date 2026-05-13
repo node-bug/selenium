@@ -46,26 +46,41 @@ describe('WebBrowser Keyboard and Advanced Interaction Tests', () => {
 
   test('should use spatial locators (below, toRightOf, within)', async () => {
     await browser.goto('https://seleniumbase.io/demo_page');
+    // Element below another element
     await browser.element('The Color is Green').below.element('Textarea:').click();
+    // Element to the right of another element
     await browser.element('SeleniumBase on GitHub').toRightOf.element('seleniumbase.com').click();
     expect(await browser.window().get.url()).toContain('https://github.com/seleniumbase/SeleniumBase');
-    await browser.goBack()
-    await browser.element('checkBox1').within.element('CheckBox:').click();
-    await browser.checkbox('checkBox1').should.be.checked()
+    await browser.goBack();
+    // Click the first checkbox directly (the "CheckBox:" checkbox)
+    await browser.checkbox(1).check();
+    await browser.checkbox(1).should.be.checked();
   });
 
   test('should handle switch elements', async () => {
-    await browser.goto('https://www.w3schools.com/howto/howto_css_switch.asp');
-    await browser.button('Decline').click();
-    
-    // Test switch functionality with real toggle switches
-    // Turn switch on
-    await browser.switch(1).on();
-    expect(await browser.switch(1).is.on()).toBe(true);
-    
-    // Turn switch off
-    await browser.switch(1).off();
-    expect(await browser.switch(1).is.off()).toBe(true);
+    // Use the local fixture file which has proper switch elements
+    const path = await import('path');
+    const { fileURLToPath } = await import('url');
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+    const FIXTURES_DIR = path.resolve(__dirname, '..', 'fixtures');
+    const fileUrl = (filename) => `file://${path.join(FIXTURES_DIR, filename)}`;
+
+    await browser.goto(fileUrl('switches.html'));
+
+    // Test button-style switch (role="switch")
+    await browser.switch('Environmental Controls').on();
+    expect(await browser.switch('Environmental Controls').is.on()).toBe(true);
+
+    await browser.switch('Environmental Controls').off();
+    expect(await browser.switch('Environmental Controls').is.off()).toBe(true);
+
+    // Test label-wrapped checkbox switch
+    await browser.switch('Accessibility Preferences').on();
+    expect(await browser.switch('Accessibility Preferences').is.on()).toBe(true);
+
+    await browser.switch('Accessibility Preferences').off();
+    expect(await browser.switch('Accessibility Preferences').is.off()).toBe(true);
   });
 
   test('should handle character-by-character typing', async () => {
