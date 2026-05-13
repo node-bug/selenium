@@ -9,7 +9,7 @@
  */
 import { Capabilities } from 'selenium-webdriver'
 import config from '@nodebug/config'
-import prefs from './preferences.js'
+import { downloadPath } from './preferences.js'
 
 const seleniumConfig = config('selenium')
 
@@ -19,7 +19,7 @@ const seleniumConfig = config('selenium')
  * Configures Firefox with download and security preferences:
  * - Sets headless mode if `selenium.headless` is enabled in config
  * - Sets private browsing mode if `selenium.incognito` is enabled in config
- * - Applies shared browser preferences from preferences.js
+ * - Applies Firefox-specific preferences (downloads, security, UI)
  * - Accepts insecure certificates for testing flexibility
  * 
  * @returns {Object} Firefox browser capabilities configuration
@@ -34,11 +34,30 @@ class Firefox {
      * @type {Object}
      * @property {string[]} args - Command-line flags for Firefox.
      * Starts empty and conditionally adds `-headless` or `-private`.
-     * @property {Object} prefs - Shared browser preferences (downloads, security, UI).
+     * @property {Object} prefs - Firefox preferences (downloads, security, UI).
      */
     const options = {
       args: [],
-      prefs,
+      prefs: {
+        // Downloads
+        'browser.download.dir': downloadPath,
+        'browser.download.folderList': 2,
+        'browser.download.manager.showWhenStarting': false,
+        'browser.helperApps.neverAsk.saveToDisk': 'application/octet-stream,application/pdf,application/zip,text/csv',
+
+        // PDF
+        'pdfjs.disabled': true,
+
+        // Signons
+        'signon.rememberSignons': false,
+
+        // Session
+        'browser.sessionstore.resume_from_crash': false,
+
+        // Spell checking
+        'browser.enable_spellchecking': false,
+        'browser.enable_autospellcorrect': false,
+      },
     }
 
     // Enable headless mode if configured (supports both string 'true' and boolean true)

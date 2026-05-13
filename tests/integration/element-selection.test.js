@@ -15,15 +15,13 @@ describe('Element Selection Integration Tests', () => {
 
   test('should select elements using type-specific selectors', async () => {
     // Testing a variety of selectors from the API reference
-    // Note: These depend on the demo page having these elements. 
-    // We use try-catch or generic elements if specific ones aren't guaranteed.
+    // Elements verified against https://seleniumbase.io/demo_page
     
-      await browser.button('Submit').should.be.visible();
-      await browser.textbox('Text Input Field').should.be.visible();
-      await browser.checkbox('Check this').should.be.visible();
-      await browser.radio('Radio 1').should.be.visible();
-      await browser.dropdown('Dropdown').should.be.visible();
-    
+    await browser.button('Click Me').should.be.visible();
+    await browser.textbox('Text Input Field').should.be.visible();
+    await browser.checkbox('CheckBox').should.be.visible();
+    await browser.radio('RadioButton 1').should.be.visible();
+    await browser.dropdown('Set to 25%').should.be.visible();
   });
 
   test('should find a single element using find()', async () => {
@@ -35,5 +33,15 @@ describe('Element Selection Integration Tests', () => {
     const elements = await browser.element('input').findAll();
     expect(Array.isArray(elements)).toBe(true);
     expect(elements.length).toBeGreaterThan(0);
+  });
+
+  test('should select link elements', async () => {
+    await browser.link('seleniumbase.com').should.be.visible();
+    await browser.link('SeleniumBase on GitHub').should.be.visible();
+  });
+
+  test('should select textarea elements', async () => {
+    // Note: textarea elements are matched by the 'textbox' type in this library
+    await browser.textbox('Textarea').should.be.visible();
   });
 });

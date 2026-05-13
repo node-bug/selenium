@@ -946,7 +946,7 @@ describe('WebBrowser', () => {
 
             test('should throw when switch is off', async () => {
                 mockSwitchDelegate._isOn.mockResolvedValue(false);
-                await expect(browser.should.be.on()).rejects.toThrow('Switch should be on');
+                await expect(browser.should.be.on()).rejects.toThrow('Switch should be ON');
             });
         });
 
@@ -957,7 +957,7 @@ describe('WebBrowser', () => {
             });
 
             test('should throw when switch is on', async () => {
-                await expect(browser.should.be.off()).rejects.toThrow('Switch should be off');
+                await expect(browser.should.be.off()).rejects.toThrow('Switch should be OFF');
             });
         });
 

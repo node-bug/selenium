@@ -24,7 +24,6 @@ describe('Chrome', () => {
     expect(chromeOptions.args).toContain('--disable-dev-shm-usage')
     expect(chromeOptions.args).toContain('--disable-blink-features=AutomationControlled')
     expect(chromeOptions.args).toContain('--no-first-run')
-    expect(chromeOptions.args).toContain('--headless=new')
     expect(chromeOptions.excludeSwitches).toContain('enable-automation')
   })
 

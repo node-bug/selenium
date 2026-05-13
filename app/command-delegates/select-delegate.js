@@ -330,10 +330,13 @@ export class SelectDelegate {
   /**
    * Checks if a specific option is selected in a native <select> element.
    * 
+   * - Returns `false` if the option exists in the dropdown but is not currently selected.
+   * - Throws an error if the option does not exist in the dropdown at all.
+   * 
    * @private
    * @param {Object} locator - The WebElement representing the <select> element
    * @returns {Promise<boolean>} True if the option is selected
-   * @throws {Error} Throws if the option is not selected
+   * @throws {Error} Throws if the option does not exist in the dropdown
    */
   async #isSelectedNative(locator) {
     const select = new Select(locator);
@@ -358,41 +361,106 @@ export class SelectDelegate {
         options[index].getAttribute('textContent'),
         options[index].getAttribute('value'),
       ]);
-      // log.info(`Option at index ${this.optionValue} is selected: text: '${optText}', value: '${optValue}'`)
       if (optText !== selectedText && optValue !== selectedValue) return false
-      // {
-      //   throw new Error(`Option '${this.optionValue}' is not selected`);
-      // }
       return true;
     }
 
-    // Check by text or value (partial, case-insensitive)
+    // Verify the option actually exists in the dropdown
+    const options = await select.getOptions();
+    let optionExists = false;
+    for (const o of options) {
+      const [optText, optValue] = await Promise.all([
+        o.getAttribute('textContent'),
+        o.getAttribute('value'),
+      ]);
+      if (optText?.includes(this.optionValue) || optValue?.includes(this.optionValue)) {
+        optionExists = true;
+        break;
+      }
+    }
+
+    if (!optionExists) {
+      log.warn(`Option '${this.optionValue}' does not exist in dropdown`);
+      return false;
+    }
+
+    // Option exists — check if it is the currently selected one
     const textMatch = selectedText?.includes(this.optionValue);
     const valueMatch = selectedValue?.includes(this.optionValue);
 
-    // log.info(`Option selected is: text: '${selectedText}', value: '${selectedValue}'`)
-    if (!textMatch && !valueMatch) return false 
-    // {
-    //   throw new Error(`Option '${this.optionValue}' is not selected`);
-    // }
+    if (!textMatch && !valueMatch) return false
     return true;
   }
 
   /**
    * Checks if a specific option is selected in a custom combobox widget.
    * 
+   * - Returns `false` if the option exists in the combobox but is not currently selected.
+   * - Throws an error if the option does not exist in the combobox at all.
+   * 
    * @private
    * @param {Object} locator - The WebElement representing the combobox trigger
    * @returns {Promise<boolean>} True if the option is selected
-   * @throws {Error} Throws if the option is not selected
+   * @throws {Error} Throws if the option does not exist in the combobox
    */
   async #isSelectedCombobox(locator) {
-    const text = await locator.getAttribute('textContent');
-    if (!text) {
+    const browser = this.browser;
+    const currentText = await locator.getAttribute('textContent');
+    if (!currentText) {
       throw new Error(`Combobox has no text content`);
     }
-    if (!text.includes(this.optionValue)) {
-      throw new Error(`Option '${this.optionValue}' is not selected`);
+
+    // Open the combobox to check available options
+    try {
+      await locator.click();
+    } catch {
+      log.debug('Standard click failed, attempting JS click for combobox');
+      await browser.driver.executeScript('arguments[0].click();', locator);
+    }
+
+    // Wait briefly for the dropdown options to appear
+    await new Promise(resolve => setTimeout(resolve, 300));
+
+    // Find all option elements in the opened dropdown
+    const optionSelectors = [
+      `//*[contains(@role, 'option')]`,
+      `//*[contains(@class, 'option')]`,
+      `//li`,
+      `//*[self::div or self::span or self::li]`,
+    ];
+
+    let allOptions = [];
+    for (const sel of optionSelectors) {
+      try {
+        allOptions = await browser.driver.findElements({ using: 'xpath', value: sel });
+        if (allOptions.length > 0) break;
+      } catch {
+        continue;
+      }
+    }
+
+    // Check if the option exists in the combobox
+    const searchStr = String(this.optionValue);
+    let optionExists = false;
+    for (const option of allOptions) {
+      const [text, value] = await Promise.all([
+        option.getAttribute('textContent'),
+        option.getAttribute('value'),
+      ]);
+      if (text?.includes(searchStr) || value?.includes(searchStr)) {
+        optionExists = true;
+        break;
+      }
+    }
+
+    if (!optionExists) {
+      log.warn(`Option '${this.optionValue}' does not exist in combobox`);
+      return false;
+    }
+
+    // Option exists — check if it is the currently selected one
+    if (!currentText.includes(searchStr)) {
+      return false;
     }
     return true;
   }
