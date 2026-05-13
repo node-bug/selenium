@@ -66,12 +66,14 @@ export class SwitchDelegate {
       } else {
         log.info(`Switch is already ${targetState}. Skipping.`);
       }
-    } catch (err) {
-      browser.handleError(err, `setting switch ${targetState}`);
-    } finally {
+
       browser.stack = [];
+      return true;
+    } catch (err) {
+      browser.stack = [];
+      browser.handleError(err, `${targetState}ing switch`);
+      throw err;
     }
-    return true;
   }
 
   /**
@@ -115,22 +117,27 @@ export class SwitchDelegate {
    * - Default: calls `isSelected()` (native checkboxes)
    * 
    * @private
-   * @returns {Promise<boolean>} True if on, false if off or on error
+   * @returns {Promise<boolean>} True if on, false if off
+   * @throws {Error} Throws an error if the switch state cannot be determined
    */
   async _isOn() {
     const browser = this.browser;
-    let result = false;
     try {
       const locator = await browser._finder();
 
-      if (locator.tagName === 'label') {
+      const tagName = locator.tagName.toLowerCase();
+      const isWrapper = ['label', 'div', 'span'].includes(tagName);
+      const isActualSwitch = tagName === 'input' || (await locator.getAttribute('role') === 'switch');
+
+      let result = false;
+      if (isWrapper && !isActualSwitch) {
         // If the locator is a label, we must find the actual checkbox/input child to check its state
         const checkbox = await locator.findElement(By.css(
           "input[type='checkbox'], [role='checkbox'], [role='switch']"
         ));
         if (!checkbox) {
-          log.error('Switch locator is a label, but no child checkbox/switch element was found.')
-          throw new Error('Switch locator is a label, but no child checkbox/switch element was found.');
+          log.error('Switch locator is a wrapper, but no child checkbox/switch element was found.');
+          throw new Error('Switch locator is a wrapper, but no child checkbox/switch element was found.');
         }
         result = await checkbox.isSelected();
       } else if (await locator.getAttribute('role') === 'switch') {
@@ -141,11 +148,12 @@ export class SwitchDelegate {
         // Default fallback to isSelected (works for native checkboxes)
         result = await locator.isSelected();
       }
-    } catch (err) {
-      browser.handleError(err, 'validating switch state');
-    } finally {
       browser.stack = [];
+      return result;
+    } catch (err) {
+      browser.stack = [];
+      browser.handleError(err, 'validating switch state');
+      throw err;
     }
-    return result;
   }
 }
