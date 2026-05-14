@@ -26,7 +26,7 @@ export class CheckboxDelegate {
     browser.message = messenger({ stack: browser.stack, action: targetState });
 
     try {
-      const locator = await browser._finder(null, targetState);
+      const locator = await browser._finder();
       const isChecked = await locator.isSelected();
       const needsChange = (targetState === 'check' && !isChecked) ||
         (targetState === 'uncheck' && isChecked);

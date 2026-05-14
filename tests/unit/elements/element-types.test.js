@@ -109,7 +109,7 @@ describe('ElementTypes', () => {
 
       // Should use only the definition constraint, no matcher
       Object.entries(elementTypes.definitions).forEach(([type, constraint]) => {
-        expect(selectors[type]).toBe(`//[${constraint}]`);
+        expect(selectors[type]).toBe(`//*[${constraint}]`);
       });
     });
 
@@ -120,7 +120,7 @@ describe('ElementTypes', () => {
 
       // Should use only the definition constraint, no matcher
       Object.entries(elementTypes.definitions).forEach(([type, constraint]) => {
-        expect(selectors[type]).toBe(`//[${constraint}]`);
+        expect(selectors[type]).toBe(`//*[${constraint}]`);
       });
     });
 
@@ -128,22 +128,23 @@ describe('ElementTypes', () => {
       const selectors = elementTypes.getSelectors(null);
 
       // button selector should match buttons without text constraint
-      expect(selectors.button).toBe("//[self::button or @role='button' or @type='button' or @type='submit']");
+      expect(selectors.button).toBe("//*[self::button or @role='button' or @type='button' or @type='submit']");
 
       // link selector should match links without text constraint
-      expect(selectors.link).toBe("//[self::a or @role='link' or @href]");
+      expect(selectors.link).toBe("//*[self::a or @role='link' or @href]");
 
       // element selector should match all elements
-      expect(selectors.element).toBe("//[true()]");
+      expect(selectors.element).toBe("//*[true()]");
     });
 
     it('should not include matcher components when value is null', () => {
       const selectors = elementTypes.getSelectors(null);
 
       Object.values(selectors).forEach(xpath => {
-        expect(xpath).not.toContain('contains(');
+        // Should not include the matcher-specific components (normalize-space, not(.//))
+        // Note: definitions themselves may contain contains() (e.g., dropdown)
         expect(xpath).not.toContain('normalize-space(');
-        expect(xpath).not.toContain('//*[(');
+        expect(xpath).not.toContain('not(.//');
       });
     });
   });

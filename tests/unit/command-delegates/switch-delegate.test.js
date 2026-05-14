@@ -9,6 +9,7 @@ jest.unstable_mockModule('selenium-webdriver', () => ({
   Builder: jest.fn(),
   By: {
     css: jest.fn((selector) => selector),
+    xpath: jest.fn((selector) => ({ using: 'xpath', value: selector })),
   },
   until: {},
   WebDriver: jest.fn(() => mockDriver),
@@ -111,21 +112,20 @@ describe('SwitchDelegate (ESM)', () => {
     test('should throw error if state does not change after click', async () => {
       mockLocator.isSelected.mockResolvedValue(false); // Stays false despite click
 
-      await delegate.on();
+      await expect(delegate.on()).rejects.toThrow('State did not change');
 
       expect(mockBrowser.handleError).toHaveBeenCalledWith(
         expect.any(Error),
-        'setting switch on'
+        'toggling switch to ON'
       );
-      expect(mockBrowser.handleError.mock.calls[0][0].message).toContain('State did not change');
     });
 
     test('should catch and handle errors during the toggle process', async () => {
       mockBrowser._finder.mockRejectedValue(new Error('Finder failed'));
 
-      await delegate.on();
+      await expect(delegate.on()).rejects.toThrow('Finder failed');
 
-      expect(mockBrowser.handleError).toHaveBeenCalledWith(expect.any(Error), 'setting switch on');
+      expect(mockBrowser.handleError).toHaveBeenCalledWith(expect.any(Error), 'toggling switch to ON');
     });
   });
 
@@ -169,9 +169,9 @@ describe('SwitchDelegate (ESM)', () => {
     test('should catch and handle errors during the toggle process', async () => {
       mockBrowser._finder.mockRejectedValue(new Error('Finder failed'));
 
-      await delegate.off();
+      await expect(delegate.off()).rejects.toThrow('Finder failed');
 
-      expect(mockBrowser.handleError).toHaveBeenCalledWith(expect.any(Error), 'setting switch off');
+      expect(mockBrowser.handleError).toHaveBeenCalledWith(expect.any(Error), 'toggling switch to OFF');
     });
   });
 
@@ -195,12 +195,11 @@ describe('SwitchDelegate (ESM)', () => {
       expect(mockBrowser.stack).toEqual([]);
     });
 
-    test('should handle errors from _finder and return false', async () => {
+    test('should handle errors from _finder and throw', async () => {
       mockBrowser._finder.mockRejectedValue(new Error('Selection failed'));
 
-      const result = await delegate._isOn();
+      await expect(delegate._isOn()).rejects.toThrow('Selection failed');
 
-      expect(result).toBe(false);
       expect(mockBrowser.handleError).toHaveBeenCalledWith(expect.any(Error), 'validating switch state');
       expect(mockBrowser.stack).toEqual([]);
     });
@@ -252,14 +251,11 @@ describe('SwitchDelegate (ESM)', () => {
 
       mockBrowser._finder.mockResolvedValue(labelLocator);
 
-      const result = await delegate._isOn();
-
-      expect(result).toBe(false);
+      await expect(delegate._isOn()).rejects.toThrow('no child checkbox');
       expect(mockBrowser.handleError).toHaveBeenCalledWith(
         expect.any(Error),
         'validating switch state'
       );
-      expect(mockBrowser.handleError.mock.calls[0][0].message).toContain('no child checkbox');
     });
 
     test('should fall back to isSelected when role is not "switch"', async () => {
@@ -278,13 +274,11 @@ describe('SwitchDelegate (ESM)', () => {
     test('should throw error if state does not change after click', async () => {
       mockLocator.isSelected.mockResolvedValue(true); // Stays true despite click
 
-      await delegate.off();
-
+      await expect(delegate.off()).rejects.toThrow('State did not change');
       expect(mockBrowser.handleError).toHaveBeenCalledWith(
         expect.any(Error),
-        'setting switch off'
+        'toggling switch to OFF'
       );
-      expect(mockBrowser.handleError.mock.calls[0][0].message).toContain('State did not change');
     });
 
     test('should return true after successful toggle', async () => {

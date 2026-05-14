@@ -1,46 +1,80 @@
 import WebBrowser from '../../index.js';
 
-describe('WebBrowser Drag and Drop Tests', () => {
+describe('Drag and Drop Integration Tests', () => {
   let browser;
 
   beforeAll(async () => {
     browser = new WebBrowser();
-    // We use a default config or environment variables for headless mode in CI
     await browser.start();
+    await browser.goto(`file://${process.cwd()}/tests/fixtures/drag-drop.html`);
   });
 
   afterAll(async () => {
     await browser.close();
   });
 
-  test('should handle drag and drop operations', async () => {
-    // Using a page that supports drag and drop
-    await browser.goto('https://the-internet.herokuapp.com/drag_and_drop');
-
-    // Perform drag and drop using the fluent API
-    await browser.drag.element('A').onto.element('B').drop();
-
-    // Re-query elements after the swap to avoid stale element references
-    // The library matches by id attribute, so 'column-a' finds id="column-a"
-    const textA = await browser.element('column-a').get.text();
-    const textB = await browser.element('column-b').get.text();
-
-    expect(textA).toBe('B');
-    expect(textB).toBe('A');
+  test('should perform basic drag and drop', async () => {
+    await browser.drag.element('Drag Me!').onto.element('Drop Here').drop();
+    
+    const status = await browser.element('basic-status').get.text();
+    expect(status).toBe('Status: Success!');
+    
+    // Note: drop-target also matches the multi-target handler, so text becomes "Dropped dragged!"
+    const target = await browser.element('drop-target').get.text();
+    expect(target).toBe('Dropped dragged!');
   });
 
-  test('should check checkbox and drag item to dropzone 2 on selenium demo page', async () => {
-    // Navigate to the selenium demo page
-    await browser.goto('https://seleniumbase.io/demo_page');
+  test('should reorder items in a sortable list', async () => {
+    // Drag Item 1 onto Item 3 to reorder
+    await browser.drag.element('Item 1').onto.element('Item 3').drop();
+    
+    const items = await browser.element('sortable-item').findAll();
+    const texts = await Promise.all(items.map(i => i.getText()));
+    
+    // Verify Item 1 is no longer at the top
+    expect(texts[0]).not.toBe('☰ Item 1');
+  });
 
-    // Check checkbox1 (ID is 'checkBox1')
-    await browser.checkbox('checkBox1').check();
+  test('should drag items to different target zones', async () => {
+    await browser.drag.element('Item A').onto.element('Zone 2').drop();
+    
+    const status = await browser.element('multi-status').get.text();
+    expect(status).toContain('A dropped in target-zone-2');
+    
+    const zone2 = await browser.element('target-zone-2').get.text();
+    expect(zone2).toBe('Dropped A!');
+  });
 
-    // Drag selenium draggable item into dropzone 2
-    // Based on browser analysis: draggable ID is 'logo', dropzone ID is 'drop2'
-    await browser.drag.element('logo').onto.element('drop2').drop();
+  test('should handle file drag and drop (simulated)', async () => {
+    const { By } = await import('selenium-webdriver');
+    
+    // Simulate a drop event using executeScript since we can't drag real files
+    const fileZone = await browser.driver.findElement(By.id('file-drop-zone'));
+    await browser.driver.executeScript(`
+      const dataTransfer = new DataTransfer();
+      const file = new File(["content"], "test-file.txt", { type: "text/plain" });
+      dataTransfer.items.add(file);
+      
+      const event = new DragEvent('drop', {
+        bubbles: true,
+        cancelable: true,
+        dataTransfer: dataTransfer
+      });
+      arguments[0].dispatchEvent(event);
+    `, fileZone);
+    
+    const fileList = await browser.driver.findElement(By.id('file-list'));
+    const text = await fileList.getText();
+    expect(text).toContain('File: test-file.txt');
+  });
 
-    // Verification (assuming the dropzone text changes or contains the item)
-    await browser.element('logo').within.element('drop2').should.be.visible();
+  test('should perform jQuery UI drag and drop', async () => {
+    await browser.drag.element('jQuery Drag!').onto.element('jQuery Drop Here').drop();
+    
+    const status = await browser.element('jquery-status').get.text();
+    expect(status).toBe('Status: Success!');
+    
+    const target = await browser.element('jquery-drop-target').get.text();
+    expect(target).toBe('Dropped!');
   });
 });

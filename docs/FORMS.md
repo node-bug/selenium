@@ -31,6 +31,9 @@ await browser.dropdown('Country').option('United States').select()
 await browser.dropdown('Country').option(1).select()
 const selected = await browser.dropdown('Country').get.text()
 const value = await browser.dropdown('Country').get.value()
+const options = await browser.dropdown('Country').get.options()
+await browser.dropdown('Country').has.option('United States')
+await browser.dropdown('Country').should.have.option('United States')
 ```
 
 ## Checkboxes
@@ -414,18 +417,6 @@ await browser.dropdown('Color').option(1).select()
 
 **Throws**: Error if `.option()` was not called first
 
-### getSelectedOption()
-
-Get the currently selected option:
-
-```javascript
-const selected = await browser.dropdown('Country').getSelectedOption()
-console.log(selected.text) // "United States"
-console.log(selected.value) // "us"
-```
-
-**Returns**: `Promise<{text: string, value: string}>`
-
 ### get.text()
 
 Get the visible text of the currently selected option:
@@ -507,6 +498,101 @@ await browser.dropdown('Country').option('Canada').should.not.be.selected()
 ```
 
 **Throws**: Error if option IS selected
+
+### get.options()
+
+Get all options from a dropdown as an array of objects with `text` and `value` properties. Works with both native `<select>` elements and custom combobox widgets.
+
+```javascript
+const options = await browser.dropdown('Country').get.options()
+console.log(options)
+// Output: [
+//   { text: 'United States', value: 'us' },
+//   { text: 'Canada', value: 'ca' },
+//   { text: 'Mexico', value: 'mx' }
+// ]
+```
+
+**Returns**: `Promise<Array<{text: string, value: string}>>` - Array of option objects
+
+**Throws**: Error if dropdown not found.
+
+### has.option(value)
+
+**Returns `true`/`false` for conditional logic** - Does not throw errors.
+
+Check if a dropdown has a specific option. Accepts text, value, or index. Use this **only in if conditions** for branching logic.
+
+```javascript
+// Check by text
+const hasOption = await browser.dropdown('Country').has.option('United States')
+if (hasOption) {
+  console.log('United States is available')
+}
+
+// Check by value
+const hasOption = await browser.dropdown('Country').has.option('US')
+```
+
+**Parameters**:
+
+- `value` (string|number): Option text, value, or index to check for
+
+**Returns**: `Promise<boolean>` - `true` if the option exists, `false` otherwise
+
+**QA Best Practice**: For test validations, use `should.have.option()` or `should.not.have.option()` instead.
+
+### does.not.have.option(value)
+
+**Assertion that throws an error and stops test execution on failure.**
+
+Assert that a dropdown does NOT have a specific option. Accepts text, value, or index.
+
+```javascript
+// Assert option doesn't exist
+await browser.dropdown('Country').does.not.have.option('NonExistent')
+```
+
+**Parameters**:
+
+- `value` (string|number): Option text, value, or index to check for
+
+**Throws**: Error if the option exists - **Test execution stops**
+
+### should.have.option(value)
+
+**Assertion that throws an error and stops test execution on failure.**
+
+Assert that a dropdown has a specific option. Accepts text, value, or index.
+
+```javascript
+// Assert option exists
+await browser.dropdown('Country').should.have.option('United States')
+await browser.dropdown('Country').should.have.option('US')
+```
+
+**Parameters**:
+
+- `value` (string|number): Option text, value, or index to check for
+
+**Throws**: Error if the option does not exist - **Test execution stops**
+
+### should.not.have.option(value)
+
+**Assertion that throws an error and stops test execution on failure.**
+
+Assert that a dropdown does NOT have a specific option. Accepts text, value, or index.
+
+```javascript
+// Assert option doesn't exist
+await browser.dropdown('Country').should.not.have.option('NonExistent')
+```
+
+**Parameters**:
+
+- `value` (string|number): Option text, value, or index to check for
+
+**Throws**: Error if the option exists - **Test execution stops**
 
 ### Dropdown Patterns
 

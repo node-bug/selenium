@@ -60,6 +60,7 @@ jest.unstable_mockModule('../../app/elements/locator-strategy.js', () => {
             checkbox: true,
             switch: true,
             radio: true,
+            slider: true,
             dropdown: true,
             // Forms & Inputs
             textbox: true,
@@ -129,6 +130,13 @@ jest.unstable_mockModule('../../app/command-delegates/switch-delegate.js', () =>
     SwitchDelegate: jest.fn().mockImplementation(() => mockSwitchDelegate),
 }));
 
+jest.unstable_mockModule('../../app/command-delegates/slider-delegate.js', () => ({
+    SliderDelegate: jest.fn().mockImplementation(() => ({
+        set: jest.fn(),
+        _isSet: jest.fn().mockResolvedValue(true),
+    })),
+}));
+
 const { default: WebBrowser } = await import('../../index.js');
 
 describe('WebBrowser', () => {
@@ -149,10 +157,8 @@ describe('WebBrowser', () => {
         expect(browser.locatorStrategy).toBeDefined();
     });
 
-    test('should throw error when element type is called with empty string', () => {
-        expect(() => browser.element('')).toThrow(
-            /Invalid argument: element\(\) requires a non-empty string identifier/
-        );
+    test('should accept empty string for element type', () => {
+        expect(() => browser.element('')).not.toThrow();
     });
 
     describe('element type validation', () => {
@@ -164,22 +170,16 @@ describe('WebBrowser', () => {
             'switch', 'element'
         ];
 
-        test.each(elementTypes)('should throw when %s() is called with empty string', (type) => {
-            expect(() => browser[type]('')).toThrow(
-                new RegExp(`Invalid argument: ${type}\\(\\) requires a non-empty string identifier`)
-            );
+        test.each(elementTypes)('should accept empty string for %s()', (type) => {
+            expect(() => browser[type]('')).not.toThrow();
         });
 
-        test.each(elementTypes)('should throw when %s() is called with null', (type) => {
-            expect(() => browser[type](null)).toThrow(
-                new RegExp(`Invalid argument: ${type}\\(\\) requires a non-empty string identifier`)
-            );
+        test.each(elementTypes)('should accept null for %s()', (type) => {
+            expect(() => browser[type](null)).not.toThrow();
         });
 
-        test.each(elementTypes)('should throw when %s() is called with undefined', (type) => {
-            expect(() => browser[type](undefined)).toThrow(
-                new RegExp(`Invalid argument: ${type}\\(\\) requires a non-empty string identifier`)
-            );
+        test.each(elementTypes)('should accept undefined for %s()', (type) => {
+            expect(() => browser[type](undefined)).not.toThrow();
         });
 
         test.each(elementTypes)('should work when %s() is called with valid string', (type) => {
@@ -565,10 +565,7 @@ describe('WebBrowser', () => {
         browser.driver = {
             executeScript: jest.fn().mockResolvedValue(),
             actions: jest.fn().mockReturnValue({
-                move: jest.fn().mockReturnThis(),
-                press: jest.fn().mockReturnThis(),
-                pause: jest.fn().mockReturnThis(),
-                release: jest.fn().mockReturnThis(),
+                dragAndDrop: jest.fn().mockReturnThis(),
                 perform,
             }),
         };

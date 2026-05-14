@@ -123,6 +123,12 @@ await browser.textbox('Full Name').write('John Doe')
 // Select from dropdown
 await browser.dropdown('Country').option('United States').select()
 
+// Check if option exists
+await browser.dropdown('Country').should.have.option('United States')
+
+// Get all options
+const options = await browser.dropdown('Country').get.options()
+
 // Check multiple checkboxes
 await browser.checkbox('Subscribe').check()
 await browser.checkbox('Accept Terms').check()
