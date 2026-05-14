@@ -22,17 +22,13 @@ describe('WebBrowser Authentication Tests', () => {
     await browser.textbox('password').write('SuperSecretPassword!');
     await browser.button('Login').click();
 
-    // Wait for page navigation after login
-    await browser.sleep(3000);
-
     // Verify successful login
-    const successMessage = await browser.element('You logged into a secure area!').get.text();
+    const successMessage = await browser.element('flash').get.text();
     expect(successMessage).toContain('You logged into a secure area!');
 
     // Test logout
     await browser.element('Logout').click();
-    await browser.sleep(5000);
-    const logoutMessage = await browser.element('You logged out').get.text();
+    const logoutMessage = await browser.element('flash').get.text();
     expect(logoutMessage).toContain('You logged out');
 
   });

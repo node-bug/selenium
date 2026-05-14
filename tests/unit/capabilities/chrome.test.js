@@ -17,13 +17,10 @@ describe('Chrome', () => {
     expect(chromeOptions).toBeDefined()
     
     expect(chromeOptions.args).toContain('--force-device-scale-factor=1')
-    expect(chromeOptions.args).toContain('--disable-extensions')
-    expect(chromeOptions.args).toContain('--disable-gpu')
+    expect(chromeOptions.args).toContain('--disable-infobars')
     expect(chromeOptions.args).toContain('--disable-notifications')
     expect(chromeOptions.args).toContain('--no-sandbox')
     expect(chromeOptions.args).toContain('--disable-dev-shm-usage')
-    expect(chromeOptions.args).toContain('--disable-blink-features=AutomationControlled')
-    expect(chromeOptions.args).toContain('--no-first-run')
     expect(chromeOptions.excludeSwitches).toContain('enable-automation')
   })
 

@@ -128,7 +128,7 @@ describe('InputDelegate (ESM)', () => {
     test('calls finder with correct parameters', async () => {
       await inputDelegate.write('test');
 
-      expect(mockBrowser._finder).toHaveBeenCalledWith(null, 'write');
+      expect(mockBrowser._finder).toHaveBeenCalledWith();
     });
 
     test('sends text to input elements', async () => {
@@ -207,7 +207,7 @@ describe('InputDelegate (ESM)', () => {
     test('calls finder with correct parameters', async () => {
       await inputDelegate.clear();
 
-      expect(mockBrowser._finder).toHaveBeenCalledWith(null, 'write');
+      expect(mockBrowser._finder).toHaveBeenCalledWith();
     });
 
     test('clears input elements', async () => {

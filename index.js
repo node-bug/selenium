@@ -111,7 +111,7 @@ class WebBrowser extends Browser {
   /**
    * Centralized retry logic for finding elements
    */
-  async _finder(t = null, action = null) {
+  async _finder(t = null) {
     let locator;
     const stacks = this.getDescriptions();
     const timeout = t ?? (selenium.timeout * 1000);
@@ -120,7 +120,7 @@ class WebBrowser extends Browser {
     while (Date.now() < endTime) {
       for (const currentStack of stacks) {
         try {
-          locator = await this.locatorStrategy.find(currentStack, action);
+          locator = await this.locatorStrategy.find(currentStack);
           if (locator) return locator;
         } catch {
           continue; // Try next stack in the OR condition
@@ -427,7 +427,6 @@ class WebBrowser extends Browser {
     if (valueType === 'Text') this.message = messenger({ stack: this.stack, action: 'getText' });
     if (valueType === 'Value') this.message = messenger({ stack: this.stack, action: 'getValue' });
     try {
-      let ogStack = this.stack;
       const locator = await this._finder();
       const [textContent, valueAttr, tagName] = await Promise.all([
         locator.getAttribute('textContent'),
@@ -435,19 +434,10 @@ class WebBrowser extends Browser {
         locator.tagName
       ]);
 
-      if (tagName === 'select') {
-        this.stack = ogStack
-        const selectedOption = await this.#selectDelegate.getSelectedOption()
-        if (valueType === 'Text') return selectedOption.text
-        if (valueType === 'Value') return selectedOption.value
-      }
-
       let result = textContent;
-
       if (['input', 'textarea'].includes(tagName)) {
         result = valueAttr;
       }
-
       log.info(`${valueType} is '${result}'`)
       return result?.trim() ?? '';
     } catch (err) {
@@ -470,6 +460,41 @@ class WebBrowser extends Browser {
       text: () => this.#retrieveElementText('Text'),
 
       value: () => this.#retrieveElementText('Value'),
+
+      options: async () => {
+        this.message = messenger({ stack: this.stack, action: 'getOptions' });
+        try {
+          return await this.#selectDelegate.getOptions();
+        } catch (err) {
+          this.handleError(err, 'getting options from dropdown');
+        } finally {
+          this.stack = [];
+        }
+      },
+
+      selected: {
+        option: async () => {
+          this.message = messenger({ stack: this.stack, action: 'getSelectedOptions' });
+          try {
+            return await this.#selectDelegate.getSelectedOptions();
+          } catch (err) {
+            this.handleError(err, 'getting selected option from dropdown');
+          } finally {
+            this.stack = [];
+          }
+        },
+
+        options: async () => {
+          this.message = messenger({ stack: this.stack, action: 'getSelectedOptions' });
+          try {
+            return await this.#selectDelegate.getSelectedOptions();
+          } catch (err) {
+            this.handleError(err, 'getting selected options from dropdown');
+          } finally {
+            this.stack = [];
+          }
+        },
+      },
 
       attribute: async (name) => {
         this.message = messenger({ stack: this.stack, action: 'getAttribute', data: name });
@@ -545,6 +570,21 @@ class WebBrowser extends Browser {
         else log.warn(`Text '${actualText}' does not have '${expectedText}'`);
         return result;
       },
+
+      /**
+       * Checks that the dropdown has a specific option.
+       *
+       * @param {string|number} optionValue - The option text, value, or index to check for
+       * @returns {Promise<boolean>}
+       */
+      option: async (optionValue) => {
+        this.message = messenger({ stack: this.stack, action: 'hasOption', data: optionValue });
+        this.#selectDelegate.option(optionValue);
+        const result = await this.#selectDelegate._hasOption();
+        if (result) log.info(`Dropdown has option '${optionValue}'`);
+        else log.warn(`Dropdown does not have option '${optionValue}'`);
+        return result;
+      },
     }
   }
 
@@ -579,6 +619,21 @@ class WebBrowser extends Browser {
             const result = actualText !== unexpectedText;
             if (result) log.info(`Text '${actualText}' does not have '${unexpectedText}'`);
             else log.warn(`Text '${actualText}' has '${unexpectedText}'`);
+            return result;
+          },
+
+          /**
+           * Checks that the dropdown does not have a specific option.
+           *
+           * @param {string|number} optionValue - The option text, value, or index that should not be present
+           * @returns {Promise<boolean>}
+           */
+          option: async (optionValue) => {
+            this.message = messenger({ stack: this.stack, action: 'doesNotHaveOption', data: optionValue });
+            this.#selectDelegate.option(optionValue);
+            const result = !(await this.#selectDelegate._hasOption());
+            if (result) log.info(`Dropdown does not have option '${optionValue}'`);
+            else log.warn(`Dropdown has option '${optionValue}'`);
             return result;
           },
         },
@@ -928,6 +983,25 @@ class WebBrowser extends Browser {
             log.info(`Text '${actualText}' matches expected '${expectedText}'`);
           }
         },
+
+        /**
+         * Asserts that the dropdown has a specific option.
+         *
+         * @param {string|number} optionValue - The option text, value, or index to check for
+         * @returns {Promise<void>}
+         */
+        option: async (optionValue) => {
+          this.message = messenger({ stack: this.stack, action: 'shouldHaveOption', data: optionValue });
+          const test = await this.#selectDelegate._hasOption(optionValue);
+          if (!test) {
+            log.warn(`Dropdown does not have option '${optionValue}'`);
+            const err = new Error(`Dropdown should have option '${optionValue}'`);
+            this.handleError(err, 'validating dropdown option');
+            throw err
+          } else {
+            log.info(`Dropdown has option '${optionValue}'`);
+          }
+        },
       },
 
       not: {
@@ -967,6 +1041,25 @@ class WebBrowser extends Browser {
               throw err
             } else {
               log.info(`Text '${actualText}' does not match unexpected '${unexpectedText}'`);
+            }
+          },
+
+          /**
+           * Asserts that the dropdown does not have a specific option.
+           *
+           * @param {string|number} optionValue - The option text, value, or index to check for
+           * @returns {Promise<void>}
+           */
+          option: async (optionValue) => {
+            this.message = messenger({ stack: this.stack, action: 'shouldNotHaveOption', data: optionValue });
+            const test = await this.#selectDelegate._hasOption(optionValue);
+            if (test) {
+              log.warn(`Dropdown has option '${optionValue}'`);
+              const err = new Error(`Dropdown should not have option '${optionValue}'`);
+              this.handleError(err, 'validating dropdown option');
+              throw err
+            } else {
+              log.info(`Dropdown does not have option '${optionValue}'`);
             }
           },
         },

@@ -107,8 +107,6 @@ export class SelectorStackBuilder {
     if (value === undefined) member.index = 1;
 
     this.stack.push(member);
-    
-    // CRITICAL: Return the parent (WebBrowser) to switch back to action mode
     return this.parent;
   }
 }

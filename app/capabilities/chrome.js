@@ -32,20 +32,10 @@ class Chrome {
     // Add Chrome command-line flags (Arguments)
     options.addArguments([
       '--force-device-scale-factor=1',
-      '--disable-extensions',
-      '--disable-gpu',
+      '--disable-infobars',
       '--disable-notifications',
       '--no-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-blink-features=AutomationControlled',
-      '--no-first-run',
-      '--password-store=basic',
-      '--disable-search-engine-choice-screen',
-      '--disable-features=SafeBrowsingCheckEveryUrl,SafeBrowsingPasswordCheck',
-      '--disable-safebrowsing-aggressive-on-focus',
-      '--disable-background-networking',
-      '--disable-sync',
-      '--disable-default-apps'
+      '--disable-dev-shm-usage'
     ])
 
     // Exclude automation switch to avoid detection
@@ -62,6 +52,7 @@ class Chrome {
       // Password & credentials (silences "Change Password" popups)
       'credentials_enable_service': false,
       'profile.password_manager_enabled': false,
+      'profile.password_manager_leak_detection': false,
       'password_manager_enable_autofill': false,
       'password_manager_bubble_enabled': false,
 

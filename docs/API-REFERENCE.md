@@ -772,7 +772,7 @@ console.log(text) // e.g., 'United States'
 Get the value of the currently selected option.
 
 ```javascript
-const value = await browser.dropdown('Country').get.v()
+const value = await browser.dropdown('Country').get.value()
 console.log(value) // e.g., 'us'
 ```
 
@@ -799,8 +799,8 @@ if (isSelected) {
 // Check by value
 const isSelected = await browser.dropdown('Country').option('US').is.selected()
 
-// Check by index
-const isSelected = await browser.dropdown('Country').option(0).is.selected()
+// Check by index (1-based)
+const isSelected = await browser.dropdown('Country').option(1).is.selected()
 ```
 
 **Returns**: `Promise<boolean>` - `true` if the option is selected, `false` otherwise
@@ -853,8 +853,8 @@ await browser.dropdown('Country').option('United States').should.be.selected()
 // Assert by value
 await browser.dropdown('Country').option('US').should.be.selected()
 
-// Assert by index
-await browser.dropdown('Country').option(0).should.be.selected()
+// Assert by index (1-based)
+await browser.dropdown('Country').option(1).should.be.selected()
 ```
 
 **Throws**: Error if the specified option is not selected.
@@ -874,6 +874,101 @@ await browser.dropdown('Country').option('CA').should.not.be.selected()
 ```
 
 **Throws**: Error if the specified option IS selected.
+
+### get.options()
+
+Get all options from a dropdown as an array of objects with `text` and `value` properties. Works with both native `<select>` elements and custom combobox widgets.
+
+```javascript
+const options = await browser.dropdown('Country').get.options()
+console.log(options)
+// Output: [
+//   { text: 'United States', value: 'us' },
+//   { text: 'Canada', value: 'ca' },
+//   { text: 'Mexico', value: 'mx' }
+// ]
+```
+
+**Returns**: `Promise<Array<{text: string, value: string}>>` - Array of option objects
+
+**Throws**: Error if dropdown not found.
+
+### has.option(value)
+
+**Returns `true`/`false` for conditional logic** - Does not throw errors.
+
+Check if a dropdown has a specific option. Accepts text, value, or index. Use this **only in if conditions** for branching logic.
+
+```javascript
+// Check by text
+const hasOption = await browser.dropdown('Country').has.option('United States')
+if (hasOption) {
+  console.log('United States is available')
+}
+
+// Check by value
+const hasOption = await browser.dropdown('Country').has.option('US')
+```
+
+**Parameters**:
+
+- `value` (string|number): Option text, value, or index to check for
+
+**Returns**: `Promise<boolean>` - `true` if the option exists, `false` otherwise
+
+**QA Best Practice**: For test validations, use `should.have.option()` or `should.not.have.option()` instead.
+
+### does.not.have.option(value)
+
+**Assertion that throws an error and stops test execution on failure.**
+
+Assert that a dropdown does NOT have a specific option. Accepts text, value, or index.
+
+```javascript
+// Assert option doesn't exist
+await browser.dropdown('Country').does.not.have.option('NonExistent')
+```
+
+**Parameters**:
+
+- `value` (string|number): Option text, value, or index to check for
+
+**Throws**: Error if the option exists - **Test execution stops**
+
+### should.have.option(value)
+
+**Assertion that throws an error and stops test execution on failure.**
+
+Assert that a dropdown has a specific option. Accepts text, value, or index.
+
+```javascript
+// Assert option exists
+await browser.dropdown('Country').should.have.option('United States')
+await browser.dropdown('Country').should.have.option('US')
+```
+
+**Parameters**:
+
+- `value` (string|number): Option text, value, or index to check for
+
+**Throws**: Error if the option does not exist - **Test execution stops**
+
+### should.not.have.option(value)
+
+**Assertion that throws an error and stops test execution on failure.**
+
+Assert that a dropdown does NOT have a specific option. Accepts text, value, or index.
+
+```javascript
+// Assert option doesn't exist
+await browser.dropdown('Country').should.not.have.option('NonExistent')
+```
+
+**Parameters**:
+
+- `value` (string|number): Option text, value, or index to check for
+
+**Throws**: Error if the option exists - **Test execution stops**
 
 ---
 

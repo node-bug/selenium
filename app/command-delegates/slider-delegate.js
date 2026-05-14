@@ -44,7 +44,7 @@ export class SliderDelegate {
         browser.message = messenger({ stack: browser.stack, action: 'slide', data: this.targetValue });
 
         try {
-            const locator = await browser._finder(null, 'set');
+            const locator = await browser._finder();
 
             // Get slider value and convert target to number
             await locator.getAttribute('value');
