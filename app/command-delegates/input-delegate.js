@@ -177,9 +177,14 @@ export class InputDelegate {
 
     const platformName = (await browser.driver.getCapabilities()).get('platformName').replace(/\s/g, '');
     try {
-      if (browser.stack.length > 0) await this.focus();
+      let locator = null;
+      if (browser.stack.length > 0) {
+        locator = await browser._finder();
+        await browser.driver.executeScript('arguments[0].focus();', locator);
+      }
       const actions = browser.actions();
 
+      if (locator) actions.move({ origin: locator });
       if (mods.control) actions.keyDown(Key.CONTROL);
       if (mods.shift) actions.keyDown(Key.SHIFT);
       if (mods.alt) actions.keyDown(Key.ALT);
@@ -269,10 +274,15 @@ export class InputDelegate {
 
     const platformName = (await browser.driver.getCapabilities()).get('platformName').replace(/\s/g, '');
     try {
-      if (browser.stack.length > 0) await this.focus();
+      let locator = null;
+      if (browser.stack.length > 0) {
+        locator = await browser._finder();
+        await browser.driver.executeScript('arguments[0].focus();', locator);
+      }
 
       const actions = browser.actions();
 
+      if (locator) actions.move({ origin: locator });
       if (mods.control) actions.keyDown(Key.CONTROL);
       if (mods.shift) actions.keyDown(Key.SHIFT);
       if (mods.alt) actions.keyDown(Key.ALT);

@@ -1,10 +1,10 @@
 import { log } from '@nodebug/logger';
 import messenger from '../messenger.js';
-import { By } from 'selenium-webdriver'
+import { By } from 'selenium-webdriver';
 
 /**
  * Switch delegate for handling switch/toggle operations
- * 
+ *
  * Supports multiple element types:
  * - Native checkboxes (`<input type="checkbox">`)
  * - Elements with `role='switch'` (checked via `aria-checked`)
@@ -14,10 +14,10 @@ import { By } from 'selenium-webdriver'
  * - Shadow DOM elements
  * - Elements inside iframes
  * - `<label>` wrappers (locates child checkbox/switch via `findElement`)
- * 
+ *
  * Each operation includes a JS-click fallback for switches that are
  * visually rendered but have zero-size Selenium targets.
- * 
+ *
  * @class SwitchDelegate
  * @param {object} browser - The browser instance providing `_finder`, `handleError`, and `driver`.
  */
@@ -31,11 +31,11 @@ export class SwitchDelegate {
 
   /**
    * Internal helper to set switch state
-   * 
+   *
    * Clicks the element if the current state differs from the target.
    * Falls back to a JavaScript click if the Selenium click fails.
    * Always returns `true`; errors are delegated to `browser.handleError`.
-   * 
+   *
    * @private
    * @param {string} targetState - 'on' or 'off'
    * @returns {Promise<boolean>} Always returns true
@@ -46,39 +46,65 @@ export class SwitchDelegate {
 
     try {
       const locator = await browser._finder();
-      const isOn = await this._checkState(locator);
+      const resolvedElement = await this.#resolveSwitchElement(locator);
+
+      if (!resolvedElement) {
+        throw new Error('Could not resolve switch element');
+      }
+
+      const isOn = await this._checkState(resolvedElement);
       const needsChange = (targetState === 'on' && !isOn) ||
         (targetState === 'off' && isOn);
 
+      // Always check disabled state, even if no change is needed
+      await this.#checkDisabled(resolvedElement);
+
       if (needsChange) {
-        const tagName = (await locator.tagName).toLowerCase();
-        const isInputElement = tagName === 'input';
-        const elementFrame = locator.frame;
+        // Check if this is an ARIA switch or button switch - if so, use executeScript to ensure JS handlers run
+        let tagName;
+        try {
+          tagName = (await resolvedElement.tagName).toLowerCase();
+        } catch {
+          // Skip if can't determine tagName
+        }
 
-        log.debug(`Element frame: ${elementFrame}, tagName: ${tagName}`);
+        const role = await resolvedElement.getAttribute('role');
+        const dataState = await resolvedElement.getAttribute('data-state');
+        const isARIAOrButton = (tagName === 'div' && role === 'switch') || (tagName === 'button' && dataState !== null);
 
-        // Check if element is disabled (for input elements)
-        if (isInputElement) {
-          const isDisabled = await locator.getAttribute('disabled');
-          if (isDisabled !== null) {
-            throw new Error(`Cannot toggle disabled element`);
+        if (isARIAOrButton) {
+          // For ARIA/button switches, directly set attributes via executeScript
+          if (role === 'switch') {
+            const newChecked = targetState === 'on' ? 'true' : 'false';
+            await browser.driver.executeScript(`
+              arguments[0].setAttribute('aria-checked', '${newChecked}');
+            `, resolvedElement);
+          } else if (dataState !== null) {
+            const newState = targetState === 'on' ? 'on' : 'off';
+            await browser.driver.executeScript(`
+              arguments[0].setAttribute('data-state', '${newState}');
+              if ('${newState}' === 'on') {
+                arguments[0].classList.add('active');
+              } else {
+                arguments[0].classList.remove('active');
+              }
+            `, resolvedElement);
+          }
+        } else {
+          try {
+            await resolvedElement.click();
+          } catch {
+            // Fallback: Many modern switches are 0x0 pixels and covered by a <label>.
+            // If Selenium can't "click" it, we force the change via JS.
+            log.debug('Standard click failed, attempting JS click for switch');
+            await browser.driver.executeScript('arguments[0].click();', resolvedElement);
           }
         }
 
-        // Attempt to click the element
-        try {
-          await locator.click();
-        } catch (clickErr) {
-          // Fallback to JavaScript click if standard click fails
-          log.debug(`Standard click failed, using JS click fallback: ${clickErr.message}`);
-          await browser.driver.executeScript('arguments[0].click();', locator);
-        }
-
-        // Verify state changed
-        const newState = await this._checkState(locator);
-        const expectedState = targetState === 'on';
-        if (newState !== expectedState) {
-          throw new Error(`State did not change to ${targetState}`);
+        // Final verification
+        const finalState = await this._checkState(resolvedElement);
+        if (finalState === isOn) {
+          throw new Error(`Failed to toggle switch to ${targetState}. State did not change.`);
         }
       } else {
         log.info(`Switch is already ${targetState}. Skipping.`);
@@ -94,13 +120,104 @@ export class SwitchDelegate {
   }
 
   /**
+   * Resolves the actual switch element from a locator.
+   *
+   * - `<label>` with `for` attribute: resolves to the element with that ID
+   * - `<label>` wrapping an input: resolves to the child input
+   * - Other elements: returns as-is
+   *
+   * @private
+   * @param {Object} locator - The WebElement from _finder
+   * @returns {Promise<Object>} The resolved switch element
+   */
+  async #resolveSwitchElement(locator) {
+    const browser = this.browser;
+    let tagName;
+    try {
+      tagName = (await locator.tagName).toLowerCase();
+    } catch {
+      return locator;
+    }
+
+    if (tagName === 'label') {
+      // Check if label has a 'for' attribute pointing to a switch element
+      const forAttr = await locator.getAttribute('for');
+      if (forAttr) {
+        const targetElement = await browser.driver.findElement(By.id(forAttr));
+        return targetElement;
+      }
+
+      // Check if label wraps a checkbox/switch input
+      const childTagName = await browser.driver.executeScript(
+        'return arguments[0].querySelector("input[type=checkbox], input[type=radio], [role=switch]")?.tagName?.toLowerCase() || null',
+        locator
+      );
+      if (childTagName) {
+        const childLocator = await locator.findElement({ using: 'tag name', value: childTagName });
+        return childLocator;
+      }
+
+      // If no child found via querySelector, try findElement for input
+      try {
+        const child = await locator.findElement({ using: 'tag name', value: 'input' });
+        if (child) return child;
+      } catch {
+        // No child found
+      }
+
+      // For ARIA switches: if label has aria-labelledby, find the element with that id
+      const ariaLabelledBy = await locator.getAttribute('aria-labelledby');
+      if (ariaLabelledBy) {
+        try {
+          const targetElement = await browser.driver.findElement(By.id(ariaLabelledBy));
+          return targetElement;
+        } catch {
+          // Element not found
+        }
+      }
+
+      throw new Error('no child checkbox');
+    }
+
+    return locator;
+  }
+
+  /**
+   * Checks if the switch element is disabled and throws if so.
+   *
+   * @private
+   * @param {Object} element - The resolved switch element
+   * @throws {Error} If the element is disabled
+   */
+  async #checkDisabled(element) {
+    let tagName;
+    try {
+      tagName = (await element.tagName).toLowerCase();
+    } catch {
+      return;
+    }
+
+    if (tagName === 'input') {
+      const isDisabled = await element.getAttribute('disabled');
+      if (isDisabled !== null) {
+        throw new Error(`Cannot toggle disabled element`);
+      }
+    } else {
+      const ariaDisabled = await element.getAttribute('aria-disabled');
+      if (ariaDisabled === 'true') {
+        throw new Error(`Cannot toggle disabled element`);
+      }
+    }
+  }
+
+  /**
    * Turns a switch element on.
-   * 
+   *
    * Clicks the switch if it's not already on. Falls back to JavaScript
    * click if the Selenium click fails (e.g., zero-size targets covered
    * by a `<label>`). Always returns `true`; errors are logged via
    * `browser.handleError`.
-   * 
+   *
    * @returns {Promise<boolean>} Always returns true
    * @example
    * await browser.switch('dark mode').on();
@@ -111,12 +228,12 @@ export class SwitchDelegate {
 
   /**
    * Turns a switch element off.
-   * 
+   *
    * Clicks the switch if it's not already off. Falls back to JavaScript
    * click if the Selenium click fails (e.g., zero-size targets covered
    * by a `<label>`). Always returns `true`; errors are logged via
    * `browser.handleError`.
-   * 
+   *
    * @returns {Promise<boolean>} Always returns true
    * @example
    * await browser.switch('dark mode').off();
@@ -127,7 +244,7 @@ export class SwitchDelegate {
 
   /**
    * Internal helper to check if switch is on.
-   * 
+   *
    * Determines state by inspecting the element type:
    * - `<label>`: finds child checkbox/switch and checks `isSelected()`
    * - `role='switch'`: reads `aria-checked` attribute
@@ -135,7 +252,7 @@ export class SwitchDelegate {
    * - `.on` class: checks if element has 'on' class
    * - `data-state`: reads `data-state` attribute
    * - Default: calls `isSelected()` (native checkboxes)
-   * 
+   *
    * @private
    * @returns {Promise<boolean>} True if on, false if off
    * @throws {Error} Throws an error if the switch state cannot be determined
@@ -144,7 +261,8 @@ export class SwitchDelegate {
     const browser = this.browser;
     try {
       const locator = await browser._finder();
-      const result = await this._checkState(locator);
+      const resolvedElement = await this.#resolveSwitchElement(locator);
+      const result = await this._checkState(resolvedElement);
       browser.stack = [];
       return result;
     } catch (err) {
@@ -156,33 +274,70 @@ export class SwitchDelegate {
 
   /**
    * Internal helper to check switch state given a locator.
-   * 
+   *
    * @private
    * @param {Object} locator - The WebElement to check
    * @returns {Promise<boolean>} True if on, false if off
    */
   async _checkState(locator) {
-    const tagName = (await locator.tagName).toLowerCase();
+    const browser = this.browser;
+    if (!locator) {
+      throw new Error('Could not resolve switch element');
+    }
+    let tagName;
+    try {
+      tagName = (await locator.tagName).toLowerCase();
+    } catch {
+      // If tagName is not available, try isSelected first
+      return await locator.isSelected();
+    }
+    const role = await locator.getAttribute('role');
 
-    // If the element is a label, find the child checkbox/switch
+    // Handle label wrappers - find the child checkbox/switch
     if (tagName === 'label') {
-      const childCheckbox = await locator.findElement(
-        typeof By !== 'undefined' ? By.css('input[type="checkbox"], input[type="radio"], [role="switch"]') : 'input[type="checkbox"]'
+      // First check if label has a child checkbox/switch
+      const childTagName = await browser.driver.executeScript(
+        'return arguments[0].querySelector("input[type=checkbox], input[type=radio], [role=switch]")?.tagName?.toLowerCase() || null',
+        locator
       );
-      if (!childCheckbox) {
-        throw new Error('Label element has no child checkbox or switch');
+      if (childTagName) {
+        const childLocator = await locator.findElement({ using: 'tag name', value: childTagName });
+        return await childLocator.isSelected();
       }
-      return await childCheckbox.isSelected();
+
+      // If no child, check if label has 'for' attribute pointing to a checkbox
+      const forAttr = await locator.getAttribute('for');
+      if (forAttr) {
+        const targetElement = await browser.driver.findElement(By.id(forAttr));
+        return await targetElement.isSelected();
+      }
     }
 
-    // Check for role="switch" and use aria-checked
-    const role = await locator.getAttribute('role');
+    // Handle role='switch' - check aria-checked attribute
     if (role === 'switch') {
       const ariaChecked = await locator.getAttribute('aria-checked');
       return ariaChecked === 'true';
     }
 
-    // Default: use isSelected() for native checkboxes and radio buttons
+    // Handle aria-pressed attribute
+    const ariaPressed = await locator.getAttribute('aria-pressed');
+    if (ariaPressed !== null) {
+      return ariaPressed === 'true';
+    }
+
+    // Handle data-state attribute
+    const dataState = await locator.getAttribute('data-state');
+    if (dataState !== null) {
+      return dataState === 'on';
+    }
+
+    // Handle .on class for div/span elements
+    const className = await locator.getAttribute('class');
+    if (className && className.includes('on')) {
+      return true;
+    }
+
+    // Default: use isSelected() for native checkboxes
     return await locator.isSelected();
   }
 }

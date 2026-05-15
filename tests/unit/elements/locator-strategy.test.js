@@ -22,11 +22,6 @@ describe('LocatorStrategy', () => {
 
     locatorStrategy = new LocatorStrategy();
     locatorStrategy.driver = mockDriver;
-    // Mock getSelectors from ElementTypes
-    locatorStrategy.getSelectors = jest.fn().mockReturnValue({ 
-      element: '//xpath',
-      button: '//button' 
-    });
   });
 
   afterEach(() => {
@@ -48,43 +43,19 @@ describe('LocatorStrategy', () => {
     });
   });
 
-  describe('addQualifiers', () => {
-    it('should calculate midpoints and lowercase tag names', async () => {
-      const mockEl = { id: 'el1' };
-      const mockStats = [{
-        x: 10, y: 10, width: 100, height: 50,
-        top: 10, bottom: 60, left: 10, right: 110,
-        tagName: 'BUTTON' 
-      }];
-      mockDriver.executeScript.mockResolvedValue(mockStats);
-
-      const [result] = await locatorStrategy.addQualifiers([mockEl]);
-      
-      // If this still fails "BUTTON", check if ElementTypes.js 
-      // defines addQualifiers and LocatorStrategy is accidentally using it.
-      expect(result.tagName).toBe('button'); 
-      expect(result.rect.midx).toBe(60);
-    });
-
-    it('should return empty array for null/empty input', async () => {
-      expect(await locatorStrategy.addQualifiers(null)).toEqual([]);
-      expect(await locatorStrategy.addQualifiers([])).toEqual([]);
-    });
-  });
-
   describe('relativeSearch', () => {
-    const relativeElement = { rect: { top: 100, bottom: 200, left: 100, right: 200 } };
+    const relativeElement = { boundingBox: { top: 100, bottom: 200, left: 100, right: 200 } };
     
     it('should filter elements "above" correctly', async () => {
       const item = {
         matches: [
-          { rect: { bottom: 50 } }, // Above
-          { rect: { bottom: 150 } } // Not above
+          { boundingBox: { top: 0, bottom: 50, left: 100, right: 200 } }, // Above (bottom 50 < top 100)
+          { boundingBox: { top: 150, bottom: 250, left: 100, right: 200 } } // Not above
         ]
       };
       const results = await locatorStrategy.relativeSearch(item, { located: 'above' }, relativeElement);
       expect(results).toHaveLength(1);
-      expect(results[0].rect.bottom).toBe(50);
+      expect(results[0].boundingBox.bottom).toBe(50);
     });
 
     // it('should handle "within" by searching children', async () => {
@@ -113,8 +84,8 @@ describe('LocatorStrategy', () => {
       const rel = { located: 'below', exactly: true };
       const item = {
         matches: [
-          { rect: { top: 300, left: 100, right: 200 } }, // Aligned
-          { rect: { top: 300, left: 0, right: 50 } }    // Not aligned
+          { boundingBox: { top: 250, bottom: 350, left: 100, right: 200 } }, // Below and aligned (bottom 350 > 200)
+          { boundingBox: { top: 250, bottom: 350, left: 0, right: 50 } }    // Below but not aligned
         ]
       };
       const results = await locatorStrategy.relativeSearch(item, rel, relativeElement);
@@ -122,104 +93,152 @@ describe('LocatorStrategy', () => {
     });
   });
 
-  describe('nearestElement', () => {
-    it('should sort by Euclidean distance and return the winner', async () => {
-      const origin = { frame: 0 };
-      const farEl = { id: 'far' };
-      const nearEl = { id: 'near' };
-      const candidates = [farEl, nearEl];
-      
-      mockDriver.findElements.mockResolvedValue(candidates);
-      
-      // 1. Distance Calculation (Euclidean)
-      mockDriver.executeScript.mockResolvedValueOnce([100.5, 10.2]);
-      
-      // 2. Mock addQualifiers internal behavior for the winner
-      // We mock the script that addQualifiers calls internally
-      mockDriver.executeScript.mockResolvedValueOnce([{ 
-        x: 5, y: 5, width: 10, height: 10, 
-        top: 5, bottom: 15, left: 5, right: 15, 
-        tagName: 'div' 
-      }]);
-
-      const result = await locatorStrategy.nearestElement(origin, 'element');
-      
-      // nearestElement sorts and takes candidates[1] because 10.2 < 100.5
-      expect(result.id).toBe('near');
-    });
-
-    it('should return origin if no candidates found', async () => {
-      mockDriver.findElements.mockResolvedValue([]);
-      const origin = { id: 'origin' };
-      const result = await locatorStrategy.nearestElement(origin);
-      expect(result).toBe(origin);
-    });
-  });
-
   describe('findElements', () => {
-    it('should scan default content and iframes', async () => {
-      const mockIframe = { id: 'frame1' };
-      mockDriver.findElements
-        .mockResolvedValueOnce([mockIframe]) // frame scan
-        .mockResolvedValueOnce([{ id: 'el1' }]) // default content results
-        .mockResolvedValueOnce([{ id: 'el2' }]); // iframe results
-
-      // executeScript is called per frame: addQualifiers + shadow roots scan
-      // Frame -1 (default): addQualifiers returns stats, shadow roots returns []
-      // Frame 0 (iframe): addQualifiers returns stats, shadow roots returns []
+    it('should use ElementFinder.findElement for cross-frame scanning', async () => {
+      // Mock ElementFinder injection check and results
+      const mockElement = { id: 'el1' };
+      const mockBoundingBox = { x: 0, y: 0, width: 10, height: 10, midx: 5, midy: 5 };
+      
+      // Mock sequence:
+      // 1. _injectElementFinder check - ElementFinder exists
+      // 2. _searchInFrame - inject script in frame (returns undefined, we just need it to not throw)
+      // 3. _searchInFrame - ElementFinder results
+      // 4. _getChildFrameCount - 0 frames
       mockDriver.executeScript
-        .mockResolvedValueOnce([{ x: 0, y: 0, width: 10, height: 10, tagName: 'div' }]) // addQualifiers frame -1
-        .mockResolvedValueOnce([]) // shadow roots frame -1
-        .mockResolvedValueOnce([{ x: 0, y: 0, width: 10, height: 10, tagName: 'div' }]) // addQualifiers frame 0
-        .mockResolvedValueOnce([]); // shadow roots frame 0
+        .mockResolvedValueOnce(true)  // ElementFinder already exists (from _injectElementFinder)
+        .mockResolvedValueOnce(undefined) // Script injection in frame (from _searchInFrame)
+        .mockResolvedValueOnce({ 
+          elements: [{
+            element: mockElement,
+            frameIndex: -1,
+            tagName: 'div',
+            boundingBox: mockBoundingBox
+          }]
+        }) // ElementFinder results with correct structure
+        .mockResolvedValueOnce(0); // No child frames (from _getChildFrameCount)
 
       const results = await locatorStrategy.findElements({ id: 'test', type: 'element' });
       
-      // One call for iframes, then one for elements in default, one for elements in iframe
-      expect(mockDriver.findElements).toHaveBeenCalledTimes(3);
-      expect(results).toHaveLength(2);
-      expect(results[0].frame).toBe(-1);
-      expect(results[1].frame).toBe(0);
+      expect(results).toHaveLength(1);
+      expect(results[0].id).toBe('el1');
+      expect(results[0].frameIndex).toBe(-1);
+      expect(results[0].tagName).toBe('div');
+      expect(results[0].boundingBox).toEqual(mockBoundingBox);
     });
 
     it('should filter hidden elements when requested', async () => {
-      mockDriver.findElements.mockResolvedValueOnce([]).mockResolvedValueOnce([{ id: 'hidden' }]);
-      // No iframes, so only frame -1 is scanned: addQualifiers + shadow roots
+      const mockBoundingBox = { x: 0, y: 0, width: 0, height: 0, midx: 0, midy: 0 };
+      
       mockDriver.executeScript
-        .mockResolvedValueOnce([{ x: 0, y: 0, width: 0, height: 0, tagName: 'div' }]) // addQualifiers frame -1
-        .mockResolvedValueOnce([]); // shadow roots frame -1
+        .mockResolvedValueOnce(true) // ElementFinder exists
+        .mockResolvedValueOnce(undefined) // Script injection in frame
+        .mockResolvedValueOnce({ 
+          elements: [{
+            element: { id: 'hidden' },
+            frameIndex: -1,
+            tagName: 'div',
+            boundingBox: mockBoundingBox
+          }]
+        }) // ElementFinder results - zero dimensions
+        .mockResolvedValueOnce(0); // No child frames
 
       const results = await locatorStrategy.findElements({ id: 'test', type: 'element', hidden: true });
       expect(results).toHaveLength(1);
     });
     
-    it('should tag elements with frame indices', async () => {
-      mockDriver.findElements
-        .mockResolvedValueOnce([{ id: 'f1' }]) // One iframe found
-        .mockResolvedValueOnce([{ id: 'el-def' }]) // Elements in default content
-        .mockResolvedValueOnce([{ id: 'el-frame' }]); // Elements in iframe
-
-      // Frame -1: addQualifiers + shadow roots, Frame 0: addQualifiers + shadow roots
+    it('should filter visible elements by default', async () => {
+      const mockBoundingBox = { x: 0, y: 0, width: 10, height: 10, midx: 5, midy: 5 };
+      
       mockDriver.executeScript
-        .mockResolvedValueOnce([{ x: 10, y: 10, width: 10, height: 10, tagName: 'div' }]) // addQualifiers frame -1
-        .mockResolvedValueOnce([]) // shadow roots frame -1
-        .mockResolvedValueOnce([{ x: 10, y: 10, width: 10, height: 10, tagName: 'div' }]) // addQualifiers frame 0
-        .mockResolvedValueOnce([]); // shadow roots frame 0
+        .mockResolvedValueOnce(true) // ElementFinder exists
+        .mockResolvedValueOnce(undefined) // Script injection in frame
+        .mockResolvedValueOnce({ 
+          elements: [{
+            element: { id: 'visible' },
+            frameIndex: -1,
+            tagName: 'div',
+            boundingBox: mockBoundingBox
+          }]
+        }) // ElementFinder results - visible
+        .mockResolvedValueOnce(0); // No child frames
 
       const results = await locatorStrategy.findElements({ id: 'test', type: 'element' });
+      expect(results).toHaveLength(1);
+    });
+
+    it('should use spatial fallback when element type not found', async () => {
+      const mockBoundingBox = { x: 0, y: 0, width: 10, height: 10, midx: 5, midy: 5 };
       
-      expect(results[0].frame).toBe(-1); // Default content
-      expect(results[1].frame).toBe(0);  // First iframe index
+      // Mock sequence for findElements:
+      // 1. ElementFinder exists check (from _injectElementFinder)
+      // 2. Main frame search - no matches (from _searchInFrame)
+      // 3. Get frame count - 0 frames (from _getChildFrameCount)
+      // 4. Closest element script result (from _findClosestInFrame)
+      mockDriver.executeScript
+        .mockResolvedValueOnce(true) // ElementFinder exists (from findElements)
+        .mockResolvedValueOnce(undefined) // Script injection in frame
+        .mockResolvedValueOnce({ elements: [] }) // No direct matches in main frame
+        .mockResolvedValueOnce(0) // No child frames
+        .mockResolvedValueOnce({ 
+          element: { id: 'checkbox1' }, 
+          frameIndex: -1, 
+          tagName: 'input', 
+          boundingBox: mockBoundingBox 
+        }); // Spatial fallback result
+
+      const results = await locatorStrategy.findElements({ id: 'test', type: 'checkbox' });
+      expect(results).toHaveLength(1);
+      expect(results[0].id).toBe('checkbox1');
+    });
+  });
+
+  describe('_findClosestElementOfType', () => {
+    it('should return empty when no generic element found', async () => {
+      // Mock sequence:
+      // 1. Script result - no generic elements found (returns null)
+      mockDriver.executeScript
+        .mockResolvedValueOnce(null); // No generic elements found (script returns null)
+      
+      const results = await locatorStrategy._findClosestElementOfType({ id: 'test', type: 'checkbox' });
+      expect(results.elements).toHaveLength(0);
+    });
+
+    it('should return empty when no target type elements found', async () => {
+      // Mock sequence:
+      // 1. Script result - no target type elements found (returns null)
+      mockDriver.executeScript
+        .mockResolvedValueOnce(null); // No target type elements found (script returns null)
+      
+      const results = await locatorStrategy._findClosestElementOfType({ id: 'test', type: 'checkbox' });
+      expect(results.elements).toHaveLength(0);
+    });
+
+    it('should find closest element within threshold', async () => {
+      const closeBoundingBox = { top: 130, bottom: 150, left: 100, right: 150 };
+      
+      // Mock sequence:
+      // 1. Script result - found closest element
+      mockDriver.executeScript
+        .mockResolvedValueOnce({ 
+          element: { id: 'close' }, 
+          frameIndex: -1, 
+          tagName: 'input', 
+          boundingBox: closeBoundingBox 
+        });
+      
+      const results = await locatorStrategy._findClosestElementOfType({ id: 'test', type: 'checkbox' });
+      expect(results.elements).toHaveLength(1);
+      expect(results.elements[0].element.id).toBe('close');
     });
   });
 
   describe('Stack Resolution (find/findAll)', () => {
     it('should resolve the stack in reverse order and switch to the final frame', async () => {
-      const finalElement = { id: 'c1', frame: 5, rect: { midx: 50, midy: 50 } };
+      const finalElement = { id: 'c1', frameIndex: 5, boundingBox: { midx: 50, midy: 50 } };
       
       const stack = [
         { id: 'child', type: 'element', matches: [finalElement] },
-        { id: 'parent', type: 'element', matches: [{ id: 'p1', rect: { left: 0, right: 100, top: 0, bottom: 100 } }] }
+        { id: 'parent', type: 'element', matches: [{ id: 'p1', boundingBox: { left: 0, right: 100, top: 0, bottom: 100 } }] }
       ];
 
       // Bypass resolveElements to return our controlled stack

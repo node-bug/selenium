@@ -35,8 +35,8 @@ export function createSpatialFilter(referenceRect, relationConfig, config = {}) 
      * If exactly: candidate must be horizontally aligned (within buffer).
      */
     above: (candidate) => {
-      if (!candidate.rect) return false;
-      const e = candidate.rect;
+      if (!candidate.boundingBox) return false;
+      const e = candidate.boundingBox;
       const isAbove = r.top >= e.bottom;
       
       if (!isAbove) return false;
@@ -52,8 +52,8 @@ export function createSpatialFilter(referenceRect, relationConfig, config = {}) 
      * If exactly: candidate must be horizontally aligned (within buffer).
      */
     below: (candidate) => {
-      if (!candidate.rect) return false;
-      const e = candidate.rect;
+      if (!candidate.boundingBox) return false;
+      const e = candidate.boundingBox;
       const isBelow = r.bottom <= e.top;
       
       if (!isBelow) return false;
@@ -69,8 +69,8 @@ export function createSpatialFilter(referenceRect, relationConfig, config = {}) 
      * If exactly: candidate must be vertically aligned (within buffer).
      */
     toLeftOf: (candidate) => {
-      if (!candidate.rect) return false;
-      const e = candidate.rect;
+      if (!candidate.boundingBox) return false;
+      const e = candidate.boundingBox;
       const isLeft = r.left >= e.right;
       
       if (!isLeft) return false;
@@ -86,8 +86,8 @@ export function createSpatialFilter(referenceRect, relationConfig, config = {}) 
      * If exactly: candidate must be vertically aligned (within buffer).
      */
     toRightOf: (candidate) => {
-      if (!candidate.rect) return false;
-      const e = candidate.rect;
+      if (!candidate.boundingBox) return false;
+      const e = candidate.boundingBox;
       const isRight = r.right <= e.left;
       
       if (!isRight) return false;
@@ -102,8 +102,8 @@ export function createSpatialFilter(referenceRect, relationConfig, config = {}) 
      * within: Candidate's center point is inside reference's bounding box.
      */
     within: (candidate) => {
-      if (!candidate.rect) return false;
-      const e = candidate.rect;
+      if (!candidate.boundingBox) return false;
+      const e = candidate.boundingBox;
       return r.left <= e.midx && r.right >= e.midx &&
              r.top <= e.midy && r.bottom >= e.midy;
     },
@@ -113,8 +113,8 @@ export function createSpatialFilter(referenceRect, relationConfig, config = {}) 
      * Allows candidates within proximity distance threshold.
      */
     near: (candidate) => {
-      if (!candidate.rect) return false;
-      const e = candidate.rect;
+      if (!candidate.boundingBox) return false;
+      const e = candidate.boundingBox;
       const isFarAbove = r.bottom < e.top - cfg.proximityDistance;
       const isFarBelow = r.top > e.bottom + cfg.proximityDistance;
       return !(isFarAbove || isFarBelow);
@@ -164,11 +164,11 @@ export function filterBySpatialRelation(
   // Handle array of references for 'within'
   if (referenceRelation.located === 'within' && Array.isArray(referenceElement)) {
     return candidates.filter(candidate => {
-      if (!candidate.rect) return false;
+      if (!candidate.boundingBox) return false;
       return referenceElement.some(ref => {
-        if (!ref.rect) return false;
-        const r = ref.rect;
-        const c = candidate.rect;
+        if (!ref.boundingBox) return false;
+        const r = ref.boundingBox;
+        const c = candidate.boundingBox;
         return r.left <= c.midx && r.right >= c.midx &&
                r.top <= c.midy && r.bottom >= c.midy;
       });
@@ -177,11 +177,11 @@ export function filterBySpatialRelation(
 
   // Single reference element
   const reference = referenceElement;
-  if (!reference?.rect) {
+  if (!reference?.boundingBox) {
     return candidates;
   }
 
-  const filterFn = createSpatialFilter(reference.rect, referenceRelation, config);
+  const filterFn = createSpatialFilter(reference.boundingBox, referenceRelation, config);
   return candidates.filter(filterFn);
 }
 
@@ -197,10 +197,10 @@ export function filterWithinParent(parentElement, candidateElements) {
   return candidateElements.filter(candidate => {
     // Element should be a descendant of parent
     // In practice, this is handled via bounding box overlap (within filter)
-    if (!candidate.rect || !parentElement.rect) return false;
+    if (!candidate.boundingBox || !parentElement.boundingBox) return false;
     
-    const r = parentElement.rect;
-    const c = candidate.rect;
+    const r = parentElement.boundingBox;
+    const c = candidate.boundingBox;
     return r.left <= c.midx && r.right >= c.midx &&
            r.top <= c.midy && r.bottom >= c.midy;
   });
@@ -216,10 +216,10 @@ export function filterWithinParent(parentElement, candidateElements) {
  * @returns {number} Weighted Euclidean distance
  */
 export function calculateDistance(elemA, elemB, applyDirectionalPenalty = false, penaltyFactor = 5) {
-  if (!elemA.rect || !elemB.rect) return Infinity;
+  if (!elemA.boundingBox || !elemB.boundingBox) return Infinity;
 
-  const midA = { x: elemA.rect.midx, y: elemA.rect.midy };
-  const midB = { x: elemB.rect.midx, y: elemB.rect.midy };
+  const midA = { x: elemA.boundingBox.midx, y: elemA.boundingBox.midy };
+  const midB = { x: elemB.boundingBox.midx, y: elemB.boundingBox.midy };
 
   let dx = midB.x - midA.x;
   let dy = midB.y - midA.y;

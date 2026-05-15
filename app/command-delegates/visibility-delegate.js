@@ -196,7 +196,7 @@ export class VisibilityDelegate {
 
       for (const e of elements) {
         // Automatically handle context switching for each element
-        await this.#switchToElementContext(e.frame, async () => {
+        await this.#switchToElementContext(e.frameIndex, async () => {
           await browser.driver.executeScript('arguments[0].style.opacity="0";', e);
         });
       }
@@ -224,7 +224,7 @@ export class VisibilityDelegate {
     try {
       const elements = await browser.findAll();
       for (const e of elements) {
-        await this.#switchToElementContext(e.frame, async () => {
+        await this.#switchToElementContext(e.frameIndex, async () => {
           await browser.driver.executeScript('arguments[0].style.opacity="1";', e);
         });
       }
@@ -240,20 +240,20 @@ export class VisibilityDelegate {
    * Internal helper to switch to element context (frame).
    * 
    * @private
-   * @param {number} frame - Frame index to switch to
+   * @param {number} frameIndex - Frame index to switch to
    * @param {Function} callback - Callback function to execute in the frame context
    * @returns {Promise<void>}
    */
-  async #switchToElementContext(frame, callback) {
+  async #switchToElementContext(frameIndex, callback) {
     const browser = this.browser;
     await browser.driver.switchTo().defaultContent();
-    if (frame >= 0) {
+    if (frameIndex >= 0) {
       try {
-        await browser.driver.switchTo().frame(frame);
+        await browser.driver.switchTo().frame(frameIndex);
         await callback();
       } catch (err) {
         if (err.name !== 'NoSuchFrameError') throw err;
-        log.error(`Frame ${frame} no longer exists.`);
+        log.error(`Frame ${frameIndex} no longer exists.`);
       }
     } else {
       await callback();

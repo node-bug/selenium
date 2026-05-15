@@ -111,9 +111,9 @@ describe('SelectDelegate (ESM)', () => {
       expect(delegate.isIndex).toBe(false);
     });
 
-    test('should return undefined (chainable)', () => {
+    test('should return this for chaining', () => {
       const result = delegate.option('test');
-      expect(result).toBeUndefined();
+      expect(result).toBe(delegate);
     });
   });
 

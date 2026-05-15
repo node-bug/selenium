@@ -875,6 +875,31 @@ await browser.dropdown('Country').option('CA').should.not.be.selected()
 
 **Throws**: Error if the specified option IS selected.
 
+### get.selected.options()
+
+Get the currently selected option(s) from a dropdown as an array of objects with `text`, `value`, and `index` properties. Works with both native `<select>` elements and custom combobox widgets.
+
+```javascript
+const selected = await browser.dropdown('Country').get.selected.options()
+console.log(selected)
+// Output: [{ text: 'United States', value: 'us', index: 0 }]
+```
+
+For multi-select dropdowns, returns all selected options:
+
+```javascript
+const selected = await browser.dropdown('Tags').get.selected.options()
+console.log(selected)
+// Output: [
+//   { text: 'JavaScript', value: 'js', index: 0 },
+//   { text: 'Python', value: 'py', index: 2 }
+// ]
+```
+
+**Returns**: `Promise<Array<{text: string, value: string, index: number}>>` - Array of selected option objects
+
+**Throws**: Error if dropdown not found.
+
 ### get.options()
 
 Get all options from a dropdown as an array of objects with `text` and `value` properties. Works with both native `<select>` elements and custom combobox widgets.

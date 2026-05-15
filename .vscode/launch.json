@@ -1,0 +1,18 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Jest ESM",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["--experimental-vm-modules"],
+      "program": "${workspaceFolder}/node_modules/jest/bin/jest.js",
+      "args": [
+        "${workspaceFolder}/tests/integration/keyboard-advanced.test.js",
+        "--runInBand"
+      ],
+      "console": "integratedTerminal"
+    }
+  ]
+}

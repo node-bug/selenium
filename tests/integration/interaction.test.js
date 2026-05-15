@@ -15,7 +15,7 @@ describe('WebBrowser Interaction Tests', () => {
 
   test('should click the green button', async () => {
     await browser.goto('https://seleniumbase.io/demo_page');
-    await browser.element('Click Me (Green)').click();
+    await browser.button('Click Me (Green)').click();
     // Since it's a demo page, we might just verify it doesn't throw or check for a result if available
   });
 

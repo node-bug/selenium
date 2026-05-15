@@ -24,19 +24,19 @@ describe('Dropdown Interactions Integration Tests', () => {
 
     test('should select option by text in single select', async () => {
       await browser.dropdown('Single Select').option('Apple').select();
-      const selected = await browser.dropdown('Single Select').get.selected.option();
+      const selected = await browser.dropdown('Single Select').get.selected.options();
       expect(selected[0].value).toBe('apple');
     });
 
     test('should select option by value in single select', async () => {
       await browser.dropdown('Single Select').option('cherry').select();
-      const selected = await browser.dropdown('Single Select').get.selected.option();
+      const selected = await browser.dropdown('Single Select').get.selected.options();
       expect(selected[0].text).toBe('Cherry');
     });
 
     test('should select option by index in single select', async () => {
       await browser.dropdown('Single Select').option(3).select(); // Banana (1-based index)
-      const selected = await browser.dropdown('Single Select').get.selected.option();
+      const selected = await browser.dropdown('Single Select').get.selected.options();
       expect(selected[0].value).toBe('banana');
     });
 
@@ -60,16 +60,33 @@ describe('Dropdown Interactions Integration Tests', () => {
       expect(isSelected).toBe(true);
     });
 
-    test('should get selected option with get.selected.option()', async () => {
+    test('should get selected option with get.selected.options()', async () => {
       await browser.dropdown('Single Select').option('Banana').select();
-      const selected = await browser.dropdown('Single Select').get.selected.option();
+      const selected = await browser.dropdown('Single Select').get.selected.options();
       expect(selected).toEqual([{ text: 'Banana', value: 'banana', index: 2 }]);
     });
 
-    test('should get selected option with get.selected.options() alias', async () => {
-      await browser.dropdown('Single Select').option('Cherry').select();
+    test('should select option by partial text match in single select', async () => {
+      await browser.dropdown('Single Select').option('App').select(); // Partial match for 'Apple'
       const selected = await browser.dropdown('Single Select').get.selected.options();
-      expect(selected).toEqual([{ text: 'Cherry', value: 'cherry', index: 3 }]);
+      expect(selected[0].value).toBe('apple');
+    });
+
+    test('should select option by partial value match in single select', async () => {
+      await browser.dropdown('Single Select').option('app').select(); // Partial match for value 'apple'
+      const selected = await browser.dropdown('Single Select').get.selected.options();
+      expect(selected[0].text).toBe('Apple');
+    });
+
+    test('should assert selected option by index with is.selected()', async () => {
+      await browser.dropdown('Single Select').option(2).select(); // Banana (1-based index)
+      const isSelected = await browser.dropdown('Single Select').option(2).is.selected();
+      expect(isSelected).toBe(true);
+    });
+
+    test('should return false when checking non-existent option with is.selected()', async () => {
+      const isSelected = await browser.dropdown('Single Select').option('NonExistent').is.selected();
+      expect(isSelected).toBe(false);
     });
   });
 
@@ -149,16 +166,16 @@ describe('Dropdown Interactions Integration Tests', () => {
       expect(selected[1]).toEqual({ text: 'Option 3', value: 'opt3', index: 2 });
     });
 
-    test('should get selected option with get.selected.option() for multi-select (returns all selected)', async () => {
-      // Reset by selecting Option 2 first (clears previous selections in multi-select)
-      await browser.dropdown('Multiple Select').option('Option 2').select();
-      // Now select Option 4 to have 2 selected options
-      await browser.dropdown('Multiple Select').option('Option 4').select();
-      
-      const selected = await browser.dropdown('Multiple Select').get.selected.option();
-      expect(selected).toHaveLength(2);
-      expect(selected[0]).toEqual({ text: 'Option 2', value: 'opt2', index: 1 });
-      expect(selected[1]).toEqual({ text: 'Option 4', value: 'opt4', index: 3 });
+    test('should select option by partial match in multi-select', async () => {
+      await browser.dropdown('Multiple Select').option('Opt').select(); // Partial match for 'Option 1'
+      const selected = await browser.dropdown('Multiple Select').get.selected.options();
+      expect(selected[0].text).toBe('Option 1');
+    });
+
+    test('should select option by index in multi-select', async () => {
+      await browser.dropdown('Multiple Select').option(3).select(); // Option 3 (1-based index)
+      const selected = await browser.dropdown('Multiple Select').get.selected.options();
+      expect(selected[0].value).toBe('opt3');
     });
   });
 
@@ -231,6 +248,23 @@ describe('Dropdown Interactions Integration Tests', () => {
       expect(customOptions[1].text).toBe('Option B');
       expect(customOptions[2].text).toBe('Option C');
     });
+
+    test('should select option by index in combobox', async () => {
+      await browser.dropdown('Custom UI').option(1).select(); // First option by index
+      const selected = await browser.dropdown('Custom UI').get.selected.options();
+      // The text may include extra whitespace/characters from the combobox structure
+      expect(selected[0].text.trim()).toContain('Option A');
+    });
+
+    test('should return false when checking non-existent option in combobox with is.selected()', async () => {
+      const isSelected = await browser.dropdown('Custom UI').option('NonExistent').is.selected();
+      expect(isSelected).toBe(false);
+    });
+
+    test('should return false when checking non-existent option in combobox with has.option', async () => {
+      const hasOption = await browser.dropdown('Custom UI').has.option('NonExistent');
+      expect(hasOption).toBe(false);
+    });
   });
 
   // ========================================
@@ -269,7 +303,7 @@ describe('Dropdown Interactions Integration Tests', () => {
       await browser.dropdown('Category').option('Vehicles').select();
       await browser.dropdown('Subcategory').option('Car').select();
       
-      const selected = await browser.dropdown('Subcategory').get.selected.option();
+      const selected = await browser.dropdown('Subcategory').get.selected.options();
       expect(selected[0].value).toBe('car');
     });
 
@@ -279,8 +313,40 @@ describe('Dropdown Interactions Integration Tests', () => {
       
       await browser.dropdown('Category').option('Vehicles').select();
       
-      const selected = await browser.dropdown('Subcategory').get.selected.option();
+      const selected = await browser.dropdown('Subcategory').get.selected.options();
       expect(selected[0].value).toBe('car'); // Default first option
+    });
+
+    test('should select option by index in cascading dropdown', async () => {
+      await browser.dropdown('Category').option('Vehicles').select();
+      await browser.dropdown('Subcategory').option(1).select(); // First option by index
+      const selected = await browser.dropdown('Subcategory').get.selected.options();
+      expect(selected[0].value).toBe('car');
+    });
+
+    test('should check if cascading dropdown has options', async () => {
+      await browser.dropdown('Category').option('Fruits').select();
+      await browser.dropdown('Subcategory').has.option('Apple');
+      await browser.dropdown('Subcategory').has.option('Banana');
+      await browser.dropdown('Subcategory').does.not.have.option('Car');
+    });
+
+    test('should throw error for index out of range in single select', async () => {
+      await expect(
+        browser.dropdown('Single Select').option(100).select()
+      ).rejects.toThrow('Index 100 out of range');
+    });
+
+    test('should throw error for index out of range in multi-select', async () => {
+      await expect(
+        browser.dropdown('Multiple Select').option(100).select()
+      ).rejects.toThrow('Index 100 out of range');
+    });
+
+    test('should throw error for index out of range in combobox', async () => {
+      await expect(
+        browser.dropdown('Custom UI').option(100).select()
+      ).rejects.toThrow('Index 100 out of range');
     });
   });
 });

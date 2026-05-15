@@ -13,5 +13,6 @@
     "docker": "http://chrome.local-mml.cloud:4444",
     "browserstack": "http://hub-cloud.browserstack.com",
     "local": "http://localhost:4444"
-  }
+  },
+  "debug": true
 }

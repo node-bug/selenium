@@ -14,21 +14,21 @@ describe('WebBrowser Text Validation Tests', () => {
 
   describe('has.text()', () => {
     test('should return true when element contains expected text', async () => {
-      await browser.goto('https://seleniumbase.io/demo_page');
+      await browser.goto(`file://${process.cwd()}/tests/fixtures/text-validation.html`);
       
       const hasText = await browser.heading('Demo Page').has.text('Demo Page');
       expect(hasText).toBe(true);
     });
 
     test('should return false when element does not contain expected text', async () => {
-      await browser.goto('https://seleniumbase.io/demo_page');
+      await browser.goto(`file://${process.cwd()}/tests/fixtures/text-validation.html`);
       
       const hasText = await browser.heading('Demo Page').has.text('This text does not exist');
       expect(hasText).toBe(false);
     });
 
     test('should return true for textbox with entered text', async () => {
-      await browser.goto('https://seleniumbase.io/demo_page');
+      await browser.goto(`file://${process.cwd()}/tests/fixtures/text-validation.html`);
       
       await browser.textbox('Text Input Field').write('Hello World');
       const hasText = await browser.textbox('Text Input Field').has.text('Hello World');
@@ -36,7 +36,7 @@ describe('WebBrowser Text Validation Tests', () => {
     });
 
     test('should return false for textbox with different text', async () => {
-      await browser.goto('https://seleniumbase.io/demo_page');
+      await browser.goto(`file://${process.cwd()}/tests/fixtures/text-validation.html`);
       
       await browser.textbox('Text Input Field').write('Hello World');
       const hasText = await browser.textbox('Text Input Field').has.text('Goodbye World');
@@ -44,7 +44,7 @@ describe('WebBrowser Text Validation Tests', () => {
     });
 
     test('should return true for textarea with entered text', async () => {
-      await browser.goto('https://seleniumbase.io/demo_page');
+      await browser.goto(`file://${process.cwd()}/tests/fixtures/text-validation.html`);
       
       await browser.textbox('myTextarea').write('Test textarea content');
       const hasText = await browser.textbox('myTextarea').has.text('Test textarea content');
@@ -54,21 +54,21 @@ describe('WebBrowser Text Validation Tests', () => {
 
   describe('should.have.text()', () => {
     test('should not throw when element contains expected text', async () => {
-      await browser.goto('https://seleniumbase.io/demo_page');
+      await browser.goto(`file://${process.cwd()}/tests/fixtures/text-validation.html`);
       
       await expect(browser.heading('Demo Page').should.have.text('Demo Page'))
         .resolves.not.toThrow();
     });
 
     test('should throw when element does not contain expected text', async () => {
-      await browser.goto('https://seleniumbase.io/demo_page');
+      await browser.goto(`file://${process.cwd()}/tests/fixtures/text-validation.html`);
       
       await expect(browser.heading('Demo Page').should.have.text('Nonexistent Text'))
         .rejects.toThrow('Element text');
     });
 
     test('should not throw for textbox with matching entered text', async () => {
-      await browser.goto('https://seleniumbase.io/demo_page');
+      await browser.goto(`file://${process.cwd()}/tests/fixtures/text-validation.html`);
       
       await browser.textbox('Text Input Field').write('Test Input');
       await expect(browser.textbox('Text Input Field').should.have.text('Test Input'))
@@ -76,7 +76,7 @@ describe('WebBrowser Text Validation Tests', () => {
     });
 
     test('should throw for textbox with non-matching text', async () => {
-      await browser.goto('https://seleniumbase.io/demo_page');
+      await browser.goto(`file://${process.cwd()}/tests/fixtures/text-validation.html`);
       
       await browser.textbox('Text Input Field').write('Actual Text');
       await expect(browser.textbox('Text Input Field').should.have.text('Expected Different Text'))
@@ -84,7 +84,7 @@ describe('WebBrowser Text Validation Tests', () => {
     });
 
     test('should not throw for textarea with matching text', async () => {
-      await browser.goto('https://seleniumbase.io/demo_page');
+      await browser.goto(`file://${process.cwd()}/tests/fixtures/text-validation.html`);
       
       await browser.textbox('myTextarea').write('Multi\nLine\nText');
       await expect(browser.textbox('myTextarea').should.have.text('Multi\nLine\nText'))
@@ -94,21 +94,21 @@ describe('WebBrowser Text Validation Tests', () => {
 
   describe('should.not.have.text()', () => {
     test('should not throw when element does not contain the text', async () => {
-      await browser.goto('https://seleniumbase.io/demo_page');
+      await browser.goto(`file://${process.cwd()}/tests/fixtures/text-validation.html`);
       
       await expect(browser.heading('Demo Page').should.not.have.text('This text is not here'))
         .resolves.not.toThrow();
     });
 
     test('should throw when element contains the text', async () => {
-      await browser.goto('https://seleniumbase.io/demo_page');
+      await browser.goto(`file://${process.cwd()}/tests/fixtures/text-validation.html`);
       
       await expect(browser.heading('Demo Page').should.not.have.text('Demo Page'))
         .rejects.toThrow('Element text');
     });
 
     test('should not throw for textbox when text does not match', async () => {
-      await browser.goto('https://seleniumbase.io/demo_page');
+      await browser.goto(`file://${process.cwd()}/tests/fixtures/text-validation.html`);
       
       await browser.textbox('Text Input Field').write('Some Value');
       await expect(browser.textbox('Text Input Field').should.not.have.text('Different Value'))
@@ -116,7 +116,7 @@ describe('WebBrowser Text Validation Tests', () => {
     });
 
     test('should throw for textbox when text matches', async () => {
-      await browser.goto('https://seleniumbase.io/demo_page');
+      await browser.goto(`file://${process.cwd()}/tests/fixtures/text-validation.html`);
       
       await browser.textbox('Text Input Field').write('Exact Match');
       await expect(browser.textbox('Text Input Field').should.not.have.text('Exact Match'))
@@ -124,7 +124,7 @@ describe('WebBrowser Text Validation Tests', () => {
     });
 
     test('should not throw for empty textbox checking for non-empty text', async () => {
-      await browser.goto('https://seleniumbase.io/demo_page');
+      await browser.goto(`file://${process.cwd()}/tests/fixtures/text-validation.html`);
       
       await browser.textbox('Text Input Field').clear();
       await expect(browser.textbox('Text Input Field').should.not.have.text('Some Text'))
@@ -134,21 +134,21 @@ describe('WebBrowser Text Validation Tests', () => {
 
   describe('does.not.have.text()', () => {
     test('should return true when element does not contain the text', async () => {
-      await browser.goto('https://seleniumbase.io/demo_page');
+      await browser.goto(`file://${process.cwd()}/tests/fixtures/text-validation.html`);
       
       const doesNotHaveText = await browser.heading('Demo Page').does.not.have.text('Missing Text');
       expect(doesNotHaveText).toBe(true);
     });
 
     test('should return false when element contains the text', async () => {
-      await browser.goto('https://seleniumbase.io/demo_page');
+      await browser.goto(`file://${process.cwd()}/tests/fixtures/text-validation.html`);
       
       const doesNotHaveText = await browser.heading('Demo Page').does.not.have.text('Demo Page');
       expect(doesNotHaveText).toBe(false);
     });
 
     test('should return true for textbox with different text', async () => {
-      await browser.goto('https://seleniumbase.io/demo_page');
+      await browser.goto(`file://${process.cwd()}/tests/fixtures/text-validation.html`);
       
       await browser.textbox('Text Input Field').write('Actual Content');
       const doesNotHaveText = await browser.textbox('Text Input Field').does.not.have.text('Expected Content');
@@ -156,7 +156,7 @@ describe('WebBrowser Text Validation Tests', () => {
     });
 
     test('should return false for textbox with matching text', async () => {
-      await browser.goto('https://seleniumbase.io/demo_page');
+      await browser.goto(`file://${process.cwd()}/tests/fixtures/text-validation.html`);
       
       await browser.textbox('Text Input Field').write('Same Text');
       const doesNotHaveText = await browser.textbox('Text Input Field').does.not.have.text('Same Text');
@@ -164,7 +164,7 @@ describe('WebBrowser Text Validation Tests', () => {
     });
 
     test('should return true for empty textbox checking for non-empty text', async () => {
-      await browser.goto('https://seleniumbase.io/demo_page');
+      await browser.goto(`file://${process.cwd()}/tests/fixtures/text-validation.html`);
       
       await browser.textbox('Text Input Field').clear();
       const doesNotHaveText = await browser.textbox('Text Input Field').does.not.have.text('Non Empty');
@@ -172,7 +172,7 @@ describe('WebBrowser Text Validation Tests', () => {
     });
 
     test('should return false for empty textbox checking for empty text', async () => {
-      await browser.goto('https://seleniumbase.io/demo_page');
+      await browser.goto(`file://${process.cwd()}/tests/fixtures/text-validation.html`);
       
       await browser.textbox('Text Input Field').clear();
       const doesNotHaveText = await browser.textbox('Text Input Field').does.not.have.text('');
@@ -182,7 +182,7 @@ describe('WebBrowser Text Validation Tests', () => {
 
   describe('combined text validation scenarios', () => {
     test('should validate text changes after clearing and re-entering', async () => {
-      await browser.goto('https://seleniumbase.io/demo_page');
+      await browser.goto(`file://${process.cwd()}/tests/fixtures/text-validation.html`);
       
       // Enter initial text
       await browser.textbox('Text Input Field').write('First Value');
@@ -197,7 +197,7 @@ describe('WebBrowser Text Validation Tests', () => {
     });
 
     test('should validate text in multiple textboxes', async () => {
-      await browser.goto('https://seleniumbase.io/demo_page');
+      await browser.goto(`file://${process.cwd()}/tests/fixtures/text-validation.html`);
       
       await browser.textbox('Text Input Field').write('Box 1 Content');
       await browser.textbox('myTextarea').write('Box 2 Content');
@@ -209,7 +209,7 @@ describe('WebBrowser Text Validation Tests', () => {
     });
 
     test('should validate text using should assertions in sequence', async () => {
-      await browser.goto('https://seleniumbase.io/demo_page');
+      await browser.goto(`file://${process.cwd()}/tests/fixtures/text-validation.html`);
       
       await browser.textbox('Text Input Field').write('Test Assertion');
       

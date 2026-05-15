@@ -18,20 +18,77 @@ export class SelectDelegate {
   }
 
   /**
-   * Sets the option value for subsequent selection operations.
+   * Sets the option value to be selected.
    * 
-   * This is the first step in the chaining pattern. The value can be:
-   * - A string: matches against visible text or value attribute
-   * - A positive number: treated as a 1-based index
-   * 
-   * @param {string|number} value - Text, value, or 1-based index of the option
+   * @param {string|number} value - The visible text, value, or 1-based index of the option
+   * @returns {SelectDelegate} Returns this for chaining
    * @example
-   * await browser.dropdown('Country').option('United States').select();
-   * await browser.dropdown('Country').option(1).select();
+   * delegate.option('United States');  // Select by visible text
+   * delegate.option('us');             // Select by value
+   * delegate.option(1);                // Select by 1-based index
    */
   option(value) {
     this.optionValue = value;
-    if (typeof value === 'number' && value > 0) this.isIndex = true;
+    this.isIndex = typeof value === 'number' && value > 0;
+    return this;
+  }
+
+  /**
+   * Resolves a dropdown element to the actual select element or combobox container.
+   * Handles cases where the finder returns a label or wrapper instead of the actual control.
+   * 
+   * @private
+   * @param {Object} locator - The WebElement from _finder
+   * @returns {Promise<{element: Object, tagName: string}>} Object with resolved element and its tag name
+   */
+  async #resolveDropdownElement(locator) {
+    const browser = this.browser;
+    let tagName = (await locator.tagName).toLowerCase();
+
+    // If locator is a label with 'for' attribute, find the associated element
+    if (tagName === 'label') {
+      try {
+        const forAttr = await locator.getAttribute('for');
+        if (forAttr) {
+          const targetElement = await browser.driver.findElement({ using: 'id', value: forAttr });
+          if (targetElement) {
+            tagName = (await targetElement.tagName).toLowerCase();
+            log.debug(`Label 'for' attribute points to ${tagName} element with id ${forAttr}`);
+            return { element: targetElement, tagName };
+          }
+        }
+      } catch (err) {
+        log.debug(`Could not resolve label 'for' attribute: ${err.message}`);
+      }
+    }
+
+    // If locator is an option element, find the parent select
+    if (tagName === 'option') {
+      try {
+        const selectParent = await locator.findElement({ using: 'xpath', value: './ancestor::select' });
+        if (selectParent) {
+          log.debug(`Found parent select element for option`);
+          return { element: selectParent, tagName: 'select' };
+        }
+      } catch {
+        // No parent select, continue with current locator
+      }
+    }
+
+    // If not a select or combobox div, try to find a select element within
+    if (tagName !== 'select' && tagName !== 'div') {
+      try {
+        const selectChild = await locator.findElement({ using: 'xpath', value: './/select' });
+        if (selectChild) {
+          log.debug(`Found nested select element within ${tagName}`);
+          return { element: selectChild, tagName: 'select' };
+        }
+      } catch {
+        // No nested select, continue with current locator
+      }
+    }
+
+    return { element: locator, tagName };
   }
 
   /**
@@ -62,8 +119,9 @@ export class SelectDelegate {
     }
 
     try {
-      const locator = await browser._finder();
-      const tagName = await locator.tagName;
+      let locator = await browser._finder();
+      const { element, tagName } = await this.#resolveDropdownElement(locator);
+      locator = element;
 
       if (tagName === 'select') {
         await this.#selectNative(locator);
@@ -96,7 +154,7 @@ export class SelectDelegate {
     const browser = this.browser;
     try {
       const locator = await browser._finder();
-      const tagName = await locator.tagName;
+      const tagName = (await locator.tagName).toLowerCase();
       if (tagName === 'select') {
         return this.#getSelectedOptionsNative(locator);
       } else {
@@ -451,7 +509,7 @@ export class SelectDelegate {
 
     try {
       const locator = await browser._finder();
-      const tagName = await locator.tagName;
+      const tagName = (await locator.tagName).toLowerCase();
 
       if (tagName === 'select') {
         result = await this.#isSelectedNative(locator);
@@ -599,7 +657,7 @@ export class SelectDelegate {
 
     try {
       const locator = await browser._finder();
-      const tagName = await locator.tagName;
+      const tagName = (await locator.tagName).toLowerCase();
 
       if (tagName === 'select') {
         result = await this.#hasOptionNative(locator);
@@ -655,7 +713,7 @@ export class SelectDelegate {
 
     try {
       const locator = await browser._finder();
-      const tagName = await locator.tagName;
+      const tagName = (await locator.tagName).toLowerCase();
 
       if (tagName === 'select') {
         return await this.#getOptionsNative(locator);
