@@ -116,7 +116,8 @@ export class ClickDelegate {
   /**
    * Performs a middle-click on the element.
    * 
-   * Uses Selenium WebDriver Actions API to simulate a middle-click.
+   * Uses JavaScript to simulate a middle-click (auxclick event with button=1).
+   * Selenium WebDriver Actions API does not have native middle-click support.
    * 
    * @returns {Promise<boolean>} True if successful
    * @example
@@ -128,8 +129,15 @@ export class ClickDelegate {
     browser.message = messenger({ stack: browser.stack, action: 'middleclick' });
     try {
       const locator = await browser._finder();
-      // middleClick is the Selenium equivalent of a middle-click
-      await browser.actions().middleClick(locator).perform();
+      // Selenium WebDriver doesn't have native middleClick, use JS dispatch
+      await browser.driver.executeScript(`
+        const event = new MouseEvent('auxclick', {
+          bubbles: true,
+          cancelable: true,
+          button: 1
+        });
+        arguments[0].dispatchEvent(event);
+      `, locator);
     } catch (err) {
       browser.handleError(err, 'middle clicking');
     } finally {

@@ -14,31 +14,31 @@ describe('WebBrowser Alerts Tests', () => {
   });
 
   test('should handle JavaScript alerts', async () => {
-    await browser.goto('https://the-internet.herokuapp.com/javascript_alerts');
+    await browser.goto(`file://${process.cwd()}/tests/fixtures/alerts.html`);
     await browser.element('Click for JS Alert').click();
     const isVisible = await browser.alert('I am a JS Alert').is.visible();
     expect(isVisible).toBe(true);
     await browser.alert().accept();
     // Verify the result text
-    const resultText = await browser.element('result').get.text();
+    const resultText = await browser.exact.element('result').get.text();
     expect(resultText).toContain('You successfully clicked an alert');
   });
 
   test('should handle JavaScript confirms', async () => {
-    await browser.goto('https://the-internet.herokuapp.com/javascript_alerts');
+    await browser.goto(`file://${process.cwd()}/tests/fixtures/alerts.html`);
 
     await browser.element('Click for JS Confirm').click();
     const isVisible = await browser.alert('I am a JS Confirm').is.visible();
     expect(isVisible).toBe(true);
     await browser.alert().accept(); // or dismiss()
     // Verify the result text
-    const resultText = await browser.element('result').get.text();
+    const resultText = await browser.exact.element('result').get.text();
     expect(resultText).toContain('You clicked: Ok');
 
   });
 
   test('should handle JavaScript prompts', async () => {
-    await browser.goto('https://the-internet.herokuapp.com/javascript_alerts');
+    await browser.goto(`file://${process.cwd()}/tests/fixtures/alerts.html`);
 
     await browser.element('Click for JS Prompt').click();
     const isVisible = await browser.alert('I am a JS prompt').is.visible();
@@ -46,13 +46,13 @@ describe('WebBrowser Alerts Tests', () => {
     await browser.alert().write('Hello World');
     await browser.alert().accept();
     // Verify the result text
-    const resultText = await browser.element('result').get.text();
+    const resultText = await browser.exact.element('result').get.text();
     expect(resultText).toContain('You entered: Hello World');
 
   });
 
   test('should test is.not.visible functionality', async () => {
-    await browser.goto('https://the-internet.herokuapp.com/javascript_alerts');
+    await browser.goto(`file://${process.cwd()}/tests/fixtures/alerts.html`);
 
     const isNotVisible = await browser.alert().is.not.visible();
     expect(isNotVisible).toBe(true);
@@ -71,7 +71,7 @@ describe('WebBrowser Alerts Tests', () => {
   });
 
   test('should test should.be.visible and should.not.be.visible functionality', async () => {
-    await browser.goto('https://the-internet.herokuapp.com/javascript_alerts');
+    await browser.goto(`file://${process.cwd()}/tests/fixtures/alerts.html`);
 
     // Before clicking any button, there should be no alert
     // should.not.be.visible should not throw

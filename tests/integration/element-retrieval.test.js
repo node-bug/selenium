@@ -6,6 +6,7 @@ describe('WebBrowser Element Retrieval Tests', () => {
   beforeAll(async () => {
     browser = new WebBrowser();
     await browser.start();
+    await browser.goto(`file://${process.cwd()}/tests/fixtures/forms.html`);
   });
 
   afterAll(async () => {
@@ -13,33 +14,28 @@ describe('WebBrowser Element Retrieval Tests', () => {
   });
 
   test('should retrieve text and value from elements', async () => {
-    await browser.goto('https://seleniumbase.io/demo_page');
-    
     // Test text retrieval
-    const text = await browser.textbox('Text Input Field').get.text();
+    const text = await browser.textbox('Single-line Text').get.text();
     expect(typeof text).toBe('string');
 
     // Test value retrieval
-    await browser.textbox('Text Input Field').press('Hello World');
-    const value = await browser.textbox('Text Input Field').get.value();
+    await browser.textbox('Single-line Text').write('Hello World');
+    const value = await browser.textbox('Single-line Text').get.value();
     expect(value).toBe('Hello World');
   });
 
   test('should retrieve attributes from elements', async () => {
-    await browser.goto('https://seleniumbase.io/demo_page');
-    const attribute = await browser.element('Text Input Field').get.attribute('placeholder');
-    expect(attribute).toBeDefined();
+    const attribute = await browser.textbox('Single-line Text').get.attribute('placeholder');
+    expect(attribute).toBe('Enter text here...');
   });
 
   test('should capture element screenshots', async () => {
-    await browser.goto('https://seleniumbase.io/demo_page');
-    const screenshot = await browser.element('Text Input Field').get.screenshot();
+    const screenshot = await browser.element('Single-line Text').get.screenshot();
     expect(typeof screenshot).toBe('string');
     expect(screenshot.startsWith('iVBORw0KGgo')).toBe(true);
   });
 
   test('should capture full page screenshot when no element is specified', async () => {
-    await browser.goto('https://seleniumbase.io/demo_page');
     browser.stack = []; // Clear stack
     const screenshot = await browser.get.screenshot();
     expect(typeof screenshot).toBe('string');

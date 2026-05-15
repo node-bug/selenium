@@ -6,7 +6,7 @@ describe('Element State Integration Tests', () => {
   beforeAll(async () => {
     browser = new WebBrowser();
     await browser.start();
-    await browser.goto('https://seleniumbase.io/demo_page');
+    await browser.goto(`file://${process.cwd()}/tests/fixtures/element-state.html`);
   });
 
   afterAll(async () => {

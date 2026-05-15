@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text Validation Test Fixture</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; line-height: 1.6; background-color: #f9f9f9; }
+        section { margin-bottom: 40px; border: 1px solid #ccc; padding: 20px; border-radius: 8px; background-color: white; }
+        h2 { margin-top: 0; color: #333; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        .field-group { margin-bottom: 15px; display: flex; flex-direction: column; gap: 5px; }
+        label { font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1 id="page-heading">Demo Page</h1>
+
+    <section id="text-inputs-section">
+        <h2>Text Inputs</h2>
+        
+        <div class="field-group">
+            <label for="text-input-field">Text Input Field</label>
+            <input type="text" id="text-input-field" placeholder="Text Input Field">
+        </div>
+
+        <div class="field-group">
+            <label for="myTextarea">Multi-line Text</label>
+            <textarea id="myTextarea" rows="4" placeholder="Enter text..."></textarea>
+        </div>
+    </section>
+</body>
+</html>

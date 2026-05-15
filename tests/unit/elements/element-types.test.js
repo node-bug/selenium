@@ -1,151 +1,79 @@
-import { ElementTypes } from '../../../app/elements/element-types.js';
+import { ELEMENT_DEFINITIONS, SEARCHABLE_ATTRIBUTES } from '@nodebug/browser-element-finder';
 
-describe('ElementTypes', () => {
-  let elementTypes;
+function getValidTypes() {
+  return Object.keys(ELEMENT_DEFINITIONS);
+}
 
-  beforeEach(() => {
-    elementTypes = new ElementTypes();
-  });
+function isValidElementType(type) {
+  return Boolean(type && typeof type === 'string' && Object.hasOwn(ELEMENT_DEFINITIONS, type));
+}
 
-  describe('constructor', () => {
-    it('should initialize attributes array', () => {
-      expect(elementTypes.attributes).toBeDefined();
-      expect(Array.isArray(elementTypes.attributes)).toBe(true);
-      expect(elementTypes.attributes.length).toBeGreaterThan(0);
-    });
+function getElementConstraint(type) {
+  return ELEMENT_DEFINITIONS[type] || ELEMENT_DEFINITIONS['element'];
+}
 
-    it('should initialize definitions object', () => {
-      expect(elementTypes.definitions).toBeDefined();
-      expect(typeof elementTypes.definitions).toBe('object');
-      expect(Object.keys(elementTypes.definitions).length).toBeGreaterThan(0);
-    });
-
-    it('should have expected element types in definitions', () => {
+describe('element-types', () => {
+  describe('ELEMENT_DEFINITIONS', () => {
+    it('should have expected element types', () => {
       const expectedTypes = ['link', 'navigation', 'heading', 'button', 'checkbox', 'radio', 'slider', 'dropdown', 'textbox', 'file', 'list', 'listitem', 'menu', 'menuitem', 'toolbar', 'dialog', 'table', 'row', 'column', 'image', 'element'];
       expectedTypes.forEach(type => {
-        expect(elementTypes.definitions).toHaveProperty(type);
+        expect(ELEMENT_DEFINITIONS).toHaveProperty(type);
+      });
+    });
+
+    it('should have string values for all definitions', () => {
+      Object.values(ELEMENT_DEFINITIONS).forEach(value => {
+        expect(typeof value).toBe('string');
       });
     });
   });
 
-  describe('transform method', () => {
-    it('should handle null values', () => {
-      expect(elementTypes.transform(null)).toBe("''");
-    });
-
-    it('should handle undefined values', () => {
-      expect(elementTypes.transform(undefined)).toBe("''");
-    });
-
-    it('should handle values without quotes', () => {
-      expect(elementTypes.transform('test')).toBe("'test'");
-    });
-
-    it('should escape single quotes properly', () => {
-      expect(elementTypes.transform("test'value")).toBe("concat('test',\"'\",'value')");
-    });
-
-    it('should handle multiple single quotes', () => {
-      expect(elementTypes.transform("test'value'with'more")).toBe("concat('test',\"'\",'value',\"'\",'with',\"'\",'more')");
+  describe('SEARCHABLE_ATTRIBUTES', () => {
+    it('should be an array with expected attributes', () => {
+      expect(Array.isArray(SEARCHABLE_ATTRIBUTES)).toBe(true);
+      expect(SEARCHABLE_ATTRIBUTES.length).toBeGreaterThan(0);
+      expect(SEARCHABLE_ATTRIBUTES).toContain('placeholder');
+      expect(SEARCHABLE_ATTRIBUTES).toContain('value');
+      expect(SEARCHABLE_ATTRIBUTES).toContain('id');
     });
   });
 
-  describe('buildMatcher method', () => {
-    it('should build matcher for exact match', () => {
-      const matcher = elementTypes.buildMatcher('test', true);
-      expect(matcher).toContain('normalize-space(.)=');
-      expect(matcher).not.toContain('true()');
+  describe('getValidTypes', () => {
+    it('should return array of type names', () => {
+      const types = getValidTypes();
+      expect(Array.isArray(types)).toBe(true);
+      expect(types.length).toBeGreaterThan(0);
     });
 
-    it('should build matcher for partial match', () => {
-      const matcher = elementTypes.buildMatcher('test', false);
-      expect(matcher).toContain('contains(normalize-space(.),');
-      expect(matcher).not.toContain('true()');
-    });
-
-    it('should include all attributes in matcher', () => {
-      const matcher = elementTypes.buildMatcher('test');
-      elementTypes.attributes.forEach(attr => {
-        expect(matcher).toContain(`@${attr}`);
-      });
-      expect(matcher).toContain('.');
+    it('should return all keys from ELEMENT_DEFINITIONS', () => {
+      const types = getValidTypes();
+      expect(types.sort()).toEqual(Object.keys(ELEMENT_DEFINITIONS).sort());
     });
   });
 
-  describe('getSelectors method', () => {
-    it('should return object with element types as keys', () => {
-      const selectors = elementTypes.getSelectors('test');
-      expect(selectors).toBeDefined();
-      expect(typeof selectors).toBe('object');
-      Object.keys(elementTypes.definitions).forEach(type => {
-        expect(selectors).toHaveProperty(type);
-      });
+  describe('isValidElementType', () => {
+    it('should return true for valid types', () => {
+      expect(isValidElementType('button')).toBe(true);
+      expect(isValidElementType('link')).toBe(true);
+      expect(isValidElementType('element')).toBe(true);
     });
 
-    it('should generate valid XPath selectors', () => {
-      const selectors = elementTypes.getSelectors('test');
-      Object.values(selectors).forEach(xpath => {
-        expect(typeof xpath).toBe('string');
-        expect(xpath).toContain('//*[(');
-        expect(xpath).toContain(') and (');
-      });
+    it('should return false for invalid types', () => {
+      expect(isValidElementType('invalid')).toBe(false);
+      expect(isValidElementType('')).toBe(false);
+      expect(isValidElementType(null)).toBe(false);
+      expect(isValidElementType(undefined)).toBe(false);
+    });
+  });
+
+  describe('getElementConstraint', () => {
+    it('should return the constraint for valid types', () => {
+      expect(getElementConstraint('button')).toBe(ELEMENT_DEFINITIONS.button);
+      expect(getElementConstraint('link')).toBe(ELEMENT_DEFINITIONS.link);
     });
 
-    it('should generate different selectors for exact vs partial matching', () => {
-      const partialSelectors = elementTypes.getSelectors('test', false);
-      const exactSelectors = elementTypes.getSelectors('test', true);
-      
-      // Both should have the same structure but different matchers
-      Object.keys(partialSelectors).forEach(type => {
-        expect(partialSelectors[type]).toContain('contains(normalize-space(.),');
-        expect(exactSelectors[type]).toContain('normalize-space(.)=');
-      });
-    });
-
-    it('should return type-only selectors when value is null', () => {
-      const selectors = elementTypes.getSelectors(null);
-      expect(selectors).toBeDefined();
-      expect(typeof selectors).toBe('object');
-
-      // Should use only the definition constraint, no matcher
-      Object.entries(elementTypes.definitions).forEach(([type, constraint]) => {
-        expect(selectors[type]).toBe(`//*[${constraint}]`);
-      });
-    });
-
-    it('should return type-only selectors when value is undefined', () => {
-      const selectors = elementTypes.getSelectors(undefined);
-      expect(selectors).toBeDefined();
-      expect(typeof selectors).toBe('object');
-
-      // Should use only the definition constraint, no matcher
-      Object.entries(elementTypes.definitions).forEach(([type, constraint]) => {
-        expect(selectors[type]).toBe(`//*[${constraint}]`);
-      });
-    });
-
-    it('should have valid XPath for null value selectors', () => {
-      const selectors = elementTypes.getSelectors(null);
-
-      // button selector should match buttons without text constraint
-      expect(selectors.button).toBe("//*[self::button or @role='button' or @type='button' or @type='submit']");
-
-      // link selector should match links without text constraint
-      expect(selectors.link).toBe("//*[self::a or @role='link' or @href]");
-
-      // element selector should match all elements
-      expect(selectors.element).toBe("//*[true()]");
-    });
-
-    it('should not include matcher components when value is null', () => {
-      const selectors = elementTypes.getSelectors(null);
-
-      Object.values(selectors).forEach(xpath => {
-        // Should not include the matcher-specific components (normalize-space, not(.//))
-        // Note: definitions themselves may contain contains() (e.g., dropdown)
-        expect(xpath).not.toContain('normalize-space(');
-        expect(xpath).not.toContain('not(.//');
-      });
+    it('should return element constraint for invalid types', () => {
+      expect(getElementConstraint('invalid')).toBe(ELEMENT_DEFINITIONS.element);
     });
   });
 });

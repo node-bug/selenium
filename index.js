@@ -473,17 +473,6 @@ class WebBrowser extends Browser {
       },
 
       selected: {
-        option: async () => {
-          this.message = messenger({ stack: this.stack, action: 'getSelectedOptions' });
-          try {
-            return await this.#selectDelegate.getSelectedOptions();
-          } catch (err) {
-            this.handleError(err, 'getting selected option from dropdown');
-          } finally {
-            this.stack = [];
-          }
-        },
-
         options: async () => {
           this.message = messenger({ stack: this.stack, action: 'getSelectedOptions' });
           try {
@@ -1131,6 +1120,42 @@ class WebBrowser extends Browser {
               throw err
             } else {
               log.info(`Option is not selected`);
+            }
+          },
+
+          /**
+           * Asserts that the switch is not on.
+           *
+           * @returns {Promise<void>}
+           */
+          on: async () => {
+            this.message = messenger({ stack: this.stack, action: 'shouldNotBeOn' });
+            const test = !(await this.#switchDelegate._isOn());
+            if (!test) {
+              log.warn(`Switch is on`);
+              const err = new Error('Switch should not be ON')
+              this.handleError(err, 'validating switch to not be ON');
+              throw err
+            } else {
+              log.info(`Switch is not ON`);
+            }
+          },
+
+          /**
+           * Asserts that the switch is not off.
+           *
+           * @returns {Promise<void>}
+           */
+          off: async () => {
+            this.message = messenger({ stack: this.stack, action: 'shouldNotBeOff' });
+            const test = await this.#switchDelegate._isOn();
+            if (!test) {
+              log.warn(`Switch is off`);
+              const err = new Error('Switch should not be OFF')
+              this.handleError(err, 'validating switch to not be OFF');
+              throw err
+            } else {
+              log.info(`Switch is not OFF`);
             }
           },
         },

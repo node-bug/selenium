@@ -85,4 +85,44 @@ describe('WebBrowser Spatial Selectors Tests', () => {
       .toLeftOf.textbox('Text Input Field')
       .should.be.visible();
   });
+
+  test('should find element exactly above another element with alignment', async () => {
+    await browser.goto('https://seleniumbase.io/demo_page');
+    // The heading "Automation Practice" is exactly above the textbox "Text Input Field"
+    // exactly checks horizontal alignment (left/right edges within 5px)
+    await browser
+      .heading('Automation Practice')
+      .exactly.above.textbox('Text Input Field')
+      .should.be.visible();
+  });
+
+  test('should find element exactly below another element with alignment', async () => {
+    await browser.goto('https://seleniumbase.io/demo_page');
+    // The textbox "Text Input Field" is exactly below the heading "Automation Practice"
+    // exactly checks horizontal alignment (left/right edges within 5px)
+    await browser
+      .textbox('Text Input Field')
+      .exactly.below.heading('Automation Practice')
+      .should.be.visible();
+  });
+
+  test('should find element exactly to the left of another element with alignment', async () => {
+    await browser.goto('https://seleniumbase.io/demo_page');
+    // The label "Text Input Field:" is exactly to the left of the textbox
+    // exactly checks vertical alignment (top/bottom edges within 5px)
+    await browser
+      .element('Text Input Field:')
+      .exactly.toLeftOf.textbox('Text Input Field')
+      .should.be.visible();
+  });
+
+  test('should find element exactly to the right of another element with alignment', async () => {
+    await browser.goto('https://seleniumbase.io/demo_page');
+    // The textbox is exactly to the right of its label
+    // exactly checks vertical alignment (top/bottom edges within 5px)
+    await browser
+      .textbox('Text Input Field')
+      .exactly.toRightOf.element('Text Input Field:')
+      .should.be.visible();
+  });
 });

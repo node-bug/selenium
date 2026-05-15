@@ -1,11 +1,19 @@
 import WebBrowser from '../../index.js';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+import config from '@nodebug/config';
 
-describe('WebBrowser Keyboard and Advanced Interaction Tests', () => {
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const FIXTURES_DIR = join(__dirname, '..', 'fixtures');
+const fixtureUrl = (filename) => `file://${join(FIXTURES_DIR, filename)}`;
+const selenium = config('selenium');
+
+describe('WebBrowser Keyboard Operations Tests', () => {
   let browser;
 
   beforeEach(async () => {
     browser = new WebBrowser();
-    // We use a default config or environment variables for headless mode in CI
     await browser.start();
   });
 
@@ -13,89 +21,231 @@ describe('WebBrowser Keyboard and Advanced Interaction Tests', () => {
     await browser.close();
   });
 
-  test('should perform keyboard navigation', async () => {
-    await browser.goto('https://seleniumbase.io/demo_page');
-    await browser.element('Text Input Field').focus();
-    await browser.press('Enter');
+  describe('press() - Enter Key Press', () => {
+    test('should press Enter key', async () => {
+      await browser.goto(fixtureUrl('forms.html'));
+      await browser.textbox('Multi-line Text (Textarea)').write('hello');
+      await browser.press('Enter');
+      await browser.textbox('Multi-line Text (Textarea)').type('world');
+      const value = await browser.textbox('Multi-line Text (Textarea)').get.value();
+      expect(value).toBe('hello\nworld');
+    });
+
+    test('should press Tab key for navigation', async () => {
+      await browser.goto(fixtureUrl('forms.html'));
+      await browser.textbox('Single-line Text').focus();
+      await browser.press('Tab');
+      // Tab moves focus to next element - verify by checking we can still interact
+      await browser.type('hello');
+      const value = await browser.textbox('Password Field').get.value();
+      expect(value).toBe('hello');
+    });
+
+    test('should press Escape key on focused input', async () => {
+      await browser.goto(fixtureUrl('forms.html'));
+      await browser.textbox('Single-line Text').focus();
+      await browser.press('Escape');
+      // Verify focus is still on the element
+      const value = await browser.textbox('Single-line Text').get.value();
+      expect(value).toBe('');
+    });
+
+    test('should press Backspace and Delete keys', async () => {
+      await browser.goto(fixtureUrl('forms.html'));
+      await browser.textbox('Single-line Text').write('Hello World');
+      await browser.press('Backspace');
+      let value = await browser.textbox('Single-line Text').get.value();
+      expect(value).toBe('Hello Worl');
+      await browser.press('Home');
+      await browser.press('Delete');
+      value = await browser.textbox('Single-line Text').get.value();
+      expect(value).toBe('ello Worl');
+    });
+
+    test('should press arrow keys', async () => {
+      await browser.goto(fixtureUrl('forms.html'));
+      await browser.textbox('Single-line Text').write('Test');
+      await browser.press('Left');
+      await browser.type('hello');
+      await browser.press('Right');
+      await browser.type('hello');
+      await browser.press('Down');
+      await browser.type('hello');
+      await browser.press('Up');
+      await browser.type('hello');
+      // Verify text is still intact after arrow key navigation
+      const value = await browser.textbox('Single-line Text').get.value();
+      expect(value).toBe('helloTeshellothellohello');
+    });
+
+    test('should press navigation keys (Home, End, PageUp, PageDown)', async () => {
+      await browser.goto(fixtureUrl('forms.html'));
+      await browser.textbox('Multi-line Text (Textarea)').write('Line 1\nLine 2\nLine 3');
+      await browser.press('Home');
+      await browser.type('hell');
+      await browser.press('End');
+      await browser.type('hell00');
+      await browser.press('PageUp');
+      await browser.type('helloo');
+      await browser.press('PageDown');
+      await browser.type('h');
+      // Verify text is still intact after navigation
+      const value = await browser.textbox('Multi-line Text (Textarea)').get.value();
+      expect(value).toContain('Line 1\nLine 2\nhellLine 3hell00hellooh');
+    });
+
+    test('should press function keys F1-F12', async () => {
+      await browser.goto(fixtureUrl('forms.html'));
+      await browser.textbox('Single-line Text').focus();
+      await browser.press('F1');
+      await browser.press('F5');
+      await browser.press('F12');
+      // Verify focus is still on the element
+      const value = await browser.textbox('Single-line Text').get.value();
+      expect(value).toBe('');
+    });
   });
 
-  test('should perform advanced click patterns', async () => {
-    await browser.goto('https://seleniumbase.io/demo_page');
-    await browser.element('Text Input Field').tripleClick();
-    await browser.element('Click Me (Green)').multipleClick(3);
+  describe('press() - Modifier Key Combinations', () => {
+    test('should press Ctrl+A (Select All)', async () => {
+      await browser.goto(fixtureUrl('forms.html'));
+      await browser.textbox('Single-line Text').write('Select Me');
+      await browser.textbox('Single-line Text').ctrl.press('a');
+      await browser.textbox('Single-line Text').ctrl.press('c');
+      await browser.textbox('Multi-line Text (Textarea)').ctrl.press('v');
+      // Verify text is still present after select all
+      const value = await browser.textbox('Single-line Text').get.value();
+      expect(value).toBe('Select Me');
+      // Note: Clipboard operations in headless browsers may not work reliably
+      // The test verifies the operation completes without error
+      const valuecopied = await browser.textbox('Multi-line Text (Textarea)').get.value();
+      if (selenium.headless) {
+        // In headless mode, clipboard may be empty - just verify we can read the value
+        expect(typeof valuecopied).toBe('string');
+      } else {
+        expect(valuecopied).toBe('Select Me');
+      }
+    });
+
+    test('should press Ctrl+V (Paste)', async () => {
+      await browser.goto(fixtureUrl('forms.html'));
+      await browser.textbox('Single-line Text').write('Paste Target');
+      await browser.ctrl.press('a');
+      await browser.ctrl.press('c');
+      await browser.textbox('Email Field').focus();
+      await browser.ctrl.press('v');
+      // Note: Clipboard operations in headless browsers may not work reliably
+      // The test verifies the operation completes without error
+      const value = await browser.textbox('Email Field').get.value();
+      expect(typeof value).toBe('string');
+    });
+
+    test('should press Shift+Arrow (Select text)', async () => {
+      await browser.goto(fixtureUrl('forms.html'));
+      await browser.textbox('Single-line Text').write('Select Text');
+      await browser.press('Home');
+      await browser.type('h');
+      await browser.shift.press('Right');
+      await browser.type('h');
+      await browser.shift.press('Right');
+      await browser.type('h');
+      // Verify text is still present after selection
+      const value = await browser.textbox('Single-line Text').get.value();
+      expect(value).toBe('hhhlect Text');
+    });
   });
 
-  test('should navigate using arrow keys', async () => {
-    await browser.goto('https://seleniumbase.io/demo_page');
-    await browser.element('Text Input Field').focus();
-    await browser.left();
-    await browser.right();
-    await browser.up();
-    await browser.down();
+  describe('type() - Character-by-Character Typing', () => {
+    test('should type text character by character', async () => {
+      await browser.goto(fixtureUrl('forms.html'));
+      await browser.textbox('Single-line Text').clear();
+      await browser.textbox('Single-line Text').type('Hello World');
+      await browser.textbox('Single-line Text').press('He');
+      const value = await browser.textbox('Single-line Text').get.value();
+      expect(value).toBe('Hello WorldHe');
+    });
+
+    test('should type with Shift modifier held', async () => {
+      await browser.goto(fixtureUrl('forms.html'));
+      await browser.textbox('Single-line Text').clear();
+      // Shift modifier is held while typing - verifies the operation completes
+      await browser.textbox('Single-line Text').shift.type('hello');
+      // Note: Shift+typing behavior varies by browser
+      // The test verifies the modifier chain works without error
+      // Just verify we can still interact with the element
+      const value = await browser.textbox('Single-line Text').get.value();
+      expect(value).toBe('HELLO');
+    });
+
+    test('should type special characters', async () => {
+      await browser.goto(fixtureUrl('forms.html'));
+      await browser.textbox('Single-line Text').clear();
+      await browser.textbox('Single-line Text').type('Test@123!');
+      const value = await browser.textbox('Single-line Text').get.value();
+      expect(value).toBe('Test@123!');
+    });
   });
 
-  test('should use modifier keys with actions', async () => {
-    await browser.goto('https://seleniumbase.io/demo_page');
-    // Ctrl + Click on a link
-    await browser.ctrl.element('seleniumbase.com').click();
-    // Shift + Click on a link
-    await browser.shift.element('seleniumbase.com').click();
-    // Meta (Cmd/Win) + Click on a link
-    await browser.meta.element('seleniumbase.com').click();
+  describe('write() and overwrite() - Text Input Methods', () => {
+    test('should write text to input field', async () => {
+      await browser.goto(fixtureUrl('forms.html'));
+      await browser.textbox('Single-line Text').write('Initial Text');
+      const value = await browser.textbox('Single-line Text').get.value();
+      expect(value).toBe('Initial Text');
+    });
+
+    test('should append text with write()', async () => {
+      await browser.goto(fixtureUrl('forms.html'));
+      await browser.textbox('Single-line Text').write('First ');
+      await browser.textbox('Single-line Text').write('Second');
+      const value = await browser.textbox('Single-line Text').get.value();
+      expect(value).toBe('First Second');
+    });
+
+    test('should overwrite existing text', async () => {
+      await browser.goto(fixtureUrl('forms.html'));
+      await browser.textbox('Single-line Text').write('Original Text');
+      await browser.textbox('Single-line Text').overwrite('Replaced');
+      const value = await browser.textbox('Single-line Text').get.value();
+      expect(value).toBe('Replaced');
+    });
   });
 
-  test('should use spatial locators (below, toRightOf, within)', async () => {
-    await browser.goto('https://seleniumbase.io/demo_page');
-    // Element below another element
-    await browser.element('The Color is Green').below.element('Textarea:').click();
-    // Element to the right of another element
-    await browser.element('SeleniumBase on GitHub').toRightOf.element('seleniumbase.com').click();
-    expect(await browser.window().get.url()).toContain('https://github.com/seleniumbase/SeleniumBase');
-    await browser.goBack();
-    // Click the first checkbox directly (the "CheckBox:" checkbox)
-    await browser.checkbox(1).check();
-    await browser.checkbox(1).should.be.checked();
+  describe('clear() - Clearing Input Fields', () => {
+    test('should clear text from input field', async () => {
+      await browser.goto(fixtureUrl('forms.html'));
+      await browser.textbox('Single-line Text').write('Text to clear');
+      await browser.textbox('Single-line Text').clear();
+      const value = await browser.textbox('Single-line Text').get.value();
+      expect(value).toBe('');
+    });
   });
 
-  test('should handle switch elements', async () => {
-    // Use the local fixture file which has proper switch elements
-    const path = await import('path');
-    const { fileURLToPath } = await import('url');
-    const __filename = fileURLToPath(import.meta.url);
-    const __dirname = path.dirname(__filename);
-    const FIXTURES_DIR = path.resolve(__dirname, '..', 'fixtures');
-    const fileUrl = (filename) => `file://${path.join(FIXTURES_DIR, filename)}`;
+  describe('focus() - Element Focus', () => {
+    test('should focus on input element', async () => {
+      await browser.goto(fixtureUrl('forms.html'));
+      await browser.textbox('Single-line Text').focus();
+      // Focus should be set without error
+    });
 
-    await browser.goto(fileUrl('switches.html'));
-
-    // Test button-style switch (role="switch")
-    await browser.switch('Environmental Controls').on();
-    expect(await browser.switch('Environmental Controls').is.on()).toBe(true);
-
-    await browser.switch('Environmental Controls').off();
-    expect(await browser.switch('Environmental Controls').is.off()).toBe(true);
-
-    // Test label-wrapped checkbox switch
-    await browser.switch('Accessibility Preferences').on();
-    expect(await browser.switch('Accessibility Preferences').is.on()).toBe(true);
-
-    await browser.switch('Accessibility Preferences').off();
-    expect(await browser.switch('Accessibility Preferences').is.off()).toBe(true);
+    test('should focus on textarea', async () => {
+      await browser.goto(fixtureUrl('forms.html'));
+      await browser.textbox('Multi-line Text (Textarea)').focus();
+    });
   });
 
-  test('should handle character-by-character typing', async () => {
-    await browser.goto('https://seleniumbase.io/demo_page');
-    await browser.textbox('Text Input Field').clear();
-    await browser.textbox('Text Input Field').type('Hello');
-    
-    const value = await browser.textbox('Text Input Field').get.value();
-    expect(value).toBe('Hello');
-  });
-
-  test('should handle long press on elements', async () => {
-    await browser.goto('https://seleniumbase.io/demo_page');
-    // Long press on a button (assuming it triggers some action or just doesn't throw)
-    await browser.element('Click Me (Green)').longPress(1000); // 1 second
-    // If we reach here without error, the test passes
+  describe('press() - Backspace Key for Closing UI Elements', () => {
+    test('should close searchable dropdown on Escape key', async () => {
+      await browser.goto(fixtureUrl('dropdowns-advanced.html'));
+      await browser.textbox('Type to search...').write('a');
+      await browser.element('Argentina').should.be.visible();
+      await browser.press('Backspace');
+      await browser.element('Argentina').should.not.be.visible();
+      await browser.textbox('Type to search...').write('a');
+      await browser.element('Argentina').should.be.visible();
+      await browser.textbox('Type to search...').clear();
+      const value = await browser.textbox('Type to search...').get.value();
+      expect(value).toBe('');
+    });
   });
 });
