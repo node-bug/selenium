@@ -164,7 +164,14 @@ describe('LocatorStrategy', () => {
         .mockResolvedValueOnce([{ id: 'el1' }]) // default content results
         .mockResolvedValueOnce([{ id: 'el2' }]); // iframe results
 
-      mockDriver.executeScript.mockResolvedValue([{ x: 0, y: 0, width: 10, height: 10, tagName: 'div' }]);
+      // executeScript is called per frame: addQualifiers + shadow roots scan
+      // Frame -1 (default): addQualifiers returns stats, shadow roots returns []
+      // Frame 0 (iframe): addQualifiers returns stats, shadow roots returns []
+      mockDriver.executeScript
+        .mockResolvedValueOnce([{ x: 0, y: 0, width: 10, height: 10, tagName: 'div' }]) // addQualifiers frame -1
+        .mockResolvedValueOnce([]) // shadow roots frame -1
+        .mockResolvedValueOnce([{ x: 0, y: 0, width: 10, height: 10, tagName: 'div' }]) // addQualifiers frame 0
+        .mockResolvedValueOnce([]); // shadow roots frame 0
 
       const results = await locatorStrategy.findElements({ id: 'test', type: 'element' });
       
@@ -177,7 +184,10 @@ describe('LocatorStrategy', () => {
 
     it('should filter hidden elements when requested', async () => {
       mockDriver.findElements.mockResolvedValueOnce([]).mockResolvedValueOnce([{ id: 'hidden' }]);
-      mockDriver.executeScript.mockResolvedValue([{ x: 0, y: 0, width: 0, height: 0, tagName: 'div' }]);
+      // No iframes, so only frame -1 is scanned: addQualifiers + shadow roots
+      mockDriver.executeScript
+        .mockResolvedValueOnce([{ x: 0, y: 0, width: 0, height: 0, tagName: 'div' }]) // addQualifiers frame -1
+        .mockResolvedValueOnce([]); // shadow roots frame -1
 
       const results = await locatorStrategy.findElements({ id: 'test', type: 'element', hidden: true });
       expect(results).toHaveLength(1);
@@ -189,9 +199,12 @@ describe('LocatorStrategy', () => {
         .mockResolvedValueOnce([{ id: 'el-def' }]) // Elements in default content
         .mockResolvedValueOnce([{ id: 'el-frame' }]); // Elements in iframe
 
-      mockDriver.executeScript.mockResolvedValue([{ 
-        x: 10, y: 10, width: 10, height: 10, tagName: 'div' 
-      }]);
+      // Frame -1: addQualifiers + shadow roots, Frame 0: addQualifiers + shadow roots
+      mockDriver.executeScript
+        .mockResolvedValueOnce([{ x: 10, y: 10, width: 10, height: 10, tagName: 'div' }]) // addQualifiers frame -1
+        .mockResolvedValueOnce([]) // shadow roots frame -1
+        .mockResolvedValueOnce([{ x: 10, y: 10, width: 10, height: 10, tagName: 'div' }]) // addQualifiers frame 0
+        .mockResolvedValueOnce([]); // shadow roots frame 0
 
       const results = await locatorStrategy.findElements({ id: 'test', type: 'element' });
       
