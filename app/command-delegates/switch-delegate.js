@@ -1,5 +1,6 @@
 import { log } from '@nodebug/logger';
 import messenger from '../messenger.js';
+import { By } from 'selenium-webdriver'
 
 /**
  * Switch delegate for handling switch/toggle operations
@@ -62,6 +63,22 @@ export class SwitchDelegate {
           if (isDisabled !== null) {
             throw new Error(`Cannot toggle disabled element`);
           }
+        }
+
+        // Attempt to click the element
+        try {
+          await locator.click();
+        } catch (clickErr) {
+          // Fallback to JavaScript click if standard click fails
+          log.debug(`Standard click failed, using JS click fallback: ${clickErr.message}`);
+          await browser.driver.executeScript('arguments[0].click();', locator);
+        }
+
+        // Verify state changed
+        const newState = await this._checkState(locator);
+        const expectedState = targetState === 'on';
+        if (newState !== expectedState) {
+          throw new Error(`State did not change to ${targetState}`);
         }
       } else {
         log.info(`Switch is already ${targetState}. Skipping.`);
@@ -146,10 +163,26 @@ export class SwitchDelegate {
    */
   async _checkState(locator) {
     const tagName = (await locator.tagName).toLowerCase();
-    console.log(tagName)
-    // const role = await locator.getAttribute('role');
-    // const isWrapper = ['label', 'div', 'span'].includes(tagName);
-    let result = undefined
-    return result;
+
+    // If the element is a label, find the child checkbox/switch
+    if (tagName === 'label') {
+      const childCheckbox = await locator.findElement(
+        typeof By !== 'undefined' ? By.css('input[type="checkbox"], input[type="radio"], [role="switch"]') : 'input[type="checkbox"]'
+      );
+      if (!childCheckbox) {
+        throw new Error('Label element has no child checkbox or switch');
+      }
+      return await childCheckbox.isSelected();
+    }
+
+    // Check for role="switch" and use aria-checked
+    const role = await locator.getAttribute('role');
+    if (role === 'switch') {
+      const ariaChecked = await locator.getAttribute('aria-checked');
+      return ariaChecked === 'true';
+    }
+
+    // Default: use isSelected() for native checkboxes and radio buttons
+    return await locator.isSelected();
   }
 }
