@@ -9,9 +9,16 @@
       "runtimeArgs": ["--experimental-vm-modules"],
       "program": "${workspaceFolder}/node_modules/jest/bin/jest.js",
       "args": [
-        "${workspaceFolder}/tests/integration/keyboard-advanced.test.js",
+        "${workspaceFolder}/tests/integration/spatial-selectors.test.js",
         "--runInBand"
       ],
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Run demo.js",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/demo.js",
       "console": "integratedTerminal"
     }
   ]

@@ -1343,90 +1343,56 @@ class WebBrowser extends Browser {
   // --- Spatial / Relative Positioners ---
 
   /**
-   * Targets an element above the currently referenced element.
-   * 
-   * @returns {this} Returns the WebBrowser instance for chaining
-   * @example
-   * browser.element('target').above.element('other').click();
+   * Checks if the top-of-stack item is a bare { exactly: true } flag.
+   * @private
    */
-  get above() {
-    this.stack.push({ type: 'location', located: 'above' });
-    return this;
+  #isFlag(obj) {
+    return obj && typeof obj === 'object' && obj.exactly === true && !('type' in obj) && !('hidden' in obj);
   }
 
   /**
-   * Targets an element below the currently referenced element.
-   * 
-   * @returns {this} Returns the WebBrowser instance for chaining
-   * @example
-   * browser.element('target').below.element('other').click();
+   * Pushes a location descriptor onto the stack.
+   * If the previous item on the stack is a bare { exactly: true } flag,
+   * it is consumed and merged into the location descriptor.
+   * @private
    */
-  get below() {
-    this.stack.push({ type: 'location', located: 'below' });
-    return this;
+  #pushLocation(located) {
+    const prev = this.stack[this.stack.length - 1];
+    const location = { type: 'location', located };
+
+    if (this.#isFlag(prev)) {
+      this.stack.pop();
+      location.exactly = true;
+    }
+
+    this.stack.push(location);
   }
 
-  /**
-   * Targets an element to the left of the currently referenced element.
-   * 
-   * @returns {this} Returns the WebBrowser instance for chaining
-   * @example
-   * browser.element('target').toLeftOf.element('other').click();
-   */
-  get toLeftOf() {
-    this.stack.push({ type: 'location', located: 'toLeftOf' });
-    return this;
-  }
+  /** @returns {this} */
+  get above() { this.#pushLocation('above'); return this; }
+
+  /** @returns {this} */
+  get below() { this.#pushLocation('below'); return this; }
+
+  /** @returns {this} */
+  get toLeftOf() { this.#pushLocation('toLeftOf'); return this; }
+
+  /** @returns {this} */
+  get toRightOf() { this.#pushLocation('toRightOf'); return this; }
+
+  /** @returns {this} */
+  get within() { this.#pushLocation('within'); return this; }
+
+  /** @returns {this} */
+  get near() { this.#pushLocation('near'); return this; }
 
   /**
-   * Targets an element to the right of the currently referenced element.
-   * 
-   * @returns {this} Returns the WebBrowser instance for chaining
-   * @example
-   * browser.element('target').toRightOf.element('other').click();
+   * Forces strict alignment for the next spatial location in the stack.
+   * @returns {this}
    */
-  get toRightOf() {
-    this.stack.push({ type: 'location', located: 'toRightOf' });
-    return this;
-  }
-
-  /**
-   * Targets an element located inside another element.
-   * 
-   * @returns {this} Returns the WebBrowser instance for chaining
-   * @example
-   * browser.element('menu').within.element('item').click();
-   */
-  get within() {
-    this.stack.push({ type: 'location', located: 'within' });
-    return this;
-  }
-
-  /**
-   * Targets an element based on proximity.
-   * 
-   * @returns {this} Returns the WebBrowser instance for chaining
-   * @example
-   * browser.element('target').near.element('other').click();
-   */
-  get near() {
-    this.stack.push({ type: 'location', located: 'near' });
-    return this;
-  }
+  get exactly() { this.stack.push({ exactly: true }); return this; }
 
   // --- Logic & Filter Modifiers ---
-
-  /**
-   * Forces a strict text match for the next element in the stack.
-   * 
-   * @returns {this} Returns the WebBrowser instance for chaining
-   * @example
-   * browser.element('text').exactly.toLeftOf.element('other').click();
-   */
-  get exactly() {
-    this.stack.push({ exactly: true });
-    return this;
-  }
 
   /**
    * Combines multiple search criteria using logical OR.

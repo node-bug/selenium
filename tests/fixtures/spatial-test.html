@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spatial Layout Test Fixture</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      position: relative;
+      min-height: 100vh;
+      background-color: #fafafa;
+    }
+    .corner {
+      position: absolute;
+      width: 120px;
+      padding: 10px;
+      background-color: #e0e0e0;
+      text-align: center;
+      border: 2px solid #999;
+    }
+    .top-left {
+      top: 10px;
+      left: 10px;
+    }
+    .top-right {
+      top: 10px;
+      right: 10px;
+    }
+    .bottom-left {
+      bottom: 10px;
+      left: 10px;
+    }
+    .bottom-right {
+      bottom: 10px;
+      right: 10px;
+    }
+    .edge {
+      position: absolute;
+      width: 120px;
+      padding: 10px;
+      background-color: #d0f0d0;
+      text-align: center;
+      border: 2px solid #66cc66;
+    }
+    .top-edge {
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+    .bottom-edge {
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+    .left-edge {
+      top: 50%;
+      left: 10px;
+      transform: translateY(-50%);
+    }
+    .right-edge {
+      top: 50%;
+      right: 10px;
+      transform: translateY(-50%);
+    }
+    .center {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 150px;
+      padding: 20px;
+      background-color: #f0d0f0;
+      text-align: center;
+      font-weight: bold;
+      border: 3px solid #cc66cc;
+    }
+    .within-container {
+      position: absolute;
+      top: 70%;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 15px;
+      background-color: #fff0e0;
+      border: 2px dashed #cc9966;
+    }
+    .within-item {
+      padding: 5px;
+      background-color: #ffe0e0;
+      border: 1px solid #cc6666;
+    }
+  </style>
+</head>
+<body>
+  <!-- Four Corners -->
+  <div class="corner top-left">Top Left Corner</div>
+  <div class="corner top-right">Top Right Corner</div>
+  <div class="corner bottom-left">Bottom Left Corner</div>
+  <div class="corner bottom-right">Bottom Right Corner</div>
+  
+  <!-- Four Edges -->
+  <div class="edge top-edge">Top Edge</div>
+  <div class="edge bottom-edge">Bottom Edge</div>
+  <div class="edge left-edge">Left Edge</div>
+  <div class="edge right-edge">Right Edge</div>
+  
+  <!-- Center Element -->
+  <div class="center">Center Element</div>
+  
+  <!-- Within Test Container -->
+  <div class="within-container">Within Container
+    <div class="within-item">Within Item</div>
+  </div>
+</body>
+</html>
