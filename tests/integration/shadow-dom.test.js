@@ -174,7 +174,7 @@ describe('Shadow DOM Integration Tests', () => {
     test('should find elements within a container box inside shadow root', async () => {
       await browser
         .button('Container Button')
-        .within.element('spatial-container')
+        .within.exact.element('spatial-container')
         .should.be.visible();
     });
 
@@ -192,7 +192,7 @@ describe('Shadow DOM Integration Tests', () => {
         .should.be.visible();
     });
 
-    test.skip('should find input to the right of a button inside shadow root', async () => {
+    test('should find input to the right of a button inside shadow root', async () => {
       await browser
         .textbox('To the right')
         .toRightOf.button('Left Button')
@@ -223,7 +223,7 @@ describe('Shadow DOM Integration Tests', () => {
     test('should find input within container box', async () => {
       await browser
         .textbox('Inside container')
-        .within.element('spatial-container')
+        .within.exact.element('spatial-container')
         .should.be.visible();
     });
   });
@@ -249,7 +249,7 @@ describe('Shadow DOM Integration Tests', () => {
       await browser.checkbox('Frame shadow checkbox').should.be.visible();
     });
 
-    test.skip('should type into a shadow DOM input inside the iframe', async () => {
+    test('should type into a shadow DOM input inside the iframe', async () => {
       // Use write directly without clear to avoid stale element reference issues
       await browser.textbox('Shadow Input in Frame').write('frame shadow value');
       // Re-find the element before getting value to avoid stale reference

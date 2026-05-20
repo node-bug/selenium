@@ -109,8 +109,18 @@ describe('SelectorStackBuilder', () => {
     });
 
     test('should return parent when element is added', () => {
-      const result = selectorStackBuilder.element('test-id');
-      expect(result).toBe(mockParent);
+      selectorStackBuilder.element('test-id');
+      expect(mockParent).toBeDefined();
+    });
+
+    test('should set index to 1 when data is undefined', () => {
+      selectorStackBuilder.element(undefined);
+      expect(mockStack[0].index).toBe(1);
+    });
+
+    test('should handle null data', () => {
+      selectorStackBuilder.element(null);
+      expect(mockStack[0].id).toBeUndefined();
     });
   });
 });

@@ -1,30 +1,30 @@
-import { jest } from '@jest/globals';
+import { vi } from 'vitest';
 
 // ---------------- MOCKS ----------------
 const mockDriver = {
-  executeScript: jest.fn(),
+  executeScript: vi.fn(),
 };
 
-jest.unstable_mockModule('selenium-webdriver', () => ({
-  Builder: jest.fn(),
+vi.mock('selenium-webdriver', () => ({
+  Builder: vi.fn(),
   By: {
-    css: jest.fn((selector) => selector),
-    xpath: jest.fn((selector) => ({ using: 'xpath', value: selector })),
+    css: vi.fn((selector) => selector),
+    xpath: vi.fn((selector) => ({ using: 'xpath', value: selector })),
   },
   until: {},
-  WebDriver: jest.fn(() => mockDriver),
+  WebDriver: vi.fn(() => mockDriver),
 }));
 
-jest.unstable_mockModule('@nodebug/logger', () => ({
+vi.mock('@nodebug/logger', () => ({
   log: {
-    info: jest.fn(),
-    debug: jest.fn(),
-    error: jest.fn(),
+    info: vi.fn(),
+    debug: vi.fn(),
+    error: vi.fn(),
   },
 }));
 
-jest.unstable_mockModule('../../../app/messenger.js', () => ({
-  default: jest.fn(({ action }) => `Switch: ${action}`),
+vi.mock('../../../app/messenger.js', () => ({
+  default: vi.fn(({ action }) => `Switch: ${action}`),
 }));
 
 // ---------------- IMPORTS ----------------
@@ -42,22 +42,22 @@ describe('SwitchDelegate (ESM)', () => {
 
   const createLocatorMock = (overrides = {}) => ({
     tagName: 'input',
-    isSelected: jest.fn(),
-    click: jest.fn(),
-    getAttribute: jest.fn().mockResolvedValue(null),
+    isSelected: vi.fn(),
+    click: vi.fn(),
+    getAttribute: vi.fn().mockResolvedValue(null),
     ...overrides,
   });
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     mockLocator = createLocatorMock();
 
     mockBrowser = {
       stack: ['some-switch'],
       message: '',
-      _finder: jest.fn().mockResolvedValue(mockLocator),
-      handleError: jest.fn(),
+      _finder: vi.fn().mockResolvedValue(mockLocator),
+      handleError: vi.fn(),
       driver: mockDriver,
     };
 
@@ -226,12 +226,12 @@ describe('SwitchDelegate (ESM)', () => {
 
     test('should find child checkbox when locator is a label', async () => {
       const mockCheckbox = {
-        isSelected: jest.fn().mockResolvedValue(true),
+        isSelected: vi.fn().mockResolvedValue(true),
       };
 
       const labelLocator = createLocatorMock({
         tagName: 'label',
-        findElement: jest.fn().mockResolvedValue(mockCheckbox),
+        findElement: vi.fn().mockResolvedValue(mockCheckbox),
       });
 
       mockBrowser._finder.mockResolvedValue(labelLocator);
@@ -246,7 +246,7 @@ describe('SwitchDelegate (ESM)', () => {
     test('should throw error when label has no child checkbox', async () => {
       const labelLocator = createLocatorMock({
         tagName: 'label',
-        findElement: jest.fn().mockResolvedValue(null),
+        findElement: vi.fn().mockResolvedValue(null),
       });
 
       mockBrowser._finder.mockResolvedValue(labelLocator);

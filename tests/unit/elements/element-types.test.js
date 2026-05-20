@@ -1,56 +1,21 @@
-import { ELEMENT_DEFINITIONS, SEARCHABLE_ATTRIBUTES } from '@nodebug/browser-element-finder';
+import { readFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 
-function getValidTypes() {
-  return Object.keys(ELEMENT_DEFINITIONS);
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const elementDefinitionsPath = join(__dirname, '../../../node_modules/@nodebug/browser-element-finder/src/element-definitions.json');
+
+function getElementDefinitions() {
+  return JSON.parse(readFileSync(elementDefinitionsPath, 'utf8'));
 }
 
 function isValidElementType(type) {
-  return Boolean(type && typeof type === 'string' && Object.hasOwn(ELEMENT_DEFINITIONS, type));
-}
-
-function getElementConstraint(type) {
-  return ELEMENT_DEFINITIONS[type] || ELEMENT_DEFINITIONS['element'];
+  const types = Object.keys(getElementDefinitions());
+  return Boolean(type && typeof type === 'string' && types.includes(type));
 }
 
 describe('element-types', () => {
-  describe('ELEMENT_DEFINITIONS', () => {
-    it('should have expected element types', () => {
-      const expectedTypes = ['link', 'navigation', 'heading', 'button', 'checkbox', 'radio', 'slider', 'dropdown', 'textbox', 'file', 'list', 'listitem', 'menu', 'menuitem', 'toolbar', 'dialog', 'table', 'row', 'column', 'image', 'element'];
-      expectedTypes.forEach(type => {
-        expect(ELEMENT_DEFINITIONS).toHaveProperty(type);
-      });
-    });
-
-    it('should have string values for all definitions', () => {
-      Object.values(ELEMENT_DEFINITIONS).forEach(value => {
-        expect(typeof value).toBe('string');
-      });
-    });
-  });
-
-  describe('SEARCHABLE_ATTRIBUTES', () => {
-    it('should be an array with expected attributes', () => {
-      expect(Array.isArray(SEARCHABLE_ATTRIBUTES)).toBe(true);
-      expect(SEARCHABLE_ATTRIBUTES.length).toBeGreaterThan(0);
-      expect(SEARCHABLE_ATTRIBUTES).toContain('placeholder');
-      expect(SEARCHABLE_ATTRIBUTES).toContain('value');
-      expect(SEARCHABLE_ATTRIBUTES).toContain('id');
-    });
-  });
-
-  describe('getValidTypes', () => {
-    it('should return array of type names', () => {
-      const types = getValidTypes();
-      expect(Array.isArray(types)).toBe(true);
-      expect(types.length).toBeGreaterThan(0);
-    });
-
-    it('should return all keys from ELEMENT_DEFINITIONS', () => {
-      const types = getValidTypes();
-      expect(types.sort()).toEqual(Object.keys(ELEMENT_DEFINITIONS).sort());
-    });
-  });
-
   describe('isValidElementType', () => {
     it('should return true for valid types', () => {
       expect(isValidElementType('button')).toBe(true);
@@ -66,14 +31,45 @@ describe('element-types', () => {
     });
   });
 
-  describe('getElementConstraint', () => {
-    it('should return the constraint for valid types', () => {
-      expect(getElementConstraint('button')).toBe(ELEMENT_DEFINITIONS.button);
-      expect(getElementConstraint('link')).toBe(ELEMENT_DEFINITIONS.link);
+  describe('table element type', () => {
+    it('should have table element type defined', () => {
+      const definitions = getElementDefinitions();
+      expect(definitions.table).toBeDefined();
     });
 
-    it('should return element constraint for invalid types', () => {
-      expect(getElementConstraint('invalid')).toBe(ELEMENT_DEFINITIONS.element);
+    it('should match table elements by tag or role', () => {
+      const definitions = getElementDefinitions();
+      expect(definitions.table).toContain('self::table');
+      expect(definitions.table).toContain('@role=\'table\'');
+    });
+  });
+
+  describe('row element type', () => {
+    it('should have row element type defined', () => {
+      const definitions = getElementDefinitions();
+      expect(definitions.row).toBeDefined();
+    });
+
+    it('should match row elements by tag or role', () => {
+      const definitions = getElementDefinitions();
+      expect(definitions.row).toContain('self::tr');
+      expect(definitions.row).toContain('@role=\'row\'');
+    });
+  });
+
+  describe('column element type', () => {
+    it('should have column element type defined', () => {
+      const definitions = getElementDefinitions();
+      expect(definitions.column).toBeDefined();
+    });
+
+    it('should match column elements by tag or role', () => {
+      const definitions = getElementDefinitions();
+      expect(definitions.column).toContain('self::td');
+      expect(definitions.column).toContain('self::th');
+      expect(definitions.column).toContain('@role=\'cell\'');
+      expect(definitions.column).toContain('@role=\'gridcell\'');
+      expect(definitions.column).toContain('@role=\'columnheader\'');
     });
   });
 });

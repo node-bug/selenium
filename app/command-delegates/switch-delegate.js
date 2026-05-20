@@ -124,6 +124,7 @@ export class SwitchDelegate {
    *
    * - `<label>` with `for` attribute: resolves to the element with that ID
    * - `<label>` wrapping an input: resolves to the child input
+   * - `<label>` with `id` that is referenced by `aria-labelledby`: finds the referencing element
    * - Other elements: returns as-is
    *
    * @private
@@ -165,12 +166,51 @@ export class SwitchDelegate {
         // No child found
       }
 
-      // For ARIA switches: if label has aria-labelledby, find the element with that id
-      const ariaLabelledBy = await locator.getAttribute('aria-labelledby');
-      if (ariaLabelledBy) {
+      // For ARIA switches: if label has an id, find elements that reference it via aria-labelledby
+      const labelId = await locator.getAttribute('id');
+      if (labelId) {
         try {
-          const targetElement = await browser.driver.findElement(By.id(ariaLabelledBy));
-          return targetElement;
+          // Find elements with aria-labelledby pointing to this label's id
+          // This includes searching in shadow DOM and iframes
+          const targetElement = await browser.driver.executeScript(
+            `
+            const findElementByAriaLabelledBy = (labelId) => {
+              // Search in main document
+              let el = document.querySelector(\`[aria-labelledby="\${labelId}"]\`);
+              if (el) return el;
+              
+              // Search in shadow DOMs
+              const allElements = document.querySelectorAll('*');
+              for (const element of allElements) {
+                if (element.shadowRoot) {
+                  el = element.shadowRoot.querySelector(\`[aria-labelledby="\${labelId}"]\`);
+                  if (el) return el;
+                }
+              }
+              
+              // Search in iframes
+              const iframes = document.querySelectorAll('iframe');
+              for (const iframe of iframes) {
+                try {
+                  const doc = iframe.contentDocument || iframe.contentWindow.document;
+                  if (doc) {
+                    el = doc.querySelector(\`[aria-labelledby="\${labelId}"]\`);
+                    if (el) return el;
+                  }
+                } catch (e) {
+                  // Cross-origin iframe, skip
+                }
+              }
+              
+              return null;
+            };
+            return findElementByAriaLabelledBy(arguments[0]);
+            `,
+            labelId
+          );
+          if (targetElement) {
+            return targetElement;
+          }
         } catch {
           // Element not found
         }
@@ -310,6 +350,58 @@ export class SwitchDelegate {
       if (forAttr) {
         const targetElement = await browser.driver.findElement(By.id(forAttr));
         return await targetElement.isSelected();
+      }
+
+      // For ARIA switches: if label has an id, find elements that reference it via aria-labelledby
+      const labelId = await locator.getAttribute('id');
+      if (labelId) {
+        try {
+          const targetElement = await browser.driver.executeScript(
+            `
+            const findElementByAriaLabelledBy = (labelId) => {
+              // Search in main document
+              let el = document.querySelector(\`[aria-labelledby="\${labelId}"]\`);
+              if (el) return el;
+              
+              // Search in shadow DOMs
+              const allElements = document.querySelectorAll('*');
+              for (const element of allElements) {
+                if (element.shadowRoot) {
+                  el = element.shadowRoot.querySelector(\`[aria-labelledby="\${labelId}"]\`);
+                  if (el) return el;
+                }
+              }
+              
+              // Search in iframes
+              const iframes = document.querySelectorAll('iframe');
+              for (const iframe of iframes) {
+                try {
+                  const doc = iframe.contentDocument || iframe.contentWindow.document;
+                  if (doc) {
+                    el = doc.querySelector(\`[aria-labelledby="\${labelId}"]\`);
+                    if (el) return el;
+                  }
+                } catch (e) {
+                  // Cross-origin iframe, skip
+                }
+              }
+              
+              return null;
+            };
+            return findElementByAriaLabelledBy(arguments[0]);
+            `,
+            labelId
+          );
+          if (targetElement) {
+            const targetRole = await targetElement.getAttribute('role');
+            if (targetRole === 'switch') {
+              const ariaChecked = await targetElement.getAttribute('aria-checked');
+              return ariaChecked === 'true';
+            }
+          }
+        } catch {
+          // Element not found
+        }
       }
     }
 

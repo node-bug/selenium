@@ -203,8 +203,6 @@ await highlightElements(driver, element, 'red', 4) // red outline, 4px width
 import {
   createSpatialFilter,
   filterBySpatialRelation,
-  calculateDistance,
-  sortByDistance,
 } from './spatial-filters.js'
 
 // Create a filter function
@@ -220,33 +218,6 @@ const filtered = filterBySpatialRelation(
   { located: 'below' },
   refElement,
 )
-
-// Calculate distances
-const distance = calculateDistance(elemA, elemB, true) // with penalty
-
-// Sort by distance
-const sorted = sortByDistance(candidates, reference, true)
-```
-
-### Shadow DOM Scanner
-
-```javascript
-import { ShadowDOMScanner } from './shadow-dom-scanner.js'
-
-const scanner = new ShadowDOMScanner(driver, { maxShadowDepth: 10 })
-
-// Query shadow DOM
-const elements = await scanner.query(
-  null, // scope (null = all shadow roots)
-  'Search Text', // search ID
-  false, // exact: false (substring matching)
-  'button', // element type
-  false, // scoped: false
-  -1, // frameIndex: -1 (default content)
-)
-
-// Clear cache when page changes
-scanner.clearCache()
 ```
 
 ### Frame Context Manager

@@ -1,4 +1,4 @@
-import { jest } from '@jest/globals';
+import { vi } from 'vitest';
 import { LocatorStrategy } from '../../../app/elements/locator-strategy.js';
 
 describe('LocatorStrategy', () => {
@@ -8,16 +8,16 @@ describe('LocatorStrategy', () => {
 
   beforeEach(() => {
     // Create a deeply nested mock for the driver
-    mockFrame = jest.fn().mockResolvedValue(null);
-    const mockDefaultContent = jest.fn().mockResolvedValue(null);
+    mockFrame = vi.fn().mockResolvedValue(null);
+    const mockDefaultContent = vi.fn().mockResolvedValue(null);
 
     mockDriver = {
-      switchTo: jest.fn().mockReturnValue({
+      switchTo: vi.fn().mockReturnValue({
         frame: mockFrame,
         defaultContent: mockDefaultContent
       }),
-      findElements: jest.fn().mockResolvedValue([]),
-      executeScript: jest.fn()
+      findElements: vi.fn().mockResolvedValue([]),
+      executeScript: vi.fn()
     };
 
     locatorStrategy = new LocatorStrategy();
@@ -25,7 +25,7 @@ describe('LocatorStrategy', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('_withContext', () => {
@@ -62,7 +62,7 @@ describe('LocatorStrategy', () => {
     //   const parent = { 
     //     frame: 0, 
     //     rect: { left: 0, right: 100, top: 0, bottom: 100 },
-    //     findElements: jest.fn().mockResolvedValue([{ id: 'child-web-el' }])
+    //     findElements: vi.fn().mockResolvedValue([{ id: 'child-web-el' }])
     //   };
       
     //   const item = { type: 'element', matches: [] };
@@ -242,10 +242,10 @@ describe('LocatorStrategy', () => {
       ];
 
       // Bypass resolveElements to return our controlled stack
-      jest.spyOn(locatorStrategy, 'resolveElements').mockResolvedValue(stack);
+      vi.spyOn(locatorStrategy, 'resolveElements').mockResolvedValue(stack);
       
       // Mock relativeSearch to return our final element
-      jest.spyOn(locatorStrategy, 'relativeSearch').mockReturnValue([finalElement]);
+      vi.spyOn(locatorStrategy, 'relativeSearch').mockReturnValue([finalElement]);
 
       const result = await locatorStrategy.find(stack);
       
@@ -258,6 +258,76 @@ describe('LocatorStrategy', () => {
       const stack = [{ type: 'element', id: 'items', matches: [{ id: 1 }, { id: 2 }] }];
       const results = await locatorStrategy.findAll(stack);
       expect(results).toHaveLength(2);
+    });
+  });
+
+  describe('resolveElements', () => {
+    it('should resolve elements for valid types', async () => {
+      const stack = [
+        { type: 'button', id: 'submit', matches: [], exact: false, hidden: false }
+      ];
+      
+      // Mock findElements to return results
+      vi.spyOn(locatorStrategy, 'findElements').mockResolvedValue([{ id: 'btn1' }]);
+      
+      const result = await locatorStrategy.resolveElements(stack);
+      expect(result[0].matches).toHaveLength(1);
+    });
+
+    it('should skip items that already have matches', async () => {
+      const stack = [
+        { type: 'button', id: 'submit', matches: [{ id: 'existing' }], exact: false, hidden: false }
+      ];
+      
+      const result = await locatorStrategy.resolveElements(stack);
+      expect(result[0].matches).toEqual([{ id: 'existing' }]);
+    });
+
+    it('should skip items with invalid types', async () => {
+      const stack = [
+        { type: 'invalid-type', id: 'test', matches: [], exact: false, hidden: false }
+      ];
+      
+      const result = await locatorStrategy.resolveElements(stack);
+      expect(result[0].matches).toEqual([]);
+    });
+
+    it('should handle errors gracefully', async () => {
+      const stack = [
+        { type: 'button', id: 'submit', matches: [], exact: false, hidden: false }
+      ];
+      
+      vi.spyOn(locatorStrategy, 'findElements').mockRejectedValue(new Error('Find failed'));
+      
+      const result = await locatorStrategy.resolveElements(stack);
+      expect(result[0].matches).toEqual([]);
+    });
+  });
+
+  describe('findChildElements', () => {
+    it('should return empty array when parent is null', async () => {
+      const result = await locatorStrategy.findChildElements(null, { type: 'button', id: 'test' });
+      expect(result).toEqual([]);
+    });
+
+    it('should find child elements within parent frame', async () => {
+      const parent = { frameIndex: -1, boundingBox: { top: 0, bottom: 100, left: 0, right: 100 } };
+      const mockElement = { id: 'child1' };
+      const mockBoundingBox = { top: 10, bottom: 30, left: 10, right: 30 };
+
+      mockDriver.executeScript
+        .mockResolvedValueOnce(true) // ElementFinder exists
+        .mockResolvedValueOnce({
+          elements: [{
+            element: mockElement,
+            tagName: 'div',
+            boundingBox: mockBoundingBox
+          }]
+        });
+
+      const result = await locatorStrategy.findChildElements(parent, { type: 'button', id: 'test' });
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe('child1');
     });
   });
 });

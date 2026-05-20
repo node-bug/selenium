@@ -12,6 +12,7 @@ import { SelectDelegate } from './app/command-delegates/select-delegate.js';
 import { RadioDelegate } from './app/command-delegates/radio-delegate.js';
 import { SwitchDelegate } from './app/command-delegates/switch-delegate.js';
 import { SliderDelegate } from './app/command-delegates/slider-delegate.js';
+import ELEMENT_DEFINITIONS from '@nodebug/browser-element-finder/element-definitions.json' with { type: 'json' };
 
 const selenium = config('selenium');
 
@@ -53,7 +54,7 @@ class WebBrowser extends Browser {
     this.#switchDelegate = new SwitchDelegate(this);
     this.#sliderDelegate = new SliderDelegate(this);
 
-    Object.keys(this.locatorStrategy.definitions).forEach(type => {
+    Object.keys(ELEMENT_DEFINITIONS).forEach(type => {
       this[type] = (data) => {
         return this.#typefixer(data, type);
       };
@@ -205,19 +206,6 @@ class WebBrowser extends Browser {
     this.stack = [];
     err.message = `Error while ${this.message}\n${err.message}`;
     throw err;
-  }
-
-  /**
-   * Scrolls an element into the viewport.
-   * 
-   * @param {boolean} [alignToTop=true] - If true, top of element aligns to top of viewport.
-   * @returns {Promise<boolean>} True if successful
-   * @example
-   * await browser.element('submit').scroll();
-   * await browser.element('footer').scroll(false); // Align to bottom
-   */
-  async scroll(alignToTop = true) {
-    return await this.#visibilityDelegate.scroll(alignToTop);
   }
 
   /**
@@ -625,160 +613,6 @@ class WebBrowser extends Browser {
             else log.warn(`Dropdown has option '${optionValue}'`);
             return result;
           },
-        },
-      },
-    };
-  }
-
-  get is() {
-    return {
-      /**
-       * Checks whether the element is visible.
-       *
-       * @param {number} [t] - Optional timeout in milliseconds
-       * @returns {Promise<boolean>}
-       */
-      visible: async (t = null) => {
-        this.message = messenger({ stack: this.stack, action: 'isVisible' });
-        return await this.#visibilityDelegate._isVisible(t);
-      },
-
-      /**
-       * Checks whether the checkbox is checked.
-       *
-       * @returns {Promise<boolean>}
-       */
-      checked: async () => {
-        this.message = messenger({ stack: this.stack, action: 'isChecked' });
-        const result = await this.#checkboxDelegate._isChecked();
-        if (result) log.info(`Checkbox is checked`);
-        else log.warn(`Checkbox is not checked`);
-        return result;
-      },
-
-      /**
-       * Checks whether the radio is set.
-       *
-       * @returns {Promise<boolean>}
-       */
-      set: async () => {
-        this.message = messenger({ stack: this.stack, action: 'isSet' });
-        const result = await this.#radioDelegate._isSet();
-        if (result) log.info(`Radiobutton is set`);
-        else log.warn(`Radiobutton is not set`);
-        return result;
-      },
-
-      /**
-       * Checks whether the switch is on.
-       *
-       * @returns {Promise<boolean>}
-       */
-      on: async () => {
-        this.message = messenger({ stack: this.stack, action: 'isOn' });
-        const result = await this.#switchDelegate._isOn();
-        if (result) log.info(`Switch is ON`);
-        else log.warn(`Switch is not ON`);
-        return result;
-      },
-
-      /**
-       * Checks whether the switch is off.
-       *
-       * @returns {Promise<boolean>}
-       */
-      off: async () => {
-        this.message = messenger({ stack: this.stack, action: 'isOff' });
-        const result = !(await this.#switchDelegate._isOn());
-        if (result) log.info(`Switch is OFF`);
-        else log.warn(`Switch is not OFF`);
-        return result;
-      },
-
-      /**
-       * Checks whether the dropdown option is selected.
-       *
-       * @returns {Promise<boolean>}
-       */
-      selected: async () => {
-        this.message = messenger({ stack: this.stack, action: 'isSelected', data: this.#selectDelegate.optionValue });
-        const result = await this.#selectDelegate._isSelected();
-        if (result) log.info(`Option is selected`);
-        else log.warn(`Option is not selected`);
-        return result;
-      },
-
-      /**
-       * Checks whether the element is enabled.
-       *
-       * @param {number} [t] - Optional timeout in milliseconds
-       * @returns {Promise<boolean>}
-       */
-      enabled: async (t = null) => {
-        this.message = messenger({ stack: this.stack, action: 'isEnabled' });
-        return await this.#visibilityDelegate._isEnabled(t)
-      },
-
-      /**
-       * Checks whether the element is disabled.
-       *
-       * @param {number} [t] - Optional timeout in milliseconds
-       * @returns {Promise<boolean>}
-       */
-      disabled: async (t = null) => {
-        this.message = messenger({ stack: this.stack, action: 'isDisabled' });
-        return await this.#visibilityDelegate._isDisabled(t);
-      },
-
-      not: {
-        /**
-         * Checks whether the element is not visible.
-         *
-         * @param {number} [t] - Optional timeout in milliseconds
-         * @returns {Promise<boolean>}
-         */
-        visible: async (t = null) => {
-          this.message = messenger({ stack: this.stack, action: 'isNotVisible' });
-          return await this.#visibilityDelegate._isNotVisible(t);
-        },
-
-        /**
-       * Checks whether the checkbox is not checked.
-       *
-       * @returns {Promise<boolean>}
-       */
-        checked: async () => {
-          this.message = messenger({ stack: this.stack, action: 'isNotChecked' });
-          const result = !(await this.#checkboxDelegate._isChecked());
-          if (result) log.info(`Checkbox is not checked`);
-          else log.warn(`Checkbox is checked`);
-          return result;
-        },
-
-        /**
-         * Checks whether the radio is not set.
-         *
-         * @returns {Promise<boolean>}
-         */
-        set: async () => {
-          this.message = messenger({ stack: this.stack, action: 'isNotSet' });
-          const result = !(await this.#radioDelegate._isSet());
-          if (result) log.info(`Radiobutton is not set`);
-          else log.warn(`Radiobutton is set`);
-          return result;
-        },
-
-        /**
-         * Checks whether the dropdown option is not selected.
-         *
-         * @returns {Promise<boolean>}
-         */
-        selected: async () => {
-          this.message = messenger({ stack: this.stack, action: 'isNotSelected', data: this.#selectDelegate.optionValue });
-          const result = !(await this.#selectDelegate._isSelected());
-          if (result) log.info(`Option is not selected`);
-          else log.warn(`Option is selected`);
-          return result;
         },
       },
     };
@@ -1288,6 +1122,54 @@ class WebBrowser extends Browser {
    */
   async unhide() {
     return await this.#visibilityDelegate.unhide();
+  }
+
+  /**
+   * Get the scroll accessor object for element-level scrolling.
+   *
+   * Provides methods to scroll elements to specific positions.
+   * When called without element context (empty stack), delegates to Browser class
+   * for window-level scrolling.
+   *
+   * @type {Object}
+   * @returns {Object} Object containing scroll accessor methods
+   * @example
+   * // Element scrolling
+   * await browser.element('scrollable-div').scroll.to.top();
+   * await browser.element('scrollable-div').scroll.to.bottom();
+   * await browser.element('scrollable-div').scroll.to.left();
+   * await browser.element('scrollable-div').scroll.to.right();
+   * await browser.element('target').scroll.into.view();
+   *
+   * // Window scrolling (when no element context)
+   * await browser.scroll.to.top();
+   * await browser.scroll.to.bottom();
+   */
+  get scroll() {
+    // If stack has elements, use element-level scrolling
+    if (this.stack && this.stack.length > 0) {
+      return this.#visibilityDelegate.scroll;
+    }
+    // Otherwise delegate to parent Browser class for window-level scrolling
+    return super.scroll;
+  }
+
+  /**
+   * Get the is accessor object for visibility and state checks.
+   *
+   * Provides visibility and state check methods.
+   * Only works in element context (when stack has elements).
+   *
+   * @type {Object}
+   * @returns {Object} Object containing is accessor methods
+   * @example
+   * await browser.element('button').is.visible();
+   * await browser.element('button').is.enabled();
+   * await browser.element('button').is.disabled();
+   * await browser.element('button').is.not.visible();
+   */
+  get is() {
+    return this.#visibilityDelegate.is;
   }
 
   /**

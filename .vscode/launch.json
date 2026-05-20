@@ -2,23 +2,36 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Jest ESM",
-      "type": "node",
-      "request": "launch",
-      "runtimeExecutable": "node",
-      "runtimeArgs": ["--experimental-vm-modules"],
-      "program": "${workspaceFolder}/node_modules/jest/bin/jest.js",
-      "args": [
-        "${workspaceFolder}/tests/integration/spatial-selectors.test.js",
-        "--runInBand"
-      ],
-      "console": "integratedTerminal"
-    },
-    {
       "name": "Run demo.js",
       "type": "node",
       "request": "launch",
       "program": "${workspaceFolder}/demo.js",
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Run frame-element-access.test.js",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "vitest",
+        "run",
+        "${workspaceFolder}/tests/integration/frame-element-access.test.js"
+      ],
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Run Basic Shadow DOM - Open Shadow Roots",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "vitest",
+        "run",
+        "${workspaceFolder}/tests/integration/15. table-operations.test.js",
+        "-t",
+        "should get value of a specific cell"
+      ],
       "console": "integratedTerminal"
     }
   ]

@@ -122,7 +122,18 @@ The following methods are fully supported and tested in WebBrowser:
 
 - `hide()` - Hide element via opacity
 - `unhide()` - Restore visibility
-- `scroll([alignToTop])` - Scroll element into view
+- `scroll.to.top()` - Scroll element to top (scrollTop = 0)
+- `scroll.to.bottom()` - Scroll element to bottom (scrollTop = scrollHeight)
+- `scroll.to.left()` - Scroll element to left (scrollLeft = 0)
+- `scroll.to.right()` - Scroll element to right (scrollLeft = scrollWidth)
+- `scroll.into.view()` - Scroll element into center of viewport
+
+### Window Scrolling
+
+- `scroll.to.top()` - Scroll window to top (left: 0, top: 0)
+- `scroll.to.bottom()` - Scroll window to bottom (left: 0, top: document.body.scrollHeight)
+- `scroll.to.left()` - Scroll window to left (left: 0, top: 0)
+- `scroll.to.right()` - Scroll window to right (left: document.body.scrollWidth, top: 0)
 
 ### Modifiers
 
@@ -1315,18 +1326,97 @@ await browser.textbox('Username').should.not.have.value('admin')
 
 **QA Best Practice**: Use this method to assert and validate that an element does not have an unexpected value in your test cases.
 
-### scroll([alignToTop])
+### scroll.into.view()
 
-Scroll element into view.
+Scroll element into the center of the viewport.
 
 ```javascript
-await browser.element('Submit').scroll() // Align to top
-await browser.element('Footer').scroll(false) // Align to bottom
+await browser.element('target').scroll.into.view()
 ```
 
-**Parameters**:
+**Returns**: `Promise<boolean>`
 
-- `alignToTop` (boolean, optional): Default true
+### scroll.to.top()
+
+Scroll element to the top (scrollTop = 0).
+
+```javascript
+await browser.element('scrollable-div').scroll.to.top()
+```
+
+**Returns**: `Promise<boolean>`
+
+### scroll.to.bottom()
+
+Scroll element to the bottom (scrollTop = scrollHeight).
+
+```javascript
+await browser.element('scrollable-div').scroll.to.bottom()
+```
+
+**Returns**: `Promise<boolean>`
+
+### scroll.to.left()
+
+Scroll element to the left (scrollLeft = 0).
+
+```javascript
+await browser.element('scrollable-div').scroll.to.left()
+```
+
+**Returns**: `Promise<boolean>`
+
+### scroll.to.right()
+
+Scroll element to the right (scrollLeft = scrollWidth).
+
+```javascript
+await browser.element('scrollable-div').scroll.to.right()
+```
+
+**Returns**: `Promise<boolean>`
+
+### Window Scrolling
+
+Scroll the browser window to specific positions.
+
+#### scroll.to.top()
+
+Scroll the browser window to the top (left: 0, top: 0).
+
+```javascript
+await browser.scroll.to.top()
+```
+
+**Returns**: `Promise<boolean>`
+
+#### scroll.to.bottom()
+
+Scroll the browser window to the bottom (left: 0, top: document.body.scrollHeight).
+
+```javascript
+await browser.scroll.to.bottom()
+```
+
+**Returns**: `Promise<boolean>`
+
+#### scroll.to.left()
+
+Scroll the browser window to the leftmost position (left: 0, top: 0).
+
+```javascript
+await browser.scroll.to.left()
+```
+
+**Returns**: `Promise<boolean>`
+
+#### scroll.to.right()
+
+Scroll the browser window to the rightmost position (left: document.body.scrollWidth, top: 0).
+
+```javascript
+await browser.scroll.to.right()
+```
 
 **Returns**: `Promise<boolean>`
 

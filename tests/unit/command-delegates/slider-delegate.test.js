@@ -1,33 +1,33 @@
-import { jest } from '@jest/globals';
+import { vi } from 'vitest';
 
 // ---------------- MOCKS ----------------
 const mockActions = {
-  move: jest.fn().mockReturnThis(),
-  click: jest.fn().mockReturnThis(),
-  perform: jest.fn().mockResolvedValue(undefined),
+  move: vi.fn().mockReturnThis(),
+  click: vi.fn().mockReturnThis(),
+  perform: vi.fn().mockResolvedValue(undefined),
 };
 
 const mockDriver = {
-  executeScript: jest.fn(),
-  actions: jest.fn(() => mockActions),
+  executeScript: vi.fn(),
+  actions: vi.fn(() => mockActions),
 };
 
-jest.unstable_mockModule('selenium-webdriver', () => ({
-  Builder: jest.fn(),
+vi.mock('selenium-webdriver', () => ({
+  Builder: vi.fn(),
   By: {},
   until: {},
-  WebDriver: jest.fn(() => mockDriver),
+  WebDriver: vi.fn(() => mockDriver),
 }));
 
-jest.unstable_mockModule('@nodebug/logger', () => ({
+vi.mock('@nodebug/logger', () => ({
   log: {
-    info: jest.fn(),
-    error: jest.fn(),
+    info: vi.fn(),
+    error: vi.fn(),
   },
 }));
 
-jest.unstable_mockModule('../../../app/messenger.js', () => ({
-  default: jest.fn(({ data }) => `Setting slider to ${data}`),
+vi.mock('../../../app/messenger.js', () => ({
+  default: vi.fn(({ data }) => `Setting slider to ${data}`),
 }));
 
 // ---------------- IMPORTS ----------------
@@ -44,23 +44,23 @@ describe('SliderDelegate (ESM)', () => {
   let mockLocator;
 
   const createLocatorMock = (overrides = {}) => ({
-    getAttribute: jest.fn(),
-    getRect: jest.fn(),
+    getAttribute: vi.fn(),
+    getRect: vi.fn(),
     ...overrides,
   });
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     mockLocator = createLocatorMock();
 
     mockBrowser = {
       stack: ['some-slider'],
       message: '',
-      _finder: jest.fn().mockResolvedValue(mockLocator),
-      handleError: jest.fn(),
+      _finder: vi.fn().mockResolvedValue(mockLocator),
+      handleError: vi.fn(),
       driver: mockDriver,
-      actions: jest.fn(() => mockActions),
+      actions: vi.fn(() => mockActions),
     };
 
     delegate = new SliderDelegate(mockBrowser);

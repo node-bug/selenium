@@ -1,55 +1,55 @@
-import { jest } from '@jest/globals';
+import { vi } from 'vitest';
 
 // Shared mutable mock objects so tests can control delegate return values
 const mockVisibilityDelegate = {
-    scroll: jest.fn(),
-    isVisible: jest.fn(),
-    isDisabled: jest.fn(),
-    hide: jest.fn(),
-    unhide: jest.fn(),
-    _isVisible: jest.fn().mockResolvedValue(true),
-    _isEnabled: jest.fn().mockResolvedValue(true),
-    _isDisabled: jest.fn().mockResolvedValue(false),
-    _isNotVisible: jest.fn().mockResolvedValue(false),
+    scroll: vi.fn(),
+    isVisible: vi.fn(),
+    isDisabled: vi.fn(),
+    hide: vi.fn(),
+    unhide: vi.fn(),
+    _isVisible: vi.fn().mockResolvedValue(true),
+    _isEnabled: vi.fn().mockResolvedValue(true),
+    _isDisabled: vi.fn().mockResolvedValue(false),
+    _isNotVisible: vi.fn().mockResolvedValue(false),
 };
 
 const mockCheckboxDelegate = {
-    check: jest.fn(),
-    uncheck: jest.fn(),
-    _isChecked: jest.fn().mockResolvedValue(true),
+    check: vi.fn(),
+    uncheck: vi.fn(),
+    _isChecked: vi.fn().mockResolvedValue(true),
 };
 
 const mockRadioDelegate = {
-    set: jest.fn(),
-    _isSet: jest.fn().mockResolvedValue(true),
+    set: vi.fn(),
+    _isSet: vi.fn().mockResolvedValue(true),
 };
 
 const mockSwitchDelegate = {
-    on: jest.fn(),
-    off: jest.fn(),
-    _isOn: jest.fn().mockResolvedValue(true),
+    on: vi.fn(),
+    off: vi.fn(),
+    _isOn: vi.fn().mockResolvedValue(true),
 };
 
 // Mocks
-jest.unstable_mockModule('@nodebug/logger', () => ({
+vi.mock('@nodebug/logger', () => ({
     log: {
-        info: jest.fn(),
-        error: jest.fn(),
-        warn: jest.fn(),
+        info: vi.fn(),
+        error: vi.fn(),
+        warn: vi.fn(),
     },
 }));
 
 // Mock config module
-jest.unstable_mockModule('@nodebug/config', () => ({
-  default: jest.fn(() => ({
+vi.mock('@nodebug/config', () => ({
+  default: vi.fn(() => ({
     timeout: 1, // small timeout for fast tests
     browser: 'chrome',
 })),
 }));
 
 // Mock dependencies
-jest.unstable_mockModule('../../app/elements/locator-strategy.js', () => {
-    const mockLocatorStrategy = {
+vi.mock('../../app/elements/locator-strategy.js', () => {
+    const mockInstance = {
         definitions: {
             // Navigation & Structure
             link: true,
@@ -82,60 +82,82 @@ jest.unstable_mockModule('../../app/elements/locator-strategy.js', () => {
             // Global Fallback
             element: true,
         },
-        find: jest.fn(),
-        findAll: jest.fn(),
+        find: vi.fn(),
+        findAll: vi.fn(),
     };
+    // Create a mock constructor that returns the instance when called with 'new'
+    function MockLocatorStrategy() {
+        return mockInstance;
+    }
     return {
-        LocatorStrategy: jest.fn().mockImplementation(() => mockLocatorStrategy)
+        LocatorStrategy: MockLocatorStrategy
     };
 });
 
-jest.unstable_mockModule('../../app/messenger.js', () => ({
-    default: jest.fn(() => 'mock-message')
+vi.mock('../../app/messenger.js', () => ({
+    default: vi.fn(() => 'mock-message')
 }));
 
-jest.unstable_mockModule('../../app/command-delegates/click-delegate.js', () => ({
-    ClickDelegate: jest.fn().mockImplementation(() => ({
-        click: jest.fn().mockResolvedValue(true),
-        hover: jest.fn(),
-        doubleClick: jest.fn(),
-        rightClick: jest.fn(),
-        _clicker: jest.fn(),
-    })),
-}));
+vi.mock('../../app/command-delegates/click-delegate.js', () => {
+    const clickDelegateInstance = {
+        click: vi.fn().mockResolvedValue(true),
+        hover: vi.fn(),
+        doubleClick: vi.fn(),
+        rightClick: vi.fn(),
+        _clicker: vi.fn(),
+    };
+    function MockClickDelegate() { return clickDelegateInstance; }
+    return { ClickDelegate: MockClickDelegate };
+});
 
-jest.unstable_mockModule('../../app/command-delegates/input-delegate.js', () => ({
-    InputDelegate: jest.fn().mockImplementation(() => ({
-        write: jest.fn(),
-        focus: jest.fn(),
-        clear: jest.fn(),
-        overwrite: jest.fn(),
-        press: jest.fn().mockResolvedValue(true),
-    })),
-}));
+vi.mock('../../app/command-delegates/input-delegate.js', () => {
+    const inputDelegateInstance = {
+        write: vi.fn().mockResolvedValue(true),
+        focus: vi.fn(),
+        clear: vi.fn(),
+        overwrite: vi.fn(),
+        press: vi.fn().mockResolvedValue(true),
+    };
+    function MockInputDelegate() { return inputDelegateInstance; }
+    return { InputDelegate: MockInputDelegate };
+});
 
-jest.unstable_mockModule('../../app/command-delegates/visibility-delegate.js', () => ({
-    VisibilityDelegate: jest.fn().mockImplementation(() => mockVisibilityDelegate),
-}));
+vi.mock('../../app/command-delegates/visibility-delegate.js', () => {
+    function MockVisibilityDelegate() { return mockVisibilityDelegate; }
+    return { VisibilityDelegate: MockVisibilityDelegate };
+});
 
-jest.unstable_mockModule('../../app/command-delegates/checkbox-delegate.js', () => ({
-    CheckboxDelegate: jest.fn().mockImplementation(() => mockCheckboxDelegate),
-}));
+vi.mock('../../app/command-delegates/checkbox-delegate.js', () => {
+    function MockCheckboxDelegate() { return mockCheckboxDelegate; }
+    return { CheckboxDelegate: MockCheckboxDelegate };
+});
 
-jest.unstable_mockModule('../../app/command-delegates/radio-delegate.js', () => ({
-    RadioDelegate: jest.fn().mockImplementation(() => mockRadioDelegate),
-}));
+vi.mock('../../app/command-delegates/radio-delegate.js', () => {
+    function MockRadioDelegate() { return mockRadioDelegate; }
+    return { RadioDelegate: MockRadioDelegate };
+});
 
-jest.unstable_mockModule('../../app/command-delegates/switch-delegate.js', () => ({
-    SwitchDelegate: jest.fn().mockImplementation(() => mockSwitchDelegate),
-}));
+vi.mock('../../app/command-delegates/switch-delegate.js', () => {
+    function MockSwitchDelegate() { return mockSwitchDelegate; }
+    return { SwitchDelegate: MockSwitchDelegate };
+});
 
-jest.unstable_mockModule('../../app/command-delegates/slider-delegate.js', () => ({
-    SliderDelegate: jest.fn().mockImplementation(() => ({
-        set: jest.fn(),
-        _isSet: jest.fn().mockResolvedValue(true),
-    })),
-}));
+vi.mock('../../app/command-delegates/slider-delegate.js', () => {
+    const sliderDelegateInstance = {
+        set: vi.fn(),
+        _isSet: vi.fn().mockResolvedValue(true),
+    };
+    function MockSliderDelegate() { return sliderDelegateInstance; }
+    return { SliderDelegate: MockSliderDelegate };
+});
+
+vi.mock('../../app/command-delegates/select-delegate.js', () => {
+    const selectDelegateInstance = {
+        option: vi.fn().mockReturnThis(),
+    };
+    function MockSelectDelegate() { return selectDelegateInstance; }
+    return { SelectDelegate: MockSelectDelegate };
+});
 
 const { default: WebBrowser } = await import('../../index.js');
 
@@ -143,12 +165,12 @@ describe('WebBrowser', () => {
     let browser;
 
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
         browser = new WebBrowser();
 
         browser.locatorStrategy = {
-            find: jest.fn(),
-            findAll: jest.fn(),
+            find: vi.fn(),
+            findAll: vi.fn(),
         };
     });
 
@@ -216,7 +238,7 @@ describe('WebBrowser', () => {
 
         // 🔥 force mock at instance level
         browser.locatorStrategy = {
-            find: jest.fn().mockResolvedValue(mockLocator),
+            find: vi.fn().mockResolvedValue(mockLocator),
         };
         browser.stack = [{ id: 1 }];
 
@@ -227,7 +249,7 @@ describe('WebBrowser', () => {
 
     test('_finder retries and throws on timeout', async () => {
         browser.locatorStrategy = {
-            find: jest.fn().mockRejectedValue(new Error('fail')),
+            find: vi.fn().mockRejectedValue(new Error('fail')),
         };
         browser.stack = [{ id: 1 }];
 
@@ -241,7 +263,7 @@ describe('WebBrowser', () => {
 
         // 🔥 force mock at instance level
         browser.locatorStrategy = {
-            find: jest.fn().mockResolvedValue(mockLocator),
+            find: vi.fn().mockResolvedValue(mockLocator),
         };
         browser.stack = [{ id: 1 }];
 
@@ -255,7 +277,7 @@ describe('WebBrowser', () => {
         const mockElements = [{ id: 1 }, { id: 2 }];
 
         browser.locatorStrategy = {
-            findAll: jest.fn().mockResolvedValue(mockElements),
+            findAll: vi.fn().mockResolvedValue(mockElements),
         };
         browser.stack = [{ id: 1 }];
 
@@ -267,7 +289,7 @@ describe('WebBrowser', () => {
 
     test('findAll throws when no elements found', async () => {
         browser.locatorStrategy = {
-            findAll: jest.fn().mockResolvedValue([]),
+            findAll: vi.fn().mockResolvedValue([]),
         };
         browser.stack = [{ id: 1 }];
 
@@ -287,13 +309,8 @@ describe('WebBrowser', () => {
     });
 
     test('write delegates correctly', async () => {
-        const spy = jest
-        .spyOn(Object.getPrototypeOf(browser), 'write') // This is problematic
-        .mockResolvedValue(true);
-
         const result = await browser.write('text');
 
-        expect(spy).toHaveBeenCalledWith('text');
         expect(result).toBe(true);
     });
 
@@ -304,9 +321,9 @@ describe('WebBrowser', () => {
     });
 
     test('upload sends keys to locator', async () => {
-        const sendKeys = jest.fn();
+        const sendKeys = vi.fn();
 
-        browser._finder = jest.fn().mockResolvedValue({ sendKeys });
+        browser._finder = vi.fn().mockResolvedValue({ sendKeys });
         browser.stack = [{ id: 1 }];
 
         const result = await browser.upload('/file.txt');
@@ -317,12 +334,12 @@ describe('WebBrowser', () => {
     });
 
     test('start() closes existing session', async () => {
-        const closeMock = jest.fn().mockResolvedValue();
+        const closeMock = vi.fn().mockResolvedValue();
         browser.close = closeMock;
 
         browser.driver = { sessionId: '123' };
 
-        const superNew = jest.spyOn(
+        const superNew = vi.spyOn(
             Object.getPrototypeOf(Object.getPrototypeOf(browser)),
             'new'
         ).mockResolvedValue();
@@ -340,7 +357,7 @@ describe('WebBrowser', () => {
             },
         };
 
-        const superNew = jest.spyOn(
+        const superNew = vi.spyOn(
             Object.getPrototypeOf(Object.getPrototypeOf(browser)),
             'new'
         ).mockResolvedValue();
@@ -351,8 +368,8 @@ describe('WebBrowser', () => {
     });
 
     test('_finder tries multiple OR stacks', async () => {
-        const firstFail = jest.fn().mockRejectedValue(new Error('fail'));
-        const secondSuccess = jest.fn().mockResolvedValue({ id: 'ok' });
+        const firstFail = vi.fn().mockRejectedValue(new Error('fail'));
+        const secondSuccess = vi.fn().mockResolvedValue({ id: 'ok' });
 
         browser.locatorStrategy.find
             .mockImplementationOnce(firstFail)
@@ -372,13 +389,13 @@ describe('WebBrowser', () => {
     test('get.text() falls back to value for input', async () => {
         const locator = {
             tagName: 'input',
-            getAttribute: jest
+            getAttribute: vi
                 .fn()
                 .mockResolvedValueOnce('') // textContent empty
                 .mockResolvedValueOnce('typed value'),
         };
 
-        browser._finder = jest.fn().mockResolvedValue(locator);
+        browser._finder = vi.fn().mockResolvedValue(locator);
         browser.stack = [{ id: 1 }];
 
         const result = await browser.get.text();
@@ -389,10 +406,10 @@ describe('WebBrowser', () => {
     test('get.text() returns trimmed textContent', async () => {
         const locator = {
             tagName: 'div',
-            getAttribute: jest.fn().mockResolvedValue('  hello  '),
+            getAttribute: vi.fn().mockResolvedValue('  hello  '),
         };
 
-        browser._finder = jest.fn().mockResolvedValue(locator);
+        browser._finder = vi.fn().mockResolvedValue(locator);
         browser.stack = [{ id: 1 }];
 
         const result = await browser.get.text();
@@ -401,10 +418,10 @@ describe('WebBrowser', () => {
     });
     test('get.attribute returns attribute value', async () => {
         const locator = {
-            getAttribute: jest.fn().mockResolvedValue('123'),
+            getAttribute: vi.fn().mockResolvedValue('123'),
         };
 
-        browser._finder = jest.fn().mockResolvedValue(locator);
+        browser._finder = vi.fn().mockResolvedValue(locator);
         browser.stack = [{ id: 1 }];
 
         const result = await browser.get.attribute('data-id');
@@ -413,10 +430,10 @@ describe('WebBrowser', () => {
     });
     test('get.screenshot() uses element screenshot when stack exists', async () => {
         const locator = {
-            takeScreenshot: jest.fn().mockResolvedValue('element-img'),
+            takeScreenshot: vi.fn().mockResolvedValue('element-img'),
         };
 
-        browser._finder = jest.fn().mockResolvedValue(locator);
+        browser._finder = vi.fn().mockResolvedValue(locator);
         browser.stack = [{ id: 1 }];
 
         const result = await browser.get.screenshot();
@@ -424,9 +441,9 @@ describe('WebBrowser', () => {
         expect(result).toBe('element-img');
     });
     test('get.screenshot() falls back to driver screenshot', async () => {
-        browser._finder = jest.fn().mockRejectedValue(new Error('fail'));
+        browser._finder = vi.fn().mockRejectedValue(new Error('fail'));
         browser.driver = {
-            takeScreenshot: jest.fn().mockResolvedValue('page-img'),
+            takeScreenshot: vi.fn().mockResolvedValue('page-img'),
         };
 
         browser.stack = [{ id: 1 }];
@@ -438,10 +455,10 @@ describe('WebBrowser', () => {
     test('upload() handles error via handleError', async () => {
         const error = new Error('fail');
 
-        browser._finder = jest.fn().mockRejectedValue(error);
+        browser._finder = vi.fn().mockRejectedValue(error);
         browser.stack = [{ id: 1 }];
 
-        expect(() => browser.upload('/file')).rejects.toThrow();
+        await expect(browser.upload('/file')).rejects.toThrow();
     });
     test('at.index sets index and clears id on last stack item', () => {
         browser.stack = [{ id: 'some-text', index: false }];
@@ -560,12 +577,12 @@ describe('WebBrowser', () => {
             .mockResolvedValueOnce(dragEl)
             .mockResolvedValueOnce(dropEl);
 
-        const perform = jest.fn().mockResolvedValue();
+        const perform = vi.fn().mockResolvedValue();
 
         browser.driver = {
-            executeScript: jest.fn().mockResolvedValue(),
-            actions: jest.fn().mockReturnValue({
-                dragAndDrop: jest.fn().mockReturnThis(),
+            executeScript: vi.fn().mockResolvedValue(),
+            actions: vi.fn().mockReturnValue({
+                dragAndDrop: vi.fn().mockReturnThis(),
                 perform,
             }),
         };
@@ -596,7 +613,7 @@ describe('WebBrowser', () => {
         });
 
         test('left() presses left arrow once by default', async () => {
-            const pressSpy = jest.spyOn(Object.getPrototypeOf(browser), 'press').mockResolvedValue(true);
+            const pressSpy = vi.spyOn(Object.getPrototypeOf(browser), 'press').mockResolvedValue(true);
             await browser.left();
             expect(pressSpy).toHaveBeenCalledTimes(1);
             expect(pressSpy).toHaveBeenCalledWith('left');
@@ -604,14 +621,14 @@ describe('WebBrowser', () => {
         });
 
         test('left(n) presses left arrow n times', async () => {
-            const pressSpy = jest.spyOn(Object.getPrototypeOf(browser), 'press').mockResolvedValue(true);
+            const pressSpy = vi.spyOn(Object.getPrototypeOf(browser), 'press').mockResolvedValue(true);
             await browser.left(5);
             expect(pressSpy).toHaveBeenCalledTimes(5);
             pressSpy.mockRestore();
         });
 
         test('right() presses right arrow once by default', async () => {
-            const pressSpy = jest.spyOn(Object.getPrototypeOf(browser), 'press').mockResolvedValue(true);
+            const pressSpy = vi.spyOn(Object.getPrototypeOf(browser), 'press').mockResolvedValue(true);
             await browser.right();
             expect(pressSpy).toHaveBeenCalledTimes(1);
             expect(pressSpy).toHaveBeenCalledWith('right');
@@ -619,14 +636,14 @@ describe('WebBrowser', () => {
         });
 
         test('right(n) presses right arrow n times', async () => {
-            const pressSpy = jest.spyOn(Object.getPrototypeOf(browser), 'press').mockResolvedValue(true);
+            const pressSpy = vi.spyOn(Object.getPrototypeOf(browser), 'press').mockResolvedValue(true);
             await browser.right(3);
             expect(pressSpy).toHaveBeenCalledTimes(3);
             pressSpy.mockRestore();
         });
 
         test('up() presses up arrow once by default', async () => {
-            const pressSpy = jest.spyOn(Object.getPrototypeOf(browser), 'press').mockResolvedValue(true);
+            const pressSpy = vi.spyOn(Object.getPrototypeOf(browser), 'press').mockResolvedValue(true);
             await browser.up();
             expect(pressSpy).toHaveBeenCalledTimes(1);
             expect(pressSpy).toHaveBeenCalledWith('up');
@@ -634,14 +651,14 @@ describe('WebBrowser', () => {
         });
 
         test('up(n) presses up arrow n times', async () => {
-            const pressSpy = jest.spyOn(Object.getPrototypeOf(browser), 'press').mockResolvedValue(true);
+            const pressSpy = vi.spyOn(Object.getPrototypeOf(browser), 'press').mockResolvedValue(true);
             await browser.up(4);
             expect(pressSpy).toHaveBeenCalledTimes(4);
             pressSpy.mockRestore();
         });
 
         test('down() presses down arrow once by default', async () => {
-            const pressSpy = jest.spyOn(Object.getPrototypeOf(browser), 'press').mockResolvedValue(true);
+            const pressSpy = vi.spyOn(Object.getPrototypeOf(browser), 'press').mockResolvedValue(true);
             await browser.down();
             expect(pressSpy).toHaveBeenCalledTimes(1);
             expect(pressSpy).toHaveBeenCalledWith('down');
@@ -649,14 +666,14 @@ describe('WebBrowser', () => {
         });
 
         test('down(n) presses down arrow n times', async () => {
-            const pressSpy = jest.spyOn(Object.getPrototypeOf(browser), 'press').mockResolvedValue(true);
+            const pressSpy = vi.spyOn(Object.getPrototypeOf(browser), 'press').mockResolvedValue(true);
             await browser.down(2);
             expect(pressSpy).toHaveBeenCalledTimes(2);
             pressSpy.mockRestore();
         });
 
         test('arrow key methods return true', async () => {
-            const pressSpy = jest.spyOn(Object.getPrototypeOf(browser), 'press').mockResolvedValue(true);
+            const pressSpy = vi.spyOn(Object.getPrototypeOf(browser), 'press').mockResolvedValue(true);
             const leftResult = await browser.left();
             const rightResult = await browser.right();
             const upResult = await browser.up();
@@ -822,9 +839,9 @@ describe('WebBrowser', () => {
             test('should return true when element value matches', async () => {
                 const locator = {
                     tagName: 'input',
-                    getAttribute: jest.fn().mockResolvedValueOnce('').mockResolvedValueOnce('75'),
+                    getAttribute: vi.fn().mockResolvedValueOnce('').mockResolvedValueOnce('75'),
                 };
-                browser._finder = jest.fn().mockResolvedValue(locator);
+                browser._finder = vi.fn().mockResolvedValue(locator);
                 browser.stack = [{ id: 1 }];
                 const result = await browser.has.value('75');
                 expect(result).toBe(true);
@@ -833,9 +850,9 @@ describe('WebBrowser', () => {
             test('should return false when element value does not match', async () => {
                 const locator = {
                     tagName: 'input',
-                    getAttribute: jest.fn().mockResolvedValueOnce('').mockResolvedValueOnce('50'),
+                    getAttribute: vi.fn().mockResolvedValueOnce('').mockResolvedValueOnce('50'),
                 };
-                browser._finder = jest.fn().mockResolvedValue(locator);
+                browser._finder = vi.fn().mockResolvedValue(locator);
                 browser.stack = [{ id: 1 }];
                 const result = await browser.has.value('75');
                 expect(result).toBe(false);
@@ -846,9 +863,9 @@ describe('WebBrowser', () => {
             test('should return true when element text matches', async () => {
                 const locator = {
                     tagName: 'span',
-                    getAttribute: jest.fn().mockResolvedValueOnce('Hello World').mockResolvedValueOnce('Hello World'),
+                    getAttribute: vi.fn().mockResolvedValueOnce('Hello World').mockResolvedValueOnce('Hello World'),
                 };
-                browser._finder = jest.fn().mockResolvedValue(locator);
+                browser._finder = vi.fn().mockResolvedValue(locator);
                 browser.stack = [{ id: 1 }];
                 const result = await browser.has.text('Hello World');
                 expect(result).toBe(true);
@@ -857,9 +874,9 @@ describe('WebBrowser', () => {
             test('should return false when element text does not match', async () => {
                 const locator = {
                     tagName: 'span',
-                    getAttribute: jest.fn().mockResolvedValueOnce('Goodbye World').mockResolvedValueOnce(''),
+                    getAttribute: vi.fn().mockResolvedValueOnce('Goodbye World').mockResolvedValueOnce(''),
                 };
-                browser._finder = jest.fn().mockResolvedValue(locator);
+                browser._finder = vi.fn().mockResolvedValue(locator);
                 browser.stack = [{ id: 1 }];
                 const result = await browser.has.text('Hello World');
                 expect(result).toBe(false);
@@ -995,9 +1012,9 @@ describe('WebBrowser', () => {
             test('should not throw when element value matches', async () => {
                 const locator = {
                     tagName: 'input',
-                    getAttribute: jest.fn().mockResolvedValueOnce('').mockResolvedValueOnce('75'),
+                    getAttribute: vi.fn().mockResolvedValueOnce('').mockResolvedValueOnce('75'),
                 };
-                browser._finder = jest.fn().mockResolvedValue(locator);
+                browser._finder = vi.fn().mockResolvedValue(locator);
                 browser.stack = [{ id: 1 }];
                 await expect(browser.should.have.value('75')).resolves.not.toThrow();
             });
@@ -1005,9 +1022,9 @@ describe('WebBrowser', () => {
             test('should throw when element value does not match', async () => {
                 const locator = {
                     tagName: 'input',
-                    getAttribute: jest.fn().mockResolvedValueOnce('').mockResolvedValueOnce('50'),
+                    getAttribute: vi.fn().mockResolvedValueOnce('').mockResolvedValueOnce('50'),
                 };
-                browser._finder = jest.fn().mockResolvedValue(locator);
+                browser._finder = vi.fn().mockResolvedValue(locator);
                 browser.stack = [{ id: 1 }];
                 await expect(browser.should.have.value('75')).rejects.toThrow('Element value');
             });
@@ -1017,9 +1034,9 @@ describe('WebBrowser', () => {
             test('should not throw when element value does not match', async () => {
                 const locator = {
                     tagName: 'input',
-                    getAttribute: jest.fn().mockResolvedValueOnce('').mockResolvedValueOnce('50'),
+                    getAttribute: vi.fn().mockResolvedValueOnce('').mockResolvedValueOnce('50'),
                 };
-                browser._finder = jest.fn().mockResolvedValue(locator);
+                browser._finder = vi.fn().mockResolvedValue(locator);
                 browser.stack = [{ id: 1 }];
                 await expect(browser.should.not.have.value('75')).resolves.not.toThrow();
             });
@@ -1027,9 +1044,9 @@ describe('WebBrowser', () => {
             test('should throw when element value matches', async () => {
                 const locator = {
                     tagName: 'input',
-                    getAttribute: jest.fn().mockResolvedValueOnce('').mockResolvedValueOnce('75'),
+                    getAttribute: vi.fn().mockResolvedValueOnce('').mockResolvedValueOnce('75'),
                 };
-                browser._finder = jest.fn().mockResolvedValue(locator);
+                browser._finder = vi.fn().mockResolvedValue(locator);
                 browser.stack = [{ id: 1 }];
                 await expect(browser.should.not.have.value('75')).rejects.toThrow('Element value');
             });
@@ -1039,9 +1056,9 @@ describe('WebBrowser', () => {
             test('should not throw when element text matches', async () => {
                 const locator = {
                     tagName: 'span',
-                    getAttribute: jest.fn().mockResolvedValueOnce('Hello World').mockResolvedValueOnce('Hello World'),
+                    getAttribute: vi.fn().mockResolvedValueOnce('Hello World').mockResolvedValueOnce('Hello World'),
                 };
-                browser._finder = jest.fn().mockResolvedValue(locator);
+                browser._finder = vi.fn().mockResolvedValue(locator);
                 browser.stack = [{ id: 1 }];
                 await expect(browser.should.have.text('Hello World')).resolves.not.toThrow();
             });
@@ -1049,9 +1066,9 @@ describe('WebBrowser', () => {
             test('should throw when element text does not match', async () => {
                 const locator = {
                     tagName: 'span',
-                    getAttribute: jest.fn().mockResolvedValueOnce('Goodbye World').mockResolvedValueOnce(''),
+                    getAttribute: vi.fn().mockResolvedValueOnce('Goodbye World').mockResolvedValueOnce(''),
                 };
-                browser._finder = jest.fn().mockResolvedValue(locator);
+                browser._finder = vi.fn().mockResolvedValue(locator);
                 browser.stack = [{ id: 1 }];
                 await expect(browser.should.have.text('Hello World')).rejects.toThrow('Element text');
             });
@@ -1061,9 +1078,9 @@ describe('WebBrowser', () => {
             test('should not throw when element text does not match', async () => {
                 const locator = {
                     tagName: 'span',
-                    getAttribute: jest.fn().mockResolvedValueOnce('Goodbye World').mockResolvedValueOnce(''),
+                    getAttribute: vi.fn().mockResolvedValueOnce('Goodbye World').mockResolvedValueOnce(''),
                 };
-                browser._finder = jest.fn().mockResolvedValue(locator);
+                browser._finder = vi.fn().mockResolvedValue(locator);
                 browser.stack = [{ id: 1 }];
                 await expect(browser.should.not.have.text('Hello World')).resolves.not.toThrow();
             });
@@ -1071,9 +1088,9 @@ describe('WebBrowser', () => {
             test('should throw when element text matches', async () => {
                 const locator = {
                     tagName: 'span',
-                    getAttribute: jest.fn().mockResolvedValueOnce('Hello World').mockResolvedValueOnce('Hello World'),
+                    getAttribute: vi.fn().mockResolvedValueOnce('Hello World').mockResolvedValueOnce('Hello World'),
                 };
-                browser._finder = jest.fn().mockResolvedValue(locator);
+                browser._finder = vi.fn().mockResolvedValue(locator);
                 browser.stack = [{ id: 1 }];
                 await expect(browser.should.not.have.text('Hello World')).rejects.toThrow('Element text');
             });
@@ -1083,9 +1100,9 @@ describe('WebBrowser', () => {
             test('should return true when element value does not match', async () => {
                 const locator = {
                     tagName: 'input',
-                    getAttribute: jest.fn().mockResolvedValueOnce('').mockResolvedValueOnce('50'),
+                    getAttribute: vi.fn().mockResolvedValueOnce('').mockResolvedValueOnce('50'),
                 };
-                browser._finder = jest.fn().mockResolvedValue(locator);
+                browser._finder = vi.fn().mockResolvedValue(locator);
                 browser.stack = [{ id: 1 }];
                 const result = await browser.does.not.have.value('75');
                 expect(result).toBe(true);
@@ -1094,9 +1111,9 @@ describe('WebBrowser', () => {
             test('should return false when element value matches', async () => {
                 const locator = {
                     tagName: 'input',
-                    getAttribute: jest.fn().mockResolvedValueOnce('').mockResolvedValueOnce('75'),
+                    getAttribute: vi.fn().mockResolvedValueOnce('').mockResolvedValueOnce('75'),
                 };
-                browser._finder = jest.fn().mockResolvedValue(locator);
+                browser._finder = vi.fn().mockResolvedValue(locator);
                 browser.stack = [{ id: 1 }];
                 const result = await browser.does.not.have.value('75');
                 expect(result).toBe(false);
@@ -1107,9 +1124,9 @@ describe('WebBrowser', () => {
             test('should return true when element text does not match', async () => {
                 const locator = {
                     tagName: 'span',
-                    getAttribute: jest.fn().mockResolvedValueOnce('Goodbye World').mockResolvedValueOnce(''),
+                    getAttribute: vi.fn().mockResolvedValueOnce('Goodbye World').mockResolvedValueOnce(''),
                 };
-                browser._finder = jest.fn().mockResolvedValue(locator);
+                browser._finder = vi.fn().mockResolvedValue(locator);
                 browser.stack = [{ id: 1 }];
                 const result = await browser.does.not.have.text('Hello World');
                 expect(result).toBe(true);
@@ -1118,9 +1135,9 @@ describe('WebBrowser', () => {
             test('should return false when element text matches', async () => {
                 const locator = {
                     tagName: 'span',
-                    getAttribute: jest.fn().mockResolvedValueOnce('Hello World').mockResolvedValueOnce('Hello World'),
+                    getAttribute: vi.fn().mockResolvedValueOnce('Hello World').mockResolvedValueOnce('Hello World'),
                 };
-                browser._finder = jest.fn().mockResolvedValue(locator);
+                browser._finder = vi.fn().mockResolvedValue(locator);
                 browser.stack = [{ id: 1 }];
                 const result = await browser.does.not.have.text('Hello World');
                 expect(result).toBe(false);

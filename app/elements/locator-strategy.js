@@ -1,10 +1,10 @@
 import config from '@nodebug/config';
 import { log } from '@nodebug/logger';
-import { ELEMENT_DEFINITIONS } from '@nodebug/browser-element-finder';
 import { relativeSearch } from './spatial-selection.js';
 import { readFile } from 'fs/promises';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import ELEMENT_DEFINITIONS from '@nodebug/browser-element-finder/element-definitions.json' with { type: 'json' };
 
 // Load ElementFinder script from @nodebug/browser-element-finder package
 const __filename = fileURLToPath(import.meta.url);
@@ -42,12 +42,6 @@ export class LocatorStrategy {
    * @type {boolean}
    */
   get debug() { return selenium.debug ?? false; }
-
-  /**
-   * Element type definitions for XPath matching.
-   * @type {Object}
-   */
-  get definitions() { return ELEMENT_DEFINITIONS; }
 
   /**
    * Injects the ElementFinder script into the browser context.
@@ -173,13 +167,16 @@ export class LocatorStrategy {
         // Selenium has wrapped the DOM elements as WebElements
         // Now attach the metadata to each WebElement
         // Use parent's frameIndex since we're searching within the parent's context
-        const qualified = elements.elements.map((elem) => {
-          const webElement = elem.element;
-          webElement.frameIndex = parent.frameIndex;
-          webElement.tagName = elem.tagName;
-          webElement.boundingBox = elem.boundingBox;
-          return webElement;
-        });
+        // Filter out elements without the element property (from cross-origin iframes)
+        const qualified = elements.elements
+          .filter(elem => elem.element)
+          .map((elem) => {
+            const webElement = elem.element;
+            webElement.frameIndex = parent.frameIndex;
+            webElement.tagName = elem.tagName;
+            webElement.boundingBox = elem.boundingBox;
+            return webElement;
+          });
 
         return qualified;
       } catch (err) {
@@ -234,12 +231,14 @@ export class LocatorStrategy {
     await this._injectElementFinder();
 
     // 1. Search in main frame first (frameIndex = -1)
+    // ElementFinder searches ALL frames when called from main frame
+    // Elements from child frames are returned without the `element` property
     const mainFrameResults = await this._searchInFrame(-1, elementData);
     if (mainFrameResults.length > 0) {
       return mainFrameResults;
     }
 
-    // 2. Get all iframe elements to search child frames
+    // 2. Get all iframe elements to search child frames directly
     const frameCount = await this._getChildFrameCount();
 
     // 3. Search each child frame
@@ -254,13 +253,15 @@ export class LocatorStrategy {
     if (elementData.type !== 'element') {
       const closestResults = await this._findClosestElementOfType(elementData);
       if (closestResults && closestResults.elements && closestResults.elements.length > 0) {
-        return closestResults.elements.map((elem) => {
-          const webElement = elem.element;
-          webElement.frameIndex = elem.frameIndex;
-          webElement.tagName = elem.tagName;
-          webElement.boundingBox = elem.boundingBox;
-          return webElement;
-        });
+        return closestResults.elements
+          .filter(elem => elem.element)
+          .map((elem) => {
+            const webElement = elem.element;
+            webElement.frameIndex = elem.frameIndex;
+            webElement.tagName = elem.tagName;
+            webElement.boundingBox = elem.boundingBox;
+            return webElement;
+          });
       }
     }
 
@@ -320,14 +321,22 @@ export class LocatorStrategy {
           return [];
         }
 
-        // Attach frameIndex and metadata to each WebElement
-        const qualified = results.elements.map((elem) => {
+        // Separate elements by whether they have the element property
+        // Elements from child frames (found when searching main frame) don't have element property
+        const mainFrameElements = results.elements.filter(elem => elem.element);
+
+        // Process main frame elements (have the element property)
+        const qualified = mainFrameElements.map((elem) => {
           const webElement = elem.element;
           webElement.frameIndex = frameIndex;
           webElement.tagName = elem.tagName;
           webElement.boundingBox = elem.boundingBox;
           return webElement;
         });
+
+        // For child frame elements, we need to switch to that frame and find the element
+        // This is handled by the findElements method which searches child frames separately
+        // We just need to return the main frame elements here
 
         // Filter by visibility settings
         const visibilityFilter = elementData.hidden
@@ -444,9 +453,13 @@ export class LocatorStrategy {
           let minDistance = Infinity;
           
           for (const generic of genericResult.elements) {
+            // Skip elements without the element property (from cross-origin iframes)
+            if (!generic.element) continue;
             const refRect = generic.element.getBoundingClientRect();
             
             for (const target of targetResult.elements) {
+              // Skip elements without the element property (from cross-origin iframes)
+              if (!target.element) continue;
               const targetRect = target.element.getBoundingClientRect();
               const distance = getEdgeProximityDistance(refRect, targetRect);
               
@@ -494,7 +507,7 @@ export class LocatorStrategy {
       const newItem = { ...item };
 
       // Only resolve items that are element types and don't have matches yet
-      if (Object.hasOwn(ELEMENT_DEFINITIONS, newItem.type) && (!newItem.matches || newItem.matches.length === 0)) {
+      if (Object.keys(ELEMENT_DEFINITIONS).includes(newItem.type) && (!newItem.matches || newItem.matches.length === 0)) {
         try {
           newItem.matches = await this.findElements(newItem);
         } catch (err) {

@@ -229,8 +229,6 @@ class Browser {
       typeof size.height === 'number' &&
       !Number.isNaN(size.height);
 
-    // //maximize no matter what if this function is called
-    // await this.window().maximize()
     try {
       if (isValidSize) {
         await this.driver.manage().window().setRect(size)
@@ -486,6 +484,98 @@ class Browser {
           log.error(`Error getting browser size: ${err.message}`)
           throw err
         }
+      },
+    };
+  }
+
+  /**
+   * Accessor for scrolling the browser window.
+   * 
+   * Provides methods to scroll the browser window to specific positions.
+   * 
+   * @type {Object}
+   * @returns {Object} Object containing scroll accessor methods
+   * @example
+   * await browser.scroll.to.top();
+   * await browser.scroll.to.bottom();
+   * await browser.scroll.to.left();
+   * await browser.scroll.to.right();
+   */
+  get scroll() {
+    const self = this;
+    return {
+      /**
+       * Scroll the browser window to specific positions.
+       */
+      to: {
+        /**
+         * Scroll the browser window to the top (left: 0, top: 0).
+         * @returns {Promise<boolean>} True if successful
+         * @example
+         * await browser.scroll.to.top();
+         */
+        top: async () => {
+          try {
+            await self.driver.switchTo().defaultContent();
+            await self.driver.executeScript('window.scrollTo(0, 0);');
+            log.info('Scrolled to top of page.');
+            return true;
+          } catch (err) {
+            log.error(`Error scrolling to top: ${err.message}`);
+            throw err;
+          }
+        },
+        /**
+         * Scroll the browser window to the bottom (left: 0, top: document body height).
+         * @returns {Promise<boolean>} True if successful
+         * @example
+         * await browser.scroll.to.bottom();
+         */
+        bottom: async () => {
+          try {
+            await self.driver.switchTo().defaultContent();
+            await self.driver.executeScript('window.scrollTo(0, document.body.scrollHeight);');
+            log.info('Scrolled to bottom of page.');
+            return true;
+          } catch (err) {
+            log.error(`Error scrolling to bottom: ${err.message}`);
+            throw err;
+          }
+        },
+        /**
+         * Scroll the browser window to the leftmost position (left: 0, top: 0).
+         * @returns {Promise<boolean>} True if successful
+         * @example
+         * await browser.scroll.to.left();
+         */
+        left: async () => {
+          try {
+            await self.driver.switchTo().defaultContent();
+            await self.driver.executeScript('window.scrollTo(0, 0);');
+            log.info('Scrolled to left of page.');
+            return true;
+          } catch (err) {
+            log.error(`Error scrolling to left: ${err.message}`);
+            throw err;
+          }
+        },
+        /**
+         * Scroll the browser window to the rightmost position (left: document body width, top: 0).
+         * @returns {Promise<boolean>} True if successful
+         * @example
+         * await browser.scroll.to.right();
+         */
+        right: async () => {
+          try {
+            await self.driver.switchTo().defaultContent();
+            await self.driver.executeScript('window.scrollTo(document.body.scrollWidth, 0);');
+            log.info('Scrolled to right of page.');
+            return true;
+          } catch (err) {
+            log.error(`Error scrolling to right: ${err.message}`);
+            throw err;
+          }
+        },
       },
     };
   }

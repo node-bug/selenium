@@ -1,48 +1,48 @@
-import { jest } from '@jest/globals';
+import { vi } from 'vitest';
 
 // ---------------- MOCKS ----------------
 const mockDriver = {
-  executeScript: jest.fn(),
-  switchTo: jest.fn(),
-  actions: jest.fn(),
+  executeScript: vi.fn(),
+  switchTo: vi.fn(),
+  actions: vi.fn(),
 };
 
-jest.unstable_mockModule('selenium-webdriver', () => ({
-  Builder: jest.fn(),
+vi.mock('selenium-webdriver', () => ({
+  Builder: vi.fn(),
   By: {},
   until: {},
-  WebDriver: jest.fn(() => mockDriver),
+  WebDriver: vi.fn(() => mockDriver),
   Key: {
     ARROW_RIGHT: '\uE015',
   },
 }));
 
-jest.unstable_mockModule('@nodebug/logger', () => ({
+vi.mock('@nodebug/logger', () => ({
   log: {
-    info: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
-    warn: jest.fn(),
+    info: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+    warn: vi.fn(),
   },
 }));
 
 // Mock messenger module
-jest.unstable_mockModule('../../../app/messenger.js', () => ({
-  default: jest.fn(() => ({ stack: [], action: 'write', data: '' })),
+vi.mock('../../../app/messenger.js', () => ({
+  default: vi.fn(() => ({ stack: [], action: 'write', data: '' })),
 }));
 
 // Mock config module
-jest.unstable_mockModule('@nodebug/config', () => ({
-  default: jest.fn((key) => {
+vi.mock('@nodebug/config', () => ({
+  default: vi.fn((key) => {
     if (key === 'selenium') return { timeout: 5 };
     return {};
   }),
 }));
 
 // Mock browser findAll method
-jest.unstable_mockModule('../../../app/browser/index.js', () => ({
-  default: jest.fn(() => ({
-    findAll: jest.fn(),
+vi.mock('../../../app/browser/index.js', () => ({
+  default: vi.fn(() => ({
+    findAll: vi.fn(),
   })),
 }));
 
@@ -57,20 +57,20 @@ describe('VisibilityDelegate (ESM)', () => {
   let mockSwitchTo;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     mockElement = {
-      scrollIntoView: jest.fn(),
-      isEnabled: jest.fn(),
-      getAttribute: jest.fn(),
+      scrollIntoView: vi.fn(),
+      isEnabled: vi.fn(),
+      getAttribute: vi.fn(),
       style: {
         opacity: '1',
       },
     };
 
     mockSwitchTo = {
-      defaultContent: jest.fn(),
-      frame: jest.fn(),
+      defaultContent: vi.fn(),
+      frame: vi.fn(),
     };
 
     mockDriver.switchTo.mockReturnValue(mockSwitchTo);
@@ -78,64 +78,137 @@ describe('VisibilityDelegate (ESM)', () => {
     mockBrowser = {
       driver: mockDriver,
       stack: ['test'],
-      locatorStrategy: { build: jest.fn() },
-      handleError: jest.fn(),
+      locatorStrategy: { build: vi.fn() },
+      handleError: vi.fn(),
       message: null,
-      _finder: jest.fn().mockResolvedValue(mockElement),
-      findAll: jest.fn().mockResolvedValue([mockElement]),
+      _finder: vi.fn().mockResolvedValue(mockElement),
+      findAll: vi.fn().mockResolvedValue([mockElement]),
     };
 
     visibilityDelegate = new VisibilityDelegate(mockBrowser);
   });
 
-  // ---------------- SCROLL ----------------
-  describe('scroll()', () => {
-    test('scrolls element into view with default alignToTop=true', async () => {
-      await visibilityDelegate.scroll();
+  // ---------------- SCROLL INTO VIEW ----------------
+  describe('scroll.into.view()', () => {
+    test('scrolls element into view with center alignment', async () => {
+      await visibilityDelegate.scroll.into.view();
 
       expect(mockBrowser._finder).toHaveBeenCalled();
       expect(mockDriver.executeScript).toHaveBeenCalledWith(
-        'arguments[0].scrollIntoView({ behavior: "instant", block: arguments[1] ? "start" : "end" });',
-        mockElement,
-        true
+        'arguments[0].scrollIntoView({ behavior: "instant", block: "center", inline: "center" });',
+        mockElement
       );
     });
 
-    test('scrolls element into view with alignToTop=false', async () => {
-      await visibilityDelegate.scroll(false);
+    test('handles error from scroll.into.view', async () => {
+      const error = new Error('fail');
+      mockBrowser._finder.mockRejectedValue(error);
+
+      await visibilityDelegate.scroll.into.view();
+
+      expect(mockBrowser.handleError).toHaveBeenCalledWith(
+        error,
+        'scrolling into view'
+      );
+    });
+  });
+
+  // ---------------- SCROLL TO TOP ----------------
+  describe('scroll.to.top()', () => {
+    test('scrolls element to top', async () => {
+      await visibilityDelegate.scroll.to.top();
 
       expect(mockBrowser._finder).toHaveBeenCalled();
       expect(mockDriver.executeScript).toHaveBeenCalledWith(
-        'arguments[0].scrollIntoView({ behavior: "instant", block: arguments[1] ? "start" : "end" });',
-        mockElement,
-        false
+        'arguments[0].scrollTop = 0;',
+        mockElement
       );
     });
 
-    test('scrolls element to right alignment', async () => {
-      await visibilityDelegate.scroll('right');
+    test('handles error from scroll.to.top', async () => {
+      const error = new Error('fail');
+      mockBrowser._finder.mockRejectedValue(error);
+
+      await visibilityDelegate.scroll.to.top();
+
+      expect(mockBrowser.handleError).toHaveBeenCalledWith(
+        error,
+        'scrolling element to top'
+      );
+    });
+  });
+
+  // ---------------- SCROLL TO BOTTOM ----------------
+  describe('scroll.to.bottom()', () => {
+    test('scrolls element to bottom', async () => {
+      await visibilityDelegate.scroll.to.bottom();
 
       expect(mockBrowser._finder).toHaveBeenCalled();
       expect(mockDriver.executeScript).toHaveBeenCalledWith(
-        'arguments[0].scrollIntoView({ behavior: "instant", block: arguments[1] ? "start" : "end" });',
-        mockElement,
-        'right'
+        'arguments[0].scrollTop = arguments[0].scrollHeight;',
+        mockElement
       );
+    });
+
+    test('handles error from scroll.to.bottom', async () => {
+      const error = new Error('fail');
+      mockBrowser._finder.mockRejectedValue(error);
+
+      await visibilityDelegate.scroll.to.bottom();
+
+      expect(mockBrowser.handleError).toHaveBeenCalledWith(
+        error,
+        'scrolling element to bottom'
+      );
+    });
+  });
+
+  // ---------------- SCROLL TO LEFT ----------------
+  describe('scroll.to.left()', () => {
+    test('scrolls element to left', async () => {
+      await visibilityDelegate.scroll.to.left();
+
+      expect(mockBrowser._finder).toHaveBeenCalled();
+      expect(mockDriver.executeScript).toHaveBeenCalledWith(
+        'arguments[0].scrollLeft = 0;',
+        mockElement
+      );
+    });
+
+    test('handles error from scroll.to.left', async () => {
+      const error = new Error('fail');
+      mockBrowser._finder.mockRejectedValue(error);
+
+      await visibilityDelegate.scroll.to.left();
+
+      expect(mockBrowser.handleError).toHaveBeenCalledWith(
+        error,
+        'scrolling element to left'
+      );
+    });
+  });
+
+  // ---------------- SCROLL TO RIGHT ----------------
+  describe('scroll.to.right()', () => {
+    test('scrolls element to right', async () => {
+      await visibilityDelegate.scroll.to.right();
+
+      expect(mockBrowser._finder).toHaveBeenCalled();
       expect(mockDriver.executeScript).toHaveBeenCalledWith(
         'arguments[0].scrollLeft = arguments[0].scrollWidth;',
         mockElement
       );
     });
 
-    test('handles error from scroll', async () => {
+    test('handles error from scroll.to.right', async () => {
       const error = new Error('fail');
       mockBrowser._finder.mockRejectedValue(error);
 
-      await visibilityDelegate.scroll();
+      await visibilityDelegate.scroll.to.right();
 
       expect(mockBrowser.handleError).toHaveBeenCalledWith(
         error,
-        'scrolling into view'
+        'scrolling element to right'
       );
     });
   });
@@ -200,8 +273,8 @@ describe('VisibilityDelegate (ESM)', () => {
   describe('_isDisabled()', () => {
     test('returns true when element is disabled', async () => {
       mockBrowser._finder.mockResolvedValue({
-        isEnabled: jest.fn().mockResolvedValue(false),
-        getAttribute: jest.fn().mockResolvedValue(null),
+        isEnabled: vi.fn().mockResolvedValue(false),
+        getAttribute: vi.fn().mockResolvedValue(null),
       });
 
       const result = await visibilityDelegate._isDisabled();
@@ -211,8 +284,8 @@ describe('VisibilityDelegate (ESM)', () => {
 
     test('returns false when element is enabled', async () => {
       mockBrowser._finder.mockResolvedValue({
-        isEnabled: jest.fn().mockResolvedValue(true),
-        getAttribute: jest.fn().mockResolvedValue(null),
+        isEnabled: vi.fn().mockResolvedValue(true),
+        getAttribute: vi.fn().mockResolvedValue(null),
       });
 
       const result = await visibilityDelegate._isDisabled();

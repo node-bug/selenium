@@ -304,6 +304,73 @@ await browser.alt.shift.click() // Alt+Shift+click
 
 **Note:** Modifiers reset after each action, so you must re-specify them for the next action.
 
+## Scroll Operations
+
+### Window-Level Scrolling
+
+Scroll the entire browser window:
+
+```javascript
+await browser.scroll.to.top()
+await browser.scroll.to.bottom()
+await browser.scroll.to.left()
+await browser.scroll.to.right()
+```
+
+**Returns**: `Promise<boolean>`
+
+### Element-Level Scrolling
+
+#### scroll.into.view()
+
+Scroll element into the center of the viewport:
+
+```javascript
+await browser.element('target').scroll.into.view()
+```
+
+**Returns**: `Promise<boolean>`
+
+#### scroll.to.top()
+
+Scroll element to the top (scrollTop = 0):
+
+```javascript
+await browser.element('scrollable-div').scroll.to.top()
+```
+
+**Returns**: `Promise<boolean>`
+
+#### scroll.to.bottom()
+
+Scroll element to the bottom (scrollTop = scrollHeight):
+
+```javascript
+await browser.element('scrollable-div').scroll.to.bottom()
+```
+
+**Returns**: `Promise<boolean>`
+
+#### scroll.to.left()
+
+Scroll element to the left (scrollLeft = 0):
+
+```javascript
+await browser.element('scrollable-div').scroll.to.left()
+```
+
+**Returns**: `Promise<boolean>`
+
+#### scroll.to.right()
+
+Scroll element to the right (scrollLeft = scrollWidth):
+
+```javascript
+await browser.element('scrollable-div').scroll.to.right()
+```
+
+**Returns**: `Promise<boolean>`
+
 ## Hover Interactions
 
 ### hover()
