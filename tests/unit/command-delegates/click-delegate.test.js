@@ -1,11 +1,11 @@
-import { jest } from '@jest/globals';
+import { vi } from 'vitest';
 
 // ---------------- MOCKS ----------------
 const mockDriver = {
-  executeScript: jest.fn(),
-  actions: jest.fn(),
-  getCapabilities: jest.fn().mockResolvedValue({
-    get: jest.fn().mockReturnValue('Mac')
+  executeScript: vi.fn(),
+  actions: vi.fn(),
+  getCapabilities: vi.fn().mockResolvedValue({
+    get: vi.fn().mockReturnValue('Mac')
   }),
 };
 
@@ -16,19 +16,19 @@ const KEY_MAP = {
   META: '\uE03D',
 };
 
-jest.unstable_mockModule('selenium-webdriver', () => ({
-  Builder: jest.fn(),
+vi.mock('selenium-webdriver', () => ({
+  Builder: vi.fn(),
   By: {},
   until: {},
-  WebDriver: jest.fn(() => mockDriver),
+  WebDriver: vi.fn(() => mockDriver),
   Key: KEY_MAP,
 }));
 
-jest.unstable_mockModule('@nodebug/logger', () => ({
+vi.mock('@nodebug/logger', () => ({
   log: {
-    info: jest.fn(),
-    error: jest.fn(),
-    warn: jest.fn(),
+    info: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
   },
 }));
 
@@ -45,26 +45,26 @@ describe('ClickDelegate (ESM)', () => {
   let actionsMock;
 
   const createActionsMock = (overrides = {}) => ({
-    click: jest.fn().mockReturnThis(),
-    doubleClick: jest.fn().mockReturnThis(),
-    contextClick: jest.fn().mockReturnThis(),
-    middleClick: jest.fn().mockReturnThis(),
-    keyDown: jest.fn().mockReturnThis(),
-    keyUp: jest.fn().mockReturnThis(),
-    press: jest.fn().mockReturnThis(),
-    pause: jest.fn().mockReturnThis(),
-    release: jest.fn().mockReturnThis(),
-    move: jest.fn().mockReturnThis(),
-    perform: jest.fn(),
+    click: vi.fn().mockReturnThis(),
+    doubleClick: vi.fn().mockReturnThis(),
+    contextClick: vi.fn().mockReturnThis(),
+    middleClick: vi.fn().mockReturnThis(),
+    keyDown: vi.fn().mockReturnThis(),
+    keyUp: vi.fn().mockReturnThis(),
+    press: vi.fn().mockReturnThis(),
+    pause: vi.fn().mockReturnThis(),
+    release: vi.fn().mockReturnThis(),
+    move: vi.fn().mockReturnThis(),
+    perform: vi.fn(),
     ...overrides,
   });
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     mockElement = {
-      click: jest.fn(),
-      getRect: jest.fn().mockResolvedValue({
+      click: vi.fn(),
+      getRect: vi.fn().mockResolvedValue({
         x: 0,
         y: 0,
         width: 100,
@@ -79,16 +79,16 @@ describe('ClickDelegate (ESM)', () => {
     mockBrowser = {
       driver: mockDriver,
       stack: [],
-      locatorStrategy: { build: jest.fn() },
-      handleError: jest.fn(),
+      locatorStrategy: { build: vi.fn() },
+      handleError: vi.fn(),
       message: null,
       _tempMods: { control: false, shift: false, alt: false, meta: false },
-      _resetMods: jest.fn(),
+      _resetMods: vi.fn(),
 
       // REQUIRED
-      _finder: jest.fn().mockResolvedValue(mockElement),
-      _clicker: jest.fn(), // mocked for click() tests
-      actions: jest.fn(() => actionsMock),
+      _finder: vi.fn().mockResolvedValue(mockElement),
+      _clicker: vi.fn(), // mocked for click() tests
+      actions: vi.fn(() => actionsMock),
     };
 
     clickDelegate = new ClickDelegate(mockBrowser);

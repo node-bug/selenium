@@ -1,4 +1,5 @@
 import { log } from '@nodebug/logger';
+import ELEMENT_DEFINITIONS from '@nodebug/browser-element-finder/element-definitions.json' with { type: 'json' };
 
 // 1. Define action templates using a Lookup Map
 const ACTION_MAP = {
@@ -76,12 +77,7 @@ const ACTION_MAP = {
 };
 
 // 2. Define valid element types
-const ELEMENT_TYPES = new Set([
-  'link', 'navigation', 'heading', 'button', 'checkbox',
-  'radio', 'slider', 'dropdown', 'textbox', 'file', 'list',
-  'listitem', 'menu', 'menuitem', 'toolbar', 'dialog',
-  'row', 'column', 'image', 'element', 'switch', 'table'
-]);
+const ELEMENT_TYPES = new Set(Object.keys(ELEMENT_DEFINITIONS));
 
 /**
  * Builds a descriptive log message based on action and element stack
@@ -194,17 +190,3 @@ export default function messenger(a) {
   log.info(message);
   return message;
 }
-
-/**
- * The "if-else-if" chain is a classic anti-pattern for this type of logic. It is slow to read, hard to maintain, and prone to errors.
-
-To improve this for ESM, we should use a Lookup Map for the actions and Array methods (map, filter, join) for the stack processing. This makes the code declarative rather than procedural.
-    * The Lookup Map allows us to easily add new actions without modifying existing code, and the Array methods make it clear how we are transforming the stack into a message.
-    * The use of template literals and descriptive variable names also enhances readability.
-    * Overall, this refactored version is more maintainable, extensible, and easier to understand at a glance.
-    * This approach also eliminates the need for multiple "if-else" statements, reducing the likelihood of bugs and improving performance by avoiding unnecessary condition checks.
-    * By centralizing the action templates and using a consistent method for processing the stack, we can ensure that the code is both efficient and easy to extend in the future.
-    * In summary, the refactored code is more efficient, easier to read, and maintainable compared to the original "if-else-if" chain, making it a better choice for handling complex logic in an ESM environment.
-    * This refactored version is more efficient, easier to read, and maintainable compared to the original "if-else-if" chain, making it a better choice for handling complex logic in an ESM environment.
-    
-**/

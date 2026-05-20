@@ -1,26 +1,26 @@
-import { jest } from '@jest/globals';
+import { vi } from 'vitest';
 
 // ---------------- MOCKS ----------------
 const mockDriver = {
-  executeScript: jest.fn(),
+  executeScript: vi.fn(),
 };
 
-jest.unstable_mockModule('selenium-webdriver', () => ({
-  Builder: jest.fn(),
+vi.mock('selenium-webdriver', () => ({
+  Builder: vi.fn(),
   By: {},
   until: {},
-  WebDriver: jest.fn(() => mockDriver),
+  WebDriver: vi.fn(() => mockDriver),
 }));
 
-jest.unstable_mockModule('@nodebug/logger', () => ({
+vi.mock('@nodebug/logger', () => ({
   log: {
-    info: jest.fn(),
-    debug: jest.fn(),
+    info: vi.fn(),
+    debug: vi.fn(),
   },
 }));
 
-jest.unstable_mockModule('../../../app/messenger.js', () => ({
-  default: jest.fn(({ action }) => `Radio: ${action}`),
+vi.mock('../../../app/messenger.js', () => ({
+  default: vi.fn(({ action }) => `Radio: ${action}`),
 }));
 
 // ---------------- IMPORTS ----------------
@@ -36,21 +36,21 @@ describe('RadioDelegate (ESM)', () => {
   let mockLocator;
 
   const createLocatorMock = (overrides = {}) => ({
-    isSelected: jest.fn(),
-    click: jest.fn(),
+    isSelected: vi.fn(),
+    click: vi.fn(),
     ...overrides,
   });
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     mockLocator = createLocatorMock();
 
     mockBrowser = {
       stack: ['some-radio'],
       message: '',
-      _finder: jest.fn().mockResolvedValue(mockLocator),
-      handleError: jest.fn(),
+      _finder: vi.fn().mockResolvedValue(mockLocator),
+      handleError: vi.fn(),
       driver: mockDriver,
     };
 

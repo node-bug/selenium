@@ -18,11 +18,11 @@ describe('WebBrowser Infinite Scroll Tests', () => {
     
     try {
       // Scroll down to trigger lazy loading
-      await browser.scrollToBottom();
+      await browser.scroll.to.bottom();
       await browser.sleep(1000); // Wait for content to load
       
       // Scroll back up
-      await browser.scrollToTop();
+      await browser.scroll.to.top();
       await browser.sleep(1000);
       
       // Scroll to a specific element

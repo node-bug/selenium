@@ -64,9 +64,10 @@ export async function relativeSearch(item, rel, relativeElement, context) {
   // Start with item matches, but don't mutate the original
   let matches = item.matches || [];
 
-  // Special case: 'within' + generic 'element' type triggers child element resolution
+  // Special case: 'within' triggers child element resolution
   // This allows finding elements nested within a parent container
-  if (rel.located === 'within' && item.type === 'element') {
+  // Works for all element types (element, column, row, etc.), not just 'element'
+  if (rel.located === 'within') {
     try {
       const refEl = Array.isArray(relativeElement) ? relativeElement[0] : relativeElement;
       if (refEl) {

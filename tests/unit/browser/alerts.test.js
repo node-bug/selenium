@@ -1,34 +1,34 @@
-import { jest } from '@jest/globals';
+import { vi } from 'vitest';
 
 // --- MOCKS (must come before imports) ---
 const mockDriver = {
-  wait: jest.fn(),
-  sleep: jest.fn(),
-  switchTo: jest.fn(),
+  wait: vi.fn(),
+  sleep: vi.fn(),
+  switchTo: vi.fn(),
 };
 
 const mockAlert = {
-  getText: jest.fn(),
-  accept: jest.fn(),
-  dismiss: jest.fn(),
-  sendKeys: jest.fn(),
+  getText: vi.fn(),
+  accept: vi.fn(),
+  dismiss: vi.fn(),
+  sendKeys: vi.fn(),
 };
 
-jest.unstable_mockModule('selenium-webdriver', () => ({
+vi.mock('selenium-webdriver', () => ({
   until: {
-    alertIsPresent: jest.fn(),
+    alertIsPresent: vi.fn(),
   },
 }));
 
-jest.unstable_mockModule('@nodebug/logger', () => ({
+vi.mock('@nodebug/logger', () => ({
   log: {
-    info: jest.fn(),
-    error: jest.fn(),
+    info: vi.fn(),
+    error: vi.fn(),
   },
 }));
 
-jest.unstable_mockModule('@nodebug/config', () => ({
-  default: jest.fn().mockReturnValue({ timeout: 10 }),
+vi.mock('@nodebug/config', () => ({
+  default: vi.fn().mockReturnValue({ timeout: 10 }),
 }));
 
 // --- IMPORTS (AFTER MOCKS) ---
@@ -40,14 +40,14 @@ describe('Alerts (ESM)', () => {
   let alert;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Setup driver behavior
     mockDriver.wait.mockResolvedValue(true);
     mockDriver.sleep.mockResolvedValue();
 
     mockDriver.switchTo.mockReturnValue({
-      alert: jest.fn().mockResolvedValue(mockAlert),
+      alert: vi.fn().mockResolvedValue(mockAlert),
     });
 
     // Default alert text

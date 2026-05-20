@@ -46,4 +46,38 @@ describe('Element State Integration Tests', () => {
     await browser.radio('RadioButton 1').should.be.set();
     await browser.radio('RadioButton 2').should.not.be.set();
   });
+
+  test('should scroll element to top', async () => {
+    // First scroll to bottom to verify scroll works
+    await browser.element('scrollable-div').scroll.to.bottom();
+    
+    // Then scroll back to top
+    const result = await browser.element('scrollable-div').scroll.to.top();
+    expect(result).toBe(true);
+  });
+
+  test('should scroll element into view', async () => {
+    const result = await browser.element('scrollable-div').scroll.into.view();
+    expect(result).toBe(true);
+  });
+
+  test('should scroll window to bottom', async () => {
+    const result = await browser.scroll.to.bottom();
+    expect(result).toBe(true);
+  });
+
+  test('should scroll window to top', async () => {
+    const result = await browser.scroll.to.top();
+    expect(result).toBe(true);
+  });
+
+  test('should scroll window to left', async () => {
+    const result = await browser.scroll.to.left();
+    expect(result).toBe(true);
+  });
+
+  test('should scroll window to right', async () => {
+    const result = await browser.scroll.to.right();
+    expect(result).toBe(true);
+  });
 });

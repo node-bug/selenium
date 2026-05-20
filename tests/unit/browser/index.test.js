@@ -1,4 +1,4 @@
-import { jest } from '@jest/globals';
+import { vi } from 'vitest';
 
 let dynamicConfig = {
   selenium: {
@@ -9,87 +9,87 @@ let dynamicConfig = {
 
 // ---------------- MOCKS ----------------
 const mockDriver = {
-  getAllWindowHandles: jest.fn().mockResolvedValue(['main-window']),
-  getWindowHandle: jest.fn().mockResolvedValue('main-window'),
-  switchTo: jest.fn(),
-  manage: jest.fn(),
-  executeScript: jest.fn(),
-  setFileDetector: jest.fn().mockResolvedValue(true),
-  quit: jest.fn().mockResolvedValue(true),
-  getTitle: jest.fn(),
-  getCurrentUrl: jest.fn(),
-  close: jest.fn(),
-  wait: jest.fn().mockImplementation(async (conditionFn) => {
+  getAllWindowHandles: vi.fn().mockResolvedValue(['main-window']),
+  getWindowHandle: vi.fn().mockResolvedValue('main-window'),
+  switchTo: vi.fn(),
+  manage: vi.fn(),
+  executeScript: vi.fn(),
+  setFileDetector: vi.fn().mockResolvedValue(true),
+  quit: vi.fn().mockResolvedValue(true),
+  getTitle: vi.fn(),
+  getCurrentUrl: vi.fn(),
+  close: vi.fn(),
+  wait: vi.fn().mockImplementation(async (conditionFn) => {
     return await conditionFn(mockDriver); 
   }),
 };
 
 const mockSwitchTo = {
-  window: jest.fn(),
-  defaultContent: jest.fn(),
-  frame: jest.fn(),
-  newWindow: jest.fn(),
+  window: vi.fn(),
+  defaultContent: vi.fn(),
+  frame: vi.fn(),
+  newWindow: vi.fn(),
 };
 
 const mockManage = {
-  logs: jest.fn(),
-  window: jest.fn().mockReturnValue({ setRect: jest.fn() }),
-  setTimeouts: jest.fn()
+  logs: vi.fn(),
+  window: vi.fn().mockReturnValue({ setRect: vi.fn() }),
+  setTimeouts: vi.fn()
 };
 
 const mockWindow = {
-  maximize: jest.fn(),
-  minimize: jest.fn(),
-  fullscreen: jest.fn(),
+  maximize: vi.fn(),
+  minimize: vi.fn(),
+  fullscreen: vi.fn(),
 };
 
 mockDriver.switchTo.mockReturnValue(mockSwitchTo);
 mockDriver.manage.mockReturnValue(mockManage);
 mockManage.window.mockReturnValue(mockWindow);
 
-jest.unstable_mockModule('selenium-webdriver', () => ({
-  Builder: jest.fn().mockImplementation(function() {
-    this.withCapabilities = jest.fn().mockReturnThis();
-    this.usingServer = jest.fn().mockReturnThis();
-    this.build = jest.fn().mockResolvedValue(mockDriver);
+vi.mock('selenium-webdriver', () => ({
+  Builder: vi.fn().mockImplementation(function() {
+    this.withCapabilities = vi.fn().mockReturnThis();
+    this.usingServer = vi.fn().mockReturnThis();
+    this.build = vi.fn().mockResolvedValue(mockDriver);
     return this;
   }),
   By: { xpath: (val) => val },
   until: {},
-  WebDriver: jest.fn(() => mockDriver),
+  WebDriver: vi.fn(() => mockDriver),
   Key: {
     ARROW_RIGHT: '\uE015',
   },
   remote: {
-    FileDetector: jest.fn(),
+    FileDetector: vi.fn(),
   },
 }));
 
-jest.unstable_mockModule('selenium-webdriver/remote/index.js', () => ({
+vi.mock('selenium-webdriver/remote/index.js', () => ({
   default: {
-    FileDetector: jest.fn(),
+    FileDetector: vi.fn(),
   },
 }));
 
-jest.unstable_mockModule('@nodebug/logger', () => ({
+vi.mock('@nodebug/logger', () => ({
   log: {
-    info: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
+    info: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
   },
 }));
 
 // Mock config module
-jest.unstable_mockModule('@nodebug/config', () => ({
-  default: jest.fn((key) => {
+vi.mock('@nodebug/config', () => ({
+  default: vi.fn((key) => {
     if (key === 'selenium') return dynamicConfig.selenium;
     return dynamicConfig;
   }),
 }));
 
 // Mock capabilities
-jest.unstable_mockModule('../../../app/capabilities/index.js', () => ({
-  default: jest.fn(() => ({ browserName: 'chrome' })),
+vi.mock('../../../app/capabilities/index.js', () => ({
+  default: vi.fn(() => ({ browserName: 'chrome' })),
 }));
 
 // ---------------- IMPORTS ----------------
@@ -104,7 +104,7 @@ describe('Browser (ESM)', () => {
   let mockLogEntries;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     mockWindowHandle = 'window-handle-1';
     mockWindowHandles = ['window-handle-1', 'window-handle-2'];
@@ -113,7 +113,7 @@ describe('Browser (ESM)', () => {
       { level: { name: 'INFO' }, message: 'Info 1' },
     ];
     mockLogs = {
-      get: jest.fn().mockResolvedValue(mockLogEntries),
+      get: vi.fn().mockResolvedValue(mockLogEntries),
     };
 
     mockDriver.getWindowHandle.mockResolvedValue(mockWindowHandle);
@@ -206,8 +206,8 @@ describe('Browser (ESM)', () => {
       browser.driver = mockDriver;
       
       // Minimal mock for the window().get.url() call in source
-      browser.window = jest.fn().mockReturnValue({
-        get: { url: jest.fn().mockResolvedValue('https://example.com') }
+      browser.window = vi.fn().mockReturnValue({
+        get: { url: vi.fn().mockResolvedValue('https://example.com') }
       });
 
       const result = await browser.close();
@@ -220,6 +220,83 @@ describe('Browser (ESM)', () => {
       mockDriver.quit.mockRejectedValue(new Error('Close error'));
 
       await expect(browser.close()).rejects.toThrow('Close error');
+    });
+  });
+
+  // ---------------- SCROLL ----------------
+  describe('scroll', () => {
+    beforeEach(() => {
+      vi.clearAllMocks();
+      mockDriver.executeScript.mockResolvedValue(true);
+      browser.driver = mockDriver;
+    });
+
+    describe('to.top()', () => {
+      test('scrolls to top of page', async () => {
+        const result = await browser.scroll.to.top();
+
+        expect(mockDriver.switchTo).toHaveBeenCalled();
+        expect(mockSwitchTo.defaultContent).toHaveBeenCalled();
+        expect(mockDriver.executeScript).toHaveBeenCalledWith('window.scrollTo(0, 0);');
+        expect(result).toBe(true);
+      });
+
+      test('handles error during scroll to top', async () => {
+        mockDriver.executeScript.mockRejectedValue(new Error('Scroll error'));
+
+        await expect(browser.scroll.to.top()).rejects.toThrow('Scroll error');
+      });
+    });
+
+    describe('to.bottom()', () => {
+      test('scrolls to bottom of page', async () => {
+        const result = await browser.scroll.to.bottom();
+
+        expect(mockDriver.switchTo).toHaveBeenCalled();
+        expect(mockSwitchTo.defaultContent).toHaveBeenCalled();
+        expect(mockDriver.executeScript).toHaveBeenCalledWith('window.scrollTo(0, document.body.scrollHeight);');
+        expect(result).toBe(true);
+      });
+
+      test('handles error during scroll to bottom', async () => {
+        mockDriver.executeScript.mockRejectedValue(new Error('Scroll error'));
+
+        await expect(browser.scroll.to.bottom()).rejects.toThrow('Scroll error');
+      });
+    });
+
+    describe('to.left()', () => {
+      test('scrolls to left of page', async () => {
+        const result = await browser.scroll.to.left();
+
+        expect(mockDriver.switchTo).toHaveBeenCalled();
+        expect(mockSwitchTo.defaultContent).toHaveBeenCalled();
+        expect(mockDriver.executeScript).toHaveBeenCalledWith('window.scrollTo(0, 0);');
+        expect(result).toBe(true);
+      });
+
+      test('handles error during scroll to left', async () => {
+        mockDriver.executeScript.mockRejectedValue(new Error('Scroll error'));
+
+        await expect(browser.scroll.to.left()).rejects.toThrow('Scroll error');
+      });
+    });
+
+    describe('to.right()', () => {
+      test('scrolls to right of page', async () => {
+        const result = await browser.scroll.to.right();
+
+        expect(mockDriver.switchTo).toHaveBeenCalled();
+        expect(mockSwitchTo.defaultContent).toHaveBeenCalled();
+        expect(mockDriver.executeScript).toHaveBeenCalledWith('window.scrollTo(document.body.scrollWidth, 0);');
+        expect(result).toBe(true);
+      });
+
+      test('handles error during scroll to right', async () => {
+        mockDriver.executeScript.mockRejectedValue(new Error('Scroll error'));
+
+        await expect(browser.scroll.to.right()).rejects.toThrow('Scroll error');
+      });
     });
   });
 });
