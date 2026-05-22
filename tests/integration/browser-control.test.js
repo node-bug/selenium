@@ -1,4 +1,11 @@
 import WebBrowser from '../../index.js';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const fixturePath = join(__dirname, '../fixtures/demo-page.html');
+const fixtureUrl = 'file://' + fixturePath;
 
 describe('Browser Control Integration Tests', () => {
   let browser;
@@ -14,7 +21,7 @@ describe('Browser Control Integration Tests', () => {
 
   // Browser Control Tests
   test('should navigate to a URL using goto()', async () => {
-    const success = await browser.goto('https://www.google.com');
+    const success = await browser.goto('https://www.github.com');
     expect(success).toBe(true);
   });
 
@@ -39,7 +46,7 @@ describe('Browser Control Integration Tests', () => {
 
   // Navigation Tests
   test('should handle refresh, goBack, and goForward', async () => {
-    await browser.goto('https://www.google.com');
+    await browser.goto('https://www.github.com');
     const initialTitle = await browser.get.title();
     
     // Test refresh
@@ -66,7 +73,7 @@ describe('Browser Control Integration Tests', () => {
 
   // Browser State Getter Tests
   test('should handle browser state getters (name, os, size)', async () => {
-    await browser.goto('https://www.google.com');
+    await browser.goto('https://www.github.com');
     
     const name = await browser.get.name();
     expect(typeof name).toBe('string');
@@ -106,7 +113,7 @@ describe('Browser Control Integration Tests', () => {
 
   // Screenshot Tests
   test('should handle screenshot functionality', async () => {
-    await browser.goto('https://seleniumbase.io/demo_page');
+    await browser.goto(fixtureUrl);
     try {
       // Take full page screenshot
       const pageScreenshot = await browser.get.screenshot();
@@ -125,7 +132,7 @@ describe('Browser Control Integration Tests', () => {
 
   // Cookie Tests
   test('should handle cookie operations', async () => {
-    await browser.goto('https://seleniumbase.io/demo_page');
+    await browser.goto(fixtureUrl);
     try {
       // Add a cookie
       await browser.cookie().add({ name: 'test_cookie', value: 'test_value' });
@@ -156,7 +163,7 @@ describe('Browser Control Integration Tests', () => {
 
   // Reset Tests
   test('should handle browser reset functionality', async () => {
-    await browser.goto('https://seleniumbase.io/demo_page');
+    await browser.goto(fixtureUrl);
     try {
       // Perform some actions that would be cleared by reset
       await browser.cookie().add({ name: 'reset_test', value: 'test_value' });
@@ -170,9 +177,9 @@ describe('Browser Control Integration Tests', () => {
       await browser.reset();
       
       // After reset, we should be able to navigate again
-      await browser.goto('https://www.google.com');
+      await browser.goto('https://www.github.com');
       url = await browser.tab().get.url();
-      expect(url).toContain('.google.');
+      expect(url).toContain('.github.');
     } catch (error) {
       console.log('Reset test skipped - functionality not available:', error.message);
       // This is acceptable for documentation purposes

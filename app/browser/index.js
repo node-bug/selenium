@@ -193,6 +193,12 @@ class Browser {
    * await browser.close();
    */
   async close() {
+    // Check if driver exists before attempting to close
+    if (!this.driver) {
+      log.info('No active browser session to close.');
+      return true;
+    }
+
     try {
       // Try to get URL for logging, but don't fail if it's not available
       try {
@@ -205,7 +211,7 @@ class Browser {
     } catch (err) {
       log.error(`Error closing browser session: ${err.message}`)
       // If driver is already null or session is gone, we can just return true
-      if (!this.driver || err.message.includes('no session')) return true;
+      if (err.message.includes('no session') || err.message.includes('invalid session')) return true;
       throw err;
     } finally {
       this.driver = null; // CRITICAL: Nullify the reference to prevent orphaned browsers
@@ -323,10 +329,56 @@ class Browser {
       const title = await this.window().get.title()
       log.info(`Refreshing window with title '${title}'.`)
       await this.driver.navigate().refresh()
+      // Wait for page to fully load
+      await this._waitForPageLoad()
     } catch (err) {
       log.error(`Error refreshing page: ${err.message}`)
       throw err
     }
+  }
+
+  /**
+   * Wait for the page to fully load after navigation.
+   * 
+   * Polls the readyState until it's complete or timeout is reached.
+   * 
+   * @param {number} [timeoutMs=10000] - Maximum time to wait in milliseconds
+   * @returns {Promise<void>}
+   * @private
+   */
+  async _waitForPageLoad(timeoutMs = 10000) {
+    const maxAttempts = timeoutMs / 500;
+    for (let i = 0; i < maxAttempts; i++) {
+      const readyState = await this.driver.executeScript('return document.readyState');
+      if (readyState === 'complete') {
+        return;
+      }
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+    log.warn(`Page did not fully load after ${timeoutMs}ms`);
+  }
+
+  /**
+   * Wait for the page title to change after navigation.
+   * 
+   * Polls the title until it differs from the previous title or timeout is reached.
+   * This is needed for dynamic pages where the title updates asynchronously.
+   * 
+   * @param {string} previousTitle - The title before navigation
+   * @param {number} [timeoutMs=10000] - Maximum time to wait in milliseconds
+   * @returns {Promise<void>}
+   * @private
+   */
+  async _waitForTitleChange(previousTitle, timeoutMs = 10000) {
+    const maxAttempts = timeoutMs / 200;
+    for (let i = 0; i < maxAttempts; i++) {
+      const currentTitle = await this.driver.getTitle();
+      if (currentTitle !== previousTitle) {
+        return;
+      }
+      await new Promise(resolve => setTimeout(resolve, 200));
+    }
+    log.warn(`Page title did not change from '${previousTitle}' after ${timeoutMs}ms`);
   }
 
   /**
@@ -345,8 +397,14 @@ class Browser {
       log.info(`Current page is '${currentTitle}'`)
       log.info(`Performing browser back`)
       await this.driver.navigate().back()
+      // Wait for page to fully load
+      await this._waitForPageLoad()
+      // Wait for title to change (needed for dynamic pages like Wikipedia)
+      await this._waitForTitleChange(currentTitle)
       const newTitle = await this.window().get.title()
       log.info(`Loaded page is '${newTitle}'`)
+      // Small delay to ensure browser history is updated before next navigation
+      await new Promise(resolve => setTimeout(resolve, 500));
       return true
     } catch (err) {
       log.error(`Error going back: ${err.message}`)
@@ -370,6 +428,10 @@ class Browser {
       log.info(`Current page is '${currentTitle}'`)
       log.info(`Performing browser forward`)
       await this.driver.navigate().forward()
+      // Wait for page to fully load
+      await this._waitForPageLoad()
+      // Wait for title to change (needed for dynamic pages like Wikipedia)
+      await this._waitForTitleChange(currentTitle)
       const newTitle = await this.window().get.title()
       log.info(`Loaded page is '${newTitle}'`)
       return true
