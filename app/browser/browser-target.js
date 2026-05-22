@@ -175,15 +175,33 @@ export class BrowserTarget {
      * await browser.window().close();
      */
     async close() {
+        // Check if driver exists before attempting to close
+        if (!this.driver) {
+            log.info(`No active ${this._label} to close.`);
+            return true;
+        }
+
         try {
-            log.info(`Closing ${this._label} with title '${await this.driver.getTitle()}'`);
+            let title = 'unknown';
+            try {
+                title = await this.driver.getTitle();
+            } catch {
+                // Ignore errors getting title
+            }
+            log.info(`Closing ${this._label} with title '${title}'`);
             await this.driver.close();
             const handles = await this.driver.getAllWindowHandles();
             if (handles.length <= 0) {
                 log.info(`No browser windows are currently open.`);
             } else {
                 await this.driver.switchTo().window(handles[0]);
-                log.info(`Currently active ${this._label} is '${await this.driver.getTitle()}'`);
+                let newTitle = 'unknown';
+                try {
+                    newTitle = await this.driver.getTitle();
+                } catch {
+                    // Ignore errors getting title
+                }
+                log.info(`Currently active ${this._label} is '${newTitle}'`);
             }
         } catch (err) {
             log.error(`Error closing ${this._label}: ${err.message}`);

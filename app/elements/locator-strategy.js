@@ -118,7 +118,17 @@ export class LocatorStrategy {
       }
     }
 
-    return await callback();
+    try {
+      return await callback();
+    } finally {
+      // CRITICAL: Always switch back to default content after callback
+      // This ensures the driver context is restored for subsequent operations
+      try {
+        await this.driver.switchTo().defaultContent();
+      } catch (err) {
+        if (this.debug) console.warn('Failed to restore default content after callback:', err.message);
+      }
+    }
   }
 
   /**

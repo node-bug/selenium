@@ -1,11 +1,17 @@
 import WebBrowser from '../../index.js';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const fixturePath = join(__dirname, '../fixtures/demo-page.html');
+const fixtureUrl = 'file://' + fixturePath;
 
 describe('WebBrowser Visual Regression Tests', () => {
   let browser;
 
   beforeAll(async () => {
     browser = new WebBrowser();
-    // We use a default config or environment variables for headless mode in CI
     await browser.start();
   });
 
@@ -14,7 +20,7 @@ describe('WebBrowser Visual Regression Tests', () => {
   });
 
   test('should perform visual regression testing basics', async () => {
-    await browser.goto('https://seleniumbase.io/demo_page');
+    await browser.goto(fixtureUrl);
     
     try {
       // Take a screenshot for baseline comparison

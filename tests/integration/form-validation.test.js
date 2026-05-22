@@ -1,11 +1,17 @@
 import WebBrowser from '../../index.js';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const fixturePath = join(__dirname, '../fixtures/demo-page.html');
+const fixtureUrl = 'file://' + fixturePath;
 
 describe('WebBrowser Form Validation Tests', () => {
   let browser;
 
   beforeEach(async () => {
     browser = new WebBrowser();
-    // We use a default config or environment variables for headless mode in CI
     await browser.start();
   });
 
@@ -14,7 +20,7 @@ describe('WebBrowser Form Validation Tests', () => {
   });
 
   test('should handle complex form validation', async () => {
-    await browser.goto('https://seleniumbase.io/demo_page');
+    await browser.goto(fixtureUrl);
     
     // Fill out multiple fields
     await browser.textbox('Text Input Field').write('Test User');

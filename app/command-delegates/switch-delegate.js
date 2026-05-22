@@ -46,16 +46,16 @@ export class SwitchDelegate {
 
     try {
       const locator = await browser._finder();
-      const resolvedElement = await this.#resolveSwitchElement(locator);
+      const { clickTarget, stateTarget } = await this.#resolveSwitchElement(locator);
 
-      if (!resolvedElement) {
+      if (!clickTarget) {
         throw new Error('Could not resolve switch element');
       }
 
       // Check disabled state FIRST, before any other logic
-      await this.#checkDisabled(resolvedElement);
+      await this.#checkDisabled(stateTarget);
 
-      const isOn = await this._checkState(resolvedElement);
+      const isOn = await this._checkState(stateTarget);
       const needsChange = (targetState === 'on' && !isOn) ||
         (targetState === 'off' && isOn);
 
@@ -63,13 +63,13 @@ export class SwitchDelegate {
         // Check if this is an ARIA switch or button switch - if so, use executeScript to ensure JS handlers run
         let tagName;
         try {
-          tagName = (await resolvedElement.tagName).toLowerCase();
+          tagName = (await clickTarget.tagName).toLowerCase();
         } catch {
           // Skip if can't determine tagName
         }
 
-        const role = await resolvedElement.getAttribute('role');
-        const dataState = await resolvedElement.getAttribute('data-state');
+        const role = await clickTarget.getAttribute('role');
+        const dataState = await clickTarget.getAttribute('data-state');
         const isARIAOrButton = (tagName === 'div' && role === 'switch') || (tagName === 'button' && dataState !== null);
 
         if (isARIAOrButton) {
@@ -78,7 +78,7 @@ export class SwitchDelegate {
             const newChecked = targetState === 'on' ? 'true' : 'false';
             await browser.driver.executeScript(`
               arguments[0].setAttribute('aria-checked', '${newChecked}');
-            `, resolvedElement);
+            `, clickTarget);
           } else if (dataState !== null) {
             const newState = targetState === 'on' ? 'on' : 'off';
             await browser.driver.executeScript(`
@@ -88,21 +88,21 @@ export class SwitchDelegate {
               } else {
                 arguments[0].classList.remove('active');
               }
-            `, resolvedElement);
+            `, clickTarget);
           }
         } else {
           try {
-            await resolvedElement.click();
+            await clickTarget.click();
           } catch {
             // Fallback: Many modern switches are 0x0 pixels and covered by a <label>.
             // If Selenium can't "click" it, we force the change via JS.
             log.debug('Standard click failed, attempting JS click for switch');
-            await browser.driver.executeScript('arguments[0].click();', resolvedElement);
+            await browser.driver.executeScript('arguments[0].click();', clickTarget);
           }
         }
 
         // Final verification
-        const finalState = await this._checkState(resolvedElement);
+        const finalState = await this._checkState(stateTarget);
         if (finalState === isOn) {
           throw new Error(`Failed to toggle switch to ${targetState}. State did not change.`);
         }
@@ -125,11 +125,12 @@ export class SwitchDelegate {
    * - `<label>` with `for` attribute: resolves to the element with that ID
    * - `<label>` wrapping an input: resolves to the child input
    * - `<label>` with `id` that is referenced by `aria-labelledby`: finds the referencing element
+   * - If the resolved element is hidden, finds the associated interactible element (e.g., sibling slider)
    * - Other elements: returns as-is
    *
    * @private
    * @param {Object} locator - The WebElement from _finder
-   * @returns {Promise<Object>} The resolved switch element
+   * @returns {Promise<{clickTarget: Object, stateTarget: Object}>} Object with clickTarget and stateTarget
    */
   async #resolveSwitchElement(locator) {
     const browser = this.browser;
@@ -137,7 +138,7 @@ export class SwitchDelegate {
     try {
       tagName = (await locator.tagName).toLowerCase();
     } catch {
-      return locator;
+      return { clickTarget: locator, stateTarget: locator };
     }
 
     if (tagName === 'label') {
@@ -145,7 +146,7 @@ export class SwitchDelegate {
       const forAttr = await locator.getAttribute('for');
       if (forAttr) {
         const targetElement = await browser.driver.findElement(By.id(forAttr));
-        return targetElement;
+        return await this.#getInteractibleElement(targetElement);
       }
 
       // Check if label wraps a checkbox/switch input
@@ -155,13 +156,13 @@ export class SwitchDelegate {
       );
       if (childTagName) {
         const childLocator = await locator.findElement({ using: 'tag name', value: childTagName });
-        return childLocator;
+        return await this.#getInteractibleElement(childLocator);
       }
 
       // If no child found via querySelector, try findElement for input
       try {
         const child = await locator.findElement({ using: 'tag name', value: 'input' });
-        if (child) return child;
+        if (child) return await this.#getInteractibleElement(child);
       } catch {
         // No child found
       }
@@ -209,7 +210,7 @@ export class SwitchDelegate {
             labelId
           );
           if (targetElement) {
-            return targetElement;
+            return await this.#getInteractibleElement(targetElement);
           }
         } catch {
           // Element not found
@@ -219,7 +220,120 @@ export class SwitchDelegate {
       throw new Error('no child checkbox');
     }
 
-    return locator;
+    return await this.#getInteractibleElement(locator);
+  }
+
+  /**
+   * Gets the interactible element for a switch.
+   * If the element is hidden (e.g., opacity: 0, width: 0, height: 0),
+   * finds the associated interactible sibling (e.g., the visible slider).
+   *
+   * @private
+   * @param {Object} element - The WebElement to check
+   * @returns {Promise<{clickTarget: Object, stateTarget: Object}>} Object with clickTarget and stateTarget
+   */
+  async #getInteractibleElement(element) {
+    const browser = this.browser;
+
+    // Check if element is hidden by checking bounding box dimensions
+    const isHidden = await browser.driver.executeScript(
+      `
+      const el = arguments[0];
+      const rect = el.getBoundingClientRect();
+      const style = window.getComputedStyle(el);
+      return rect.width === 0 || rect.height === 0 || style.opacity === '0' || style.visibility === 'hidden';
+      `,
+      element
+    );
+
+    if (!isHidden) {
+      return { clickTarget: element, stateTarget: element };
+    }
+
+    // Element is hidden, try to find the associated interactible sibling
+    // Common pattern: hidden input + visible sibling with class like 'slider'
+    let tagName;
+    try {
+      tagName = (await element.tagName).toLowerCase();
+    } catch {
+      return { clickTarget: element, stateTarget: element };
+    }
+
+    // For hidden inputs, find the associated label or sibling slider
+    if (tagName === 'input') {
+      const inputType = await element.getAttribute('type');
+      if (inputType === 'checkbox') {
+        // Find the slider sibling using executeScript and wrap it as a WebElement
+        // This handles the case where the input is inside a label with a sibling slider
+        const sliderElement = await browser.driver.executeScript(
+          `
+          const input = arguments[0];
+          const parentLabel = input.closest('label');
+          if (parentLabel) {
+            // Look for a slider sibling within the label
+            const slider = parentLabel.querySelector('span.slider, div.slider, span[class*="slider"], div[class*="slider"]');
+            if (slider) return slider;
+          }
+          // Check for next sibling slider
+          let sibling = input.nextElementSibling;
+          while (sibling) {
+            const className = sibling.className || '';
+            if (className.includes('slider') || className.includes('thumb') || className.includes('track')) {
+              return sibling;
+            }
+            sibling = sibling.nextElementSibling;
+          }
+          // Check for previous sibling slider
+          sibling = input.previousElementSibling;
+          while (sibling) {
+            const className = sibling.className || '';
+            if (className.includes('slider') || className.includes('thumb') || className.includes('track')) {
+              return sibling;
+            }
+            sibling = sibling.previousElementSibling;
+          }
+          return null;
+          `,
+          element
+        );
+
+        if (sliderElement) {
+          // The driver.executeScript returns the WebElement when given a WebElement argument
+          // But for raw DOM elements, we need to use findElement with a different approach
+          // Instead, let's find the slider by its position relative to the input
+          const inputId = await element.getAttribute('id');
+          if (inputId) {
+            try {
+              // Try to find the slider by using the input's ID to locate the parent label
+              const slider = await browser.driver.findElement(
+                By.css(`label[for="${inputId}"] span.slider, label[for="${inputId}"] div.slider, label[for="${inputId}"] span[class*="slider"], label[for="${inputId}"] div[class*="slider"]`)
+              );
+              if (slider) {
+                return { clickTarget: slider, stateTarget: element };
+              }
+            } catch {
+              // Fall through to other methods
+            }
+          }
+          
+          // Alternative: Find the slider by using XPath from the input element
+          try {
+            const slider = await element.findElement({
+              using: 'xpath',
+              value: './parent::label//span[contains(@class, "slider")] | ./parent::label//div[contains(@class, "slider")] | ./following-sibling::*[contains(@class, "slider")][1] | ./preceding-sibling::*[contains(@class, "slider")][1]'
+            });
+            if (slider) {
+              return { clickTarget: slider, stateTarget: element };
+            }
+          } catch {
+            // No slider found
+          }
+        }
+      }
+    }
+
+    // No interactible sibling found, return original element for both
+    return { clickTarget: element, stateTarget: element };
   }
 
   /**
@@ -301,8 +415,8 @@ export class SwitchDelegate {
     const browser = this.browser;
     try {
       const locator = await browser._finder();
-      const resolvedElement = await this.#resolveSwitchElement(locator);
-      const result = await this._checkState(resolvedElement);
+      const { stateTarget } = await this.#resolveSwitchElement(locator);
+      const result = await this._checkState(stateTarget);
       browser.stack = [];
       return result;
     } catch (err) {
@@ -431,76 +545,5 @@ export class SwitchDelegate {
 
     // Default: use isSelected() for native checkboxes
     return await locator.isSelected();
-  }
-
-  /**
-   * Get the is accessor object for switch state checks.
-   *
-   * Provides state check methods for switch elements.
-   *
-   * @type {Object}
-   * @returns {Object} Object containing is accessor methods
-   * @example
-   * await browser.switch('dark mode').is.on();
-   * await browser.switch('dark mode').is.off();
-   * await browser.switch('dark mode').is.not.on();
-   */
-  get is() {
-    const browser = this.browser;
-    return {
-      /**
-       * Checks whether the switch is on.
-       *
-       * @returns {Promise<boolean>}
-       */
-      on: async () => {
-        browser.message = messenger({ stack: browser.stack, action: 'isOn' });
-        const result = await this._isOn();
-        if (result) log.info(`Switch is on`);
-        else log.warn(`Switch is not on`);
-        return result;
-      },
-
-      /**
-       * Checks whether the switch is off.
-       *
-       * @returns {Promise<boolean>}
-       */
-      off: async () => {
-        browser.message = messenger({ stack: browser.stack, action: 'isOff' });
-        const result = await this._isOn();
-        if (result) log.warn(`Switch is on`);
-        else log.info(`Switch is off`);
-        return !result;
-      },
-
-      not: {
-        /**
-         * Checks whether the switch is not on.
-         *
-         * @returns {Promise<boolean>}
-         */
-        on: async () => {
-          browser.message = messenger({ stack: browser.stack, action: 'isNotOn' });
-          const result = await this._isOn();
-          if (result) log.warn(`Switch is on`);
-          else log.info(`Switch is not on`);
-          return !result;
-        },
-
-        /**
-         * Checks whether the switch is not off.
-         *
-         * @returns {Promise<boolean>}
-         */
-        off: async () => {
-          browser.message = messenger({ stack: browser.stack, action: 'isNotOff' });
-          const result = await this._isOn();
-          if (result) log.info(`Switch is on`);
-          else log.warn(`Switch is off`);
-          return result;
-        },
-      },
-    };
   }
 }
