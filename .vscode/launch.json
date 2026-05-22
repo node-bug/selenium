@@ -28,9 +28,9 @@
       "runtimeArgs": [
         "vitest",
         "run",
-        "${workspaceFolder}/tests/integration/15. table-operations.test.js",
+        "${workspaceFolder}/tests/integration/dropdown.test.js",
         "-t",
-        "should get value of a specific cell"
+        "should start with subcategory disabled"
       ],
       "console": "integratedTerminal"
     }

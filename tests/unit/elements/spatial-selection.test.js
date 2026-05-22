@@ -47,28 +47,27 @@ describe('spatial-selection', () => {
       expect(result).toHaveLength(2);
     });
 
-    it('should handle within with element type and find child elements', async () => {
-      const item = { type: 'element', matches: [], id: 'test' };
-      const parent = { frameIndex: -1, boundingBox: { top: 0, bottom: 100, left: 0, right: 100 } };
-      const context = {
-        findChildElements: async () => [{ id: 'child1', boundingBox: { top: 10, bottom: 30, left: 10, right: 30, midx: 20, midy: 20 } }],
-        debug: false
+    it('should handle within with single reference element using spatial filter', async () => {
+      const item = {
+        matches: [
+          { id: 'inside', boundingBox: { top: 10, bottom: 30, left: 10, right: 30, midx: 20, midy: 20 } },
+          { id: 'outside', boundingBox: { top: 110, bottom: 130, left: 110, right: 130, midx: 120, midy: 120 } }
+        ]
       };
-
-      const result = await relativeSearch(item, { located: 'within' }, parent, context);
-      expect(result).toEqual([{ id: 'child1', boundingBox: { top: 10, bottom: 30, left: 10, right: 30, midx: 20, midy: 20 } }]);
+      const reference = { boundingBox: { top: 0, bottom: 100, left: 0, right: 100 } };
+      const result = await relativeSearch(item, { located: 'within' }, reference);
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe('inside');
     });
 
-    it('should handle child element resolution failure gracefully', async () => {
-      const item = { type: 'element', matches: [{ id: 'fallback', boundingBox: { top: 10, bottom: 30, left: 10, right: 30, midx: 20, midy: 20 } }], id: 'test' };
-      const parent = { frameIndex: -1, boundingBox: { top: 0, bottom: 100, left: 0, right: 100 } };
-      const context = {
-        findChildElements: async () => { throw new Error('Failed'); },
-        debug: true
+    it('should handle within with no boundingBox on reference', async () => {
+      const item = {
+        matches: [{ id: 'candidate', boundingBox: { top: 10, bottom: 30, left: 10, right: 30, midx: 20, midy: 20 } }]
       };
-
-      const result = await relativeSearch(item, { located: 'within' }, parent, context);
-      expect(result).toEqual([{ id: 'fallback', boundingBox: { top: 10, bottom: 30, left: 10, right: 30, midx: 20, midy: 20 } }]);
+      const reference = { frameIndex: -1 }; // No boundingBox
+      const result = await relativeSearch(item, { located: 'within' }, reference);
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe('candidate');
     });
   });
 });

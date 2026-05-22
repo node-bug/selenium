@@ -88,6 +88,8 @@ class WebBrowser extends Browser {
       if (!ignorable.some(msg => err.message.includes(msg))) {
         log.error(`Unrecognized error during session deletion: ${err.message}`);
       }
+      // Ensure driver is nullified even if close() fails
+      this.driver = null;
     }
 
     await super.new();
@@ -1169,6 +1171,25 @@ class WebBrowser extends Browser {
    * await browser.element('button').is.not.visible();
    */
   get is() {
+    // Check if stack has elements and determine the appropriate delegate
+    if (this.stack && this.stack.length > 0) {
+      const topItem = this.stack[this.stack.length - 1];
+      const type = topItem?.type;
+      
+      // Return the appropriate delegate's is getter based on element type
+      if (type === 'checkbox') {
+        return this.#checkboxDelegate.is;
+      }
+      if (type === 'radio') {
+        return this.#radioDelegate.is;
+      }
+      if (type === 'switch') {
+        return this.#switchDelegate.is;
+      }
+      if (type === 'dropdown' || type === 'select') {
+        return this.#selectDelegate.is;
+      }
+    }
     return this.#visibilityDelegate.is;
   }
 

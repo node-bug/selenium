@@ -12,5 +12,10 @@ export default defineConfig({
       include: ['index.js', 'app/**/*.js'],
       reportsDirectory: './coverage',
     },
+    // Force exit after tests complete to ensure browser cleanup
+    forceExit: true,
+    // Run tests sequentially to avoid browser conflicts
+    pool: 'forks',
+    isolate: true,
   },
 });

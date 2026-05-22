@@ -146,10 +146,10 @@ class Browser {
       } finally {
         this.driver = null; // CRITICAL: Nullify the reference
       }
-      process.exit(0);
     };
 
-    if (process.listenerCount('SIGINT') === 0) {
+    // Only register signal handlers if not in a test environment
+    if (process.env.NODE_ENV !== 'test' && process.listenerCount('SIGINT') === 0) {
       ['SIGINT', 'SIGTERM', 'exit', 'uncaughtException'].forEach(signal => process.on(signal, cleanup));
     }
   }
@@ -194,14 +194,21 @@ class Browser {
    */
   async close() {
     try {
-      const currentUrl = await this.window().get.url()
-      log.info(`Closing the browser. Current URL is '${currentUrl}'.`)
+      // Try to get URL for logging, but don't fail if it's not available
+      try {
+        const currentUrl = await this.window().get.url()
+        log.info(`Closing the browser. Current URL is '${currentUrl}'.`)
+      } catch {
+        log.info('Closing the browser.')
+      }
       await this.driver.quit()
     } catch (err) {
       log.error(`Error closing browser session: ${err.message}`)
       // If driver is already null or session is gone, we can just return true
       if (!this.driver || err.message.includes('no session')) return true;
       throw err;
+    } finally {
+      this.driver = null; // CRITICAL: Nullify the reference to prevent orphaned browsers
     }
     return true
   }

@@ -790,4 +790,48 @@ export class SelectDelegate {
       await browser.driver.executeScript('arguments[0].click();', optionElement);
     }
   }
+
+  /**
+   * Get the is accessor object for dropdown option state checks.
+   *
+   * Provides state check methods for dropdown options.
+   *
+   * @type {Object}
+   * @returns {Object} Object containing is accessor methods
+   * @example
+   * await browser.dropdown('Country').option('United States').is.selected();
+   * await browser.dropdown('Country').option('Canada').is.not.selected();
+   */
+  get is() {
+    const browser = this.browser;
+    return {
+      /**
+       * Checks whether the option is selected.
+       *
+       * @returns {Promise<boolean>}
+       */
+      selected: async () => {
+        browser.message = messenger({ stack: browser.stack, action: 'isSelected' });
+        const result = await this._isSelected();
+        if (result) log.info(`Option '${this.optionValue}' is selected`);
+        else log.warn(`Option '${this.optionValue}' is not selected`);
+        return result;
+      },
+
+      not: {
+        /**
+         * Checks whether the option is not selected.
+         *
+         * @returns {Promise<boolean>}
+         */
+        selected: async () => {
+          browser.message = messenger({ stack: browser.stack, action: 'isNotSelected' });
+          const result = await this._isSelected();
+          if (result) log.warn(`Option '${this.optionValue}' is selected`);
+          else log.info(`Option '${this.optionValue}' is not selected`);
+          return !result;
+        },
+      },
+    };
+  }
 }

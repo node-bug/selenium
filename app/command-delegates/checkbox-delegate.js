@@ -104,4 +104,48 @@ export class CheckboxDelegate {
     }
     return result;
   }
+
+  /**
+   * Get the is accessor object for checkbox state checks.
+   *
+   * Provides state check methods for checkbox elements.
+   *
+   * @type {Object}
+   * @returns {Object} Object containing is accessor methods
+   * @example
+   * await browser.checkbox('agree').is.checked();
+   * await browser.checkbox('agree').is.not.checked();
+   */
+  get is() {
+    const browser = this.browser;
+    return {
+      /**
+       * Checks whether the checkbox is checked.
+       *
+       * @returns {Promise<boolean>}
+       */
+      checked: async () => {
+        browser.message = messenger({ stack: browser.stack, action: 'isChecked' });
+        const result = await this._isChecked();
+        if (result) log.info(`Checkbox is checked`);
+        else log.warn(`Checkbox is not checked`);
+        return result;
+      },
+
+      not: {
+        /**
+         * Checks whether the checkbox is not checked.
+         *
+         * @returns {Promise<boolean>}
+         */
+        checked: async () => {
+          browser.message = messenger({ stack: browser.stack, action: 'isNotChecked' });
+          const result = await this._isChecked();
+          if (result) log.warn(`Checkbox is checked`);
+          else log.info(`Checkbox is not checked`);
+          return !result;
+        },
+      },
+    };
+  }
 }
