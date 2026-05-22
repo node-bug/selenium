@@ -11,23 +11,87 @@ const mockVisibilityDelegate = {
     _isEnabled: vi.fn().mockResolvedValue(true),
     _isDisabled: vi.fn().mockResolvedValue(false),
     _isNotVisible: vi.fn().mockResolvedValue(false),
+    get is() {
+        return {
+            visible: async (t = null) => {
+                return mockVisibilityDelegate._isVisible(t);
+            },
+            enabled: async (t = null) => {
+                return mockVisibilityDelegate._isEnabled(t);
+            },
+            disabled: async (t = null) => {
+                return mockVisibilityDelegate._isDisabled(t);
+            },
+            not: {
+                visible: async (t = null) => {
+                    return mockVisibilityDelegate._isNotVisible(t);
+                },
+            },
+        };
+    },
 };
 
 const mockCheckboxDelegate = {
     check: vi.fn(),
     uncheck: vi.fn(),
     _isChecked: vi.fn().mockResolvedValue(true),
+    get is() {
+        return {
+            checked: async () => {
+                return mockCheckboxDelegate._isChecked();
+            },
+            not: {
+                checked: async () => {
+                    const result = await mockCheckboxDelegate._isChecked();
+                    return !result;
+                },
+            },
+        };
+    },
 };
 
 const mockRadioDelegate = {
     set: vi.fn(),
     _isSet: vi.fn().mockResolvedValue(true),
+    get is() {
+        return {
+            set: async () => {
+                return mockRadioDelegate._isSet();
+            },
+            not: {
+                set: async () => {
+                    const result = await mockRadioDelegate._isSet();
+                    return !result;
+                },
+            },
+        };
+    },
 };
 
 const mockSwitchDelegate = {
     on: vi.fn(),
     off: vi.fn(),
     _isOn: vi.fn().mockResolvedValue(true),
+    get is() {
+        return {
+            on: async () => {
+                return mockSwitchDelegate._isOn();
+            },
+            off: async () => {
+                const result = await mockSwitchDelegate._isOn();
+                return !result;
+            },
+            not: {
+                on: async () => {
+                    const result = await mockSwitchDelegate._isOn();
+                    return !result;
+                },
+                off: async () => {
+                    return mockSwitchDelegate._isOn();
+                },
+            },
+        };
+    },
 };
 
 // Mocks
@@ -746,11 +810,13 @@ describe('WebBrowser', () => {
 
         describe('is.checked()', () => {
             test('should return true when checkbox is checked', async () => {
+                browser.stack = [{ type: 'checkbox' }];
                 const result = await browser.is.checked();
                 expect(result).toBe(true);
             });
 
             test('should return false when checkbox is not checked', async () => {
+                browser.stack = [{ type: 'checkbox' }];
                 mockCheckboxDelegate._isChecked.mockResolvedValue(false);
                 const result = await browser.is.checked();
                 expect(result).toBe(false);
@@ -759,11 +825,13 @@ describe('WebBrowser', () => {
 
         describe('is.set()', () => {
             test('should return true when radio is set', async () => {
+                browser.stack = [{ type: 'radio' }];
                 const result = await browser.is.set();
                 expect(result).toBe(true);
             });
 
             test('should return false when radio is not set', async () => {
+                browser.stack = [{ type: 'radio' }];
                 mockRadioDelegate._isSet.mockResolvedValue(false);
                 const result = await browser.is.set();
                 expect(result).toBe(false);
@@ -772,11 +840,13 @@ describe('WebBrowser', () => {
 
         describe('is.on()', () => {
             test('should return true when switch is on', async () => {
+                browser.stack = [{ type: 'switch' }];
                 const result = await browser.is.on();
                 expect(result).toBe(true);
             });
 
             test('should return false when switch is off', async () => {
+                browser.stack = [{ type: 'switch' }];
                 mockSwitchDelegate._isOn.mockResolvedValue(false);
                 const result = await browser.is.on();
                 expect(result).toBe(false);
@@ -785,12 +855,14 @@ describe('WebBrowser', () => {
 
         describe('is.off()', () => {
             test('should return true when switch is off', async () => {
+                browser.stack = [{ type: 'switch' }];
                 mockSwitchDelegate._isOn.mockResolvedValue(false);
                 const result = await browser.is.off();
                 expect(result).toBe(true);
             });
 
             test('should return false when switch is on', async () => {
+                browser.stack = [{ type: 'switch' }];
                 const result = await browser.is.off();
                 expect(result).toBe(false);
             });
@@ -811,12 +883,14 @@ describe('WebBrowser', () => {
 
         describe('is.not.checked()', () => {
             test('should return true when checkbox is not checked', async () => {
+                browser.stack = [{ type: 'checkbox' }];
                 mockCheckboxDelegate._isChecked.mockResolvedValue(false);
                 const result = await browser.is.not.checked();
                 expect(result).toBe(true);
             });
 
             test('should return false when checkbox is checked', async () => {
+                browser.stack = [{ type: 'checkbox' }];
                 const result = await browser.is.not.checked();
                 expect(result).toBe(false);
             });
@@ -824,12 +898,14 @@ describe('WebBrowser', () => {
 
         describe('is.not.set()', () => {
             test('should return true when radio is not set', async () => {
+                browser.stack = [{ type: 'radio' }];
                 mockRadioDelegate._isSet.mockResolvedValue(false);
                 const result = await browser.is.not.set();
                 expect(result).toBe(true);
             });
 
             test('should return false when radio is set', async () => {
+                browser.stack = [{ type: 'radio' }];
                 const result = await browser.is.not.set();
                 expect(result).toBe(false);
             });

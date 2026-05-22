@@ -28,7 +28,6 @@ import { createSpatialFilter } from './spatial-filters.js';
  *
  * - `within`: Candidate's midpoint lies inside reference's bounding box
  *   - Supports array of references (candidate must be in at least one)
- *   - For item.type === 'element', recursively finds child elements
  *
  * - `near`: Candidate and reference are on the same row
  *   - Checks vertical overlap within 100px threshold
@@ -38,8 +37,7 @@ import { createSpatialFilter } from './spatial-filters.js';
  * - No spatial constraint: returns all candidates
  * - No matches: returns empty array
  * - Array of references for 'within': checks against all
- * - Stale elements: gracefully skipped via try/catch in context
- *
+ * - Stale elements: gracefully skipped via try/catch in 
  * @param {Object} item - The stack item containing `type` and `matches` array.
  * @param {Object} [rel] - Spatial constraint with `located` (required) and `exactly` (optional).
  * @param {WebElement|WebElement[]} [relativeElement] - Reference element(s) to filter by.
@@ -47,7 +45,7 @@ import { createSpatialFilter } from './spatial-filters.js';
  * @returns {Promise<WebElement[]>} Filtered array of elements matching the spatial constraint.
  * @throws {ReferenceError} If spatial location is not supported.
  */
-export async function relativeSearch(item, rel, relativeElement, context) {
+export async function relativeSearch(item, rel, relativeElement) {
   // Validate spatial location parameter
   if (rel?.located) {
     const validLocations = ['above', 'below', 'toLeftOf', 'toRightOf', 'within', 'near'];
@@ -64,26 +62,9 @@ export async function relativeSearch(item, rel, relativeElement, context) {
   // Start with item matches, but don't mutate the original
   let matches = item.matches || [];
 
-  // Special case: 'within' triggers child element resolution
-  // This allows finding elements nested within a parent container
-  // Works for all element types (element, column, row, etc.), not just 'element'
-  if (rel.located === 'within') {
-    try {
-      const refEl = Array.isArray(relativeElement) ? relativeElement[0] : relativeElement;
-      if (refEl) {
-        matches = await context.findChildElements(refEl, item);
-      }
-    } catch (err) {
-      // If child element resolution fails, use regular matching instead
-      if (context.debug) {
-        console.warn('Child element resolution failed, using regular matching:', err.message);
-      }
-      matches = item.matches || [];
-    }
-  }
-
   // Special case: 'within' with array of references
   // Check if candidate is within ANY of the reference elements
+  // When relativeElement is an array, we filter existing matches rather than finding child elements
   if (rel.located === 'within' && Array.isArray(relativeElement)) {
     const refs = relativeElement;
     return matches.filter(candidate => {

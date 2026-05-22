@@ -52,12 +52,12 @@ export class SwitchDelegate {
         throw new Error('Could not resolve switch element');
       }
 
+      // Check disabled state FIRST, before any other logic
+      await this.#checkDisabled(resolvedElement);
+
       const isOn = await this._checkState(resolvedElement);
       const needsChange = (targetState === 'on' && !isOn) ||
         (targetState === 'off' && isOn);
-
-      // Always check disabled state, even if no change is needed
-      await this.#checkDisabled(resolvedElement);
 
       if (needsChange) {
         // Check if this is an ARIA switch or button switch - if so, use executeScript to ensure JS handlers run
@@ -431,5 +431,76 @@ export class SwitchDelegate {
 
     // Default: use isSelected() for native checkboxes
     return await locator.isSelected();
+  }
+
+  /**
+   * Get the is accessor object for switch state checks.
+   *
+   * Provides state check methods for switch elements.
+   *
+   * @type {Object}
+   * @returns {Object} Object containing is accessor methods
+   * @example
+   * await browser.switch('dark mode').is.on();
+   * await browser.switch('dark mode').is.off();
+   * await browser.switch('dark mode').is.not.on();
+   */
+  get is() {
+    const browser = this.browser;
+    return {
+      /**
+       * Checks whether the switch is on.
+       *
+       * @returns {Promise<boolean>}
+       */
+      on: async () => {
+        browser.message = messenger({ stack: browser.stack, action: 'isOn' });
+        const result = await this._isOn();
+        if (result) log.info(`Switch is on`);
+        else log.warn(`Switch is not on`);
+        return result;
+      },
+
+      /**
+       * Checks whether the switch is off.
+       *
+       * @returns {Promise<boolean>}
+       */
+      off: async () => {
+        browser.message = messenger({ stack: browser.stack, action: 'isOff' });
+        const result = await this._isOn();
+        if (result) log.warn(`Switch is on`);
+        else log.info(`Switch is off`);
+        return !result;
+      },
+
+      not: {
+        /**
+         * Checks whether the switch is not on.
+         *
+         * @returns {Promise<boolean>}
+         */
+        on: async () => {
+          browser.message = messenger({ stack: browser.stack, action: 'isNotOn' });
+          const result = await this._isOn();
+          if (result) log.warn(`Switch is on`);
+          else log.info(`Switch is not on`);
+          return !result;
+        },
+
+        /**
+         * Checks whether the switch is not off.
+         *
+         * @returns {Promise<boolean>}
+         */
+        off: async () => {
+          browser.message = messenger({ stack: browser.stack, action: 'isNotOff' });
+          const result = await this._isOn();
+          if (result) log.info(`Switch is on`);
+          else log.warn(`Switch is off`);
+          return result;
+        },
+      },
+    };
   }
 }
