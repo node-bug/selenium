@@ -1,6 +1,6 @@
-import { Key } from 'selenium-webdriver';
 import messenger from '../messenger.js';
-import { log } from '@nodebug/logger'
+import { log } from '@nodebug/logger';
+import { BaseDelegate } from './base-delegate.js';
 
 /**
  * Click delegate class for handling element click operations
@@ -17,11 +17,7 @@ import { log } from '@nodebug/logger'
  * - Coordinate-based clicks
  * - Internal click handling with fallbacks
  */
-export class ClickDelegate {
-  constructor(browser) {
-    this.browser = browser;
-  }
-
+export class ClickDelegate extends BaseDelegate {
   /**
    * Performs a click on an element.
    * 
@@ -44,12 +40,7 @@ export class ClickDelegate {
    */
   async click(x = null, y = null) {
     const browser = this.browser;
-    const mods = browser._tempMods;
-    const modifiers = [];
-    if (mods.control) modifiers.push('ctrl');
-    if (mods.shift) modifiers.push('shift');
-    if (mods.alt) modifiers.push('alt');
-    if (mods.meta) modifiers.push('meta');
+    const modifiers = this.getModifiers();
     browser.message = messenger({ stack: browser.stack, action: 'click', x, y, modifiers });
     try {
       const locator = await browser._finder();
@@ -57,7 +48,7 @@ export class ClickDelegate {
     } catch (err) {
       browser.handleError(err, 'clicking');
     } finally {
-      browser._resetMods()
+      this.resetModifiers();
       browser.stack = [];
     }
     return true;
@@ -74,18 +65,10 @@ export class ClickDelegate {
    * await browser.button('edit').doubleClick();
    */
   async doubleClick() {
-    const browser = this.browser;
-    browser.message = messenger({ stack: browser.stack, action: 'doubleclick' });
-    try {
-      const locator = await browser._finder();
-      // Actions API is required for true double-click simulation
-      await browser.actions().doubleClick(locator).perform();
-    } catch (err) {
-      browser.handleError(err, 'double clicking');
-    } finally {
-      browser.stack = [];
-    }
-    return true;
+    return this.withErrorHandling('doubleclick', async () => {
+      const locator = await this.findElement();
+      await this.browser.actions().doubleClick(locator).perform();
+    }, { errorMessage: 'double clicking' });
   }
 
   /**
@@ -99,18 +82,10 @@ export class ClickDelegate {
    * await browser.button('options').rightClick();
    */
   async rightClick() {
-    const browser = this.browser;
-    browser.message = messenger({ stack: browser.stack, action: 'rightclick' });
-    try {
-      const locator = await browser._finder();
-      // contextClick is the Selenium equivalent of a right-click
-      await browser.actions().contextClick(locator).perform();
-    } catch (err) {
-      browser.handleError(err, 'right clicking');
-    } finally {
-      browser.stack = [];
-    }
-    return true;
+    return this.withErrorHandling('rightclick', async () => {
+      const locator = await this.findElement();
+      await this.browser.actions().contextClick(locator).perform();
+    }, { errorMessage: 'right clicking' });
   }
 
   /**
@@ -125,12 +100,9 @@ export class ClickDelegate {
    * await browser.button('tab').middleClick();
    */
   async middleClick() {
-    const browser = this.browser;
-    browser.message = messenger({ stack: browser.stack, action: 'middleclick' });
-    try {
-      const locator = await browser._finder();
-      // Selenium WebDriver doesn't have native middleClick, use JS dispatch
-      await browser.driver.executeScript(`
+    return this.withErrorHandling('middleclick', async () => {
+      const locator = await this.findElement();
+      await this.browser.driver.executeScript(`
         const event = new MouseEvent('auxclick', {
           bubbles: true,
           cancelable: true,
@@ -138,12 +110,7 @@ export class ClickDelegate {
         });
         arguments[0].dispatchEvent(event);
       `, locator);
-    } catch (err) {
-      browser.handleError(err, 'middle clicking');
-    } finally {
-      browser.stack = [];
-    }
-    return true;
+    }, { errorMessage: 'middle clicking' });
   }
 
   /**
@@ -157,18 +124,10 @@ export class ClickDelegate {
    * await browser.button('select').tripleClick();
    */
   async tripleClick() {
-    const browser = this.browser;
-    browser.message = messenger({ stack: browser.stack, action: 'tripleclick' });
-    try {
-      const locator = await browser._finder();
-      // Simulate triple-click by performing three individual clicks
-      await browser.actions().click(locator).click(locator).click(locator).perform();
-    } catch (err) {
-      browser.handleError(err, 'triple clicking');
-    } finally {
-      browser.stack = [];
-    }
-    return true;
+    return this.withErrorHandling('tripleclick', async () => {
+      const locator = await this.findElement();
+      await this.browser.actions().click(locator).click(locator).click(locator).perform();
+    }, { errorMessage: 'triple clicking' });
   }
 
   /**
@@ -187,8 +146,7 @@ export class ClickDelegate {
     browser.message = messenger({ stack: browser.stack, action: 'click', times });
     try {
       const locator = await browser._finder();
-      const actions = browser.actions()
-      // Perform multiple clicks
+      const actions = browser.actions();
       for (let i = 0; i < times; i++) {
         actions.click(locator);
       }
@@ -213,18 +171,10 @@ export class ClickDelegate {
    * await browser.button('menu').longPress(2000); // 2 seconds
    */
   async longPress(duration = 1000) {
-    const browser = this.browser;
-    browser.message = messenger({ stack: browser.stack, action: 'longpress' });
-    try {
-      const locator = await browser._finder();
-      // longPress is the Selenium equivalent of a long press
-      await browser.actions().move({origin: locator}).press().pause(duration).release().perform();
-    } catch (err) {
-      browser.handleError(err, 'long pressing');
-    } finally {
-      browser.stack = [];
-    }
-    return true;
+    return this.withErrorHandling('longpress', async () => {
+      const locator = await this.findElement();
+      await this.browser.actions().move({ origin: locator }).press().pause(duration).release().perform();
+    }, { errorMessage: 'long pressing' });
   }
 
   /**
@@ -253,7 +203,7 @@ export class ClickDelegate {
         // Fallback to JS click if element is blocked or not interactable
         if (['ElementNotInteractableError', 'ElementClickInterceptedError'].includes(err.name)) {
           await browser.driver.executeScript('arguments[0].click();', e);
-          log.warn(`Due to "${err.name}" error, javascript click was used to click.`)
+          log.warn(`Due to "${err.name}" error, javascript click was used to click.`);
           return true;
         } else {
           throw err;
@@ -262,16 +212,12 @@ export class ClickDelegate {
       return true;
     }
 
-    const platformName = (await browser.driver.getCapabilities()).get('platformName').replace(/\s/g, '')
+    const platformName = await this.getPlatformName();
 
     // Use Actions API for modifier keys or coordinate clicks
     try {
       const actions = browser.actions();
-      // Press modifier keys
-      if (mods.control) actions.keyDown(Key.CONTROL);
-      if (mods.shift) actions.keyDown(Key.SHIFT);
-      if (mods.alt) actions.keyDown(Key.ALT);
-      if (mods.meta) if (platformName === 'mac') actions.keyDown(Key.COMMAND); else actions.keyDown(Key.META);
+      await this.pressModifiers(actions, platformName);
 
       if (hasCoordinates) {
         const rect = await e.getRect();
@@ -285,17 +231,13 @@ export class ClickDelegate {
           .move({ x: Math.ceil(ex), y: Math.ceil(ey) })
           .pause(500)
           .click();
-
       } else {
         actions.click(e);
       }
       await actions.perform();
     } finally {
       const actions = browser.actions();
-      if (mods.meta) if (platformName === 'mac') actions.keyUp(Key.COMMAND); else actions.keyUp(Key.META);
-      if (mods.alt) actions.keyUp(Key.ALT);
-      if (mods.shift) actions.keyUp(Key.SHIFT);
-      if (mods.control) actions.keyUp(Key.CONTROL);
+      await this.releaseModifiers(actions, platformName);
       await actions.perform();
     }
   }
@@ -311,17 +253,9 @@ export class ClickDelegate {
    * await browser.button('dropdown').hover();
    */
   async hover() {
-    const browser = this.browser;
-    browser.message = messenger({ stack: browser.stack, action: 'hover' });
-    try {
-      const locator = await browser._finder();
-      // Move mouse to the center of the element
-      await browser.actions().move({ origin: locator }).perform();
-    } catch (err) {
-      browser.handleError(err, 'hovering');
-    } finally {
-      browser.stack = [];
-    }
-    return true;
+    return this.withErrorHandling('hover', async () => {
+      const locator = await this.findElement();
+      await this.browser.actions().move({ origin: locator }).perform();
+    }, { errorMessage: 'hovering' });
   }
 }

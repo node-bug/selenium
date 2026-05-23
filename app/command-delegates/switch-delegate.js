@@ -1,6 +1,7 @@
 import { log } from '@nodebug/logger';
 import messenger from '../messenger.js';
 import { By } from 'selenium-webdriver';
+import { BaseDelegate } from './base-delegate.js';
 
 /**
  * Switch delegate for handling switch/toggle operations
@@ -21,12 +22,12 @@ import { By } from 'selenium-webdriver';
  * @class SwitchDelegate
  * @param {object} browser - The browser instance providing `_finder`, `handleError`, and `driver`.
  */
-export class SwitchDelegate {
+export class SwitchDelegate extends BaseDelegate {
   /**
    * @param {object} browser - The browser instance.
    */
   constructor(browser) {
-    this.browser = browser;
+    super(browser);
   }
 
   /**

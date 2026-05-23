@@ -1,5 +1,6 @@
 import { log } from '@nodebug/logger';
 import messenger from '../messenger.js';
+import { BaseDelegate } from './base-delegate.js';
 
 /**
  * Checkbox delegate for handling checkbox operations
@@ -9,11 +10,7 @@ import messenger from '../messenger.js';
  * 
  * @class CheckboxDelegate
  */
-export class CheckboxDelegate {
-  constructor(browser) {
-    this.browser = browser;
-  }
-
+export class CheckboxDelegate extends BaseDelegate {
   /**
    * Set the validations delegate reference.
    * @param {ValidationsDelegate} delegate - The validations delegate instance

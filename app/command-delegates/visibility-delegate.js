@@ -1,6 +1,7 @@
 import { log } from '@nodebug/logger';
 import messenger from '../messenger.js';
 import config from '@nodebug/config';
+import { BaseDelegate } from './base-delegate.js';
 
 const selenium = config('selenium');
 
@@ -12,9 +13,9 @@ const selenium = config('selenium');
  * 
  * @class VisibilityDelegate
  */
-export class VisibilityDelegate {
+export class VisibilityDelegate extends BaseDelegate {
   constructor(browser) {
-    this.browser = browser;
+    super(browser);
   }
 
   /**

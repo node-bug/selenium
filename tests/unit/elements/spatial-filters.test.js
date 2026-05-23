@@ -125,6 +125,18 @@ describe('spatial-filters', () => {
         const candidate = { boundingBox: { top: 0, bottom: 50, left: 0, right: 50, midx: 25, midy: 25 } };
         expect(filter(candidate)).toBe(false);
       });
+
+      it('should return true when candidate is completely within reference and exactly is true', () => {
+        const filter = createSpatialFilter(referenceRect, { located: 'within', exactly: true });
+        const candidate = { boundingBox: { top: 120, bottom: 180, left: 120, right: 180, midx: 150, midy: 150 } };
+        expect(filter(candidate)).toBe(true);
+      });
+
+      it('should return false when candidate midpoint is inside but edges are outside and exactly is true', () => {
+        const filter = createSpatialFilter(referenceRect, { located: 'within', exactly: true });
+        const candidate = { boundingBox: { top: 50, bottom: 250, left: 50, right: 250, midx: 150, midy: 150 } };
+        expect(filter(candidate)).toBe(false);
+      });
     });
 
     describe('near filter', () => {
