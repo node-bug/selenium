@@ -45,7 +45,19 @@ export class SwitchDelegate {
     browser.message = messenger({ stack: browser.stack, action: targetState });
 
     try {
+      // Use hidden() modifier to include hidden elements (like zero-size checkboxes)
+      // This is necessary for switch elements that are visually hidden but have visible sliders
+      const originalStack = [...browser.stack];
+      // Modify the last item in the stack to set hidden: true
+      // This ensures the finder includes hidden elements in the search
+      if (browser.stack.length > 0) {
+        const lastItem = browser.stack[browser.stack.length - 1];
+        if (lastItem && typeof lastItem === 'object') {
+          browser.stack[browser.stack.length - 1] = { ...lastItem, hidden: true };
+        }
+      }
       const locator = await browser._finder();
+      browser.stack = originalStack;
       const { clickTarget, stateTarget } = await this.#resolveSwitchElement(locator);
 
       if (!clickTarget) {
@@ -210,7 +222,16 @@ export class SwitchDelegate {
             labelId
           );
           if (targetElement) {
-            return await this.#getInteractibleElement(targetElement);
+            // Convert raw DOM element to WebElement if needed
+            let webElement = targetElement;
+            if (typeof targetElement.tagName === 'undefined' || typeof targetElement.getAttribute === 'undefined') {
+              // This is a raw DOM element, convert it
+              webElement = await this.#convertToWebElement(targetElement);
+              if (!webElement) {
+                throw new Error('Could not convert DOM element to WebElement');
+              }
+            }
+            return await this.#getInteractibleElement(webElement);
           }
         } catch {
           // Element not found
@@ -221,6 +242,56 @@ export class SwitchDelegate {
     }
 
     return await this.#getInteractibleElement(locator);
+  }
+
+  /**
+   * Converts a raw DOM element to a WebElement using a unique selector.
+   * This is needed when executeScript returns a raw DOM element that
+   * cannot be used with Selenium methods.
+   *
+   * @private
+   * @param {Object} element - The raw DOM element
+   * @returns {Promise<Object|null>} WebElement or null if conversion fails
+   */
+  async #convertToWebElement(element) {
+    const browser = this.browser;
+    if (!element) return null;
+    
+    try {
+      // Get unique identifiers for the element
+      const elementId = await browser.driver.executeScript(
+        'return arguments[0].id || null',
+        element
+      );
+      
+      if (elementId) {
+        return await browser.driver.findElement(By.id(elementId));
+      }
+      
+      // Try to find by unique class or other attributes
+      const uniqueSelector = await browser.driver.executeScript(
+        `const el = arguments[0];
+        if (el.id) return '#' + el.id;
+        if (el.className) {
+          const classes = el.className.trim().split(/\\s+/);
+          for (const cls of classes) {
+            if (document.querySelectorAll('.' + cls).length === 1) {
+              return '.' + cls;
+            }
+          }
+        }
+        return null;`,
+        element
+      );
+      
+      if (uniqueSelector) {
+        return await browser.driver.findElement(By.css(uniqueSelector));
+      }
+      
+      return null;
+    } catch {
+      return null;
+    }
   }
 
   /**
@@ -263,71 +334,33 @@ export class SwitchDelegate {
     if (tagName === 'input') {
       const inputType = await element.getAttribute('type');
       if (inputType === 'checkbox') {
-        // Find the slider sibling using executeScript and wrap it as a WebElement
-        // This handles the case where the input is inside a label with a sibling slider
-        const sliderElement = await browser.driver.executeScript(
-          `
-          const input = arguments[0];
-          const parentLabel = input.closest('label');
-          if (parentLabel) {
-            // Look for a slider sibling within the label
-            const slider = parentLabel.querySelector('span.slider, div.slider, span[class*="slider"], div[class*="slider"]');
-            if (slider) return slider;
-          }
-          // Check for next sibling slider
-          let sibling = input.nextElementSibling;
-          while (sibling) {
-            const className = sibling.className || '';
-            if (className.includes('slider') || className.includes('thumb') || className.includes('track')) {
-              return sibling;
-            }
-            sibling = sibling.nextElementSibling;
-          }
-          // Check for previous sibling slider
-          sibling = input.previousElementSibling;
-          while (sibling) {
-            const className = sibling.className || '';
-            if (className.includes('slider') || className.includes('thumb') || className.includes('track')) {
-              return sibling;
-            }
-            sibling = sibling.previousElementSibling;
-          }
-          return null;
-          `,
-          element
-        );
-
-        if (sliderElement) {
-          // The driver.executeScript returns the WebElement when given a WebElement argument
-          // But for raw DOM elements, we need to use findElement with a different approach
-          // Instead, let's find the slider by its position relative to the input
-          const inputId = await element.getAttribute('id');
-          if (inputId) {
-            try {
-              // Try to find the slider by using the input's ID to locate the parent label
-              const slider = await browser.driver.findElement(
-                By.css(`label[for="${inputId}"] span.slider, label[for="${inputId}"] div.slider, label[for="${inputId}"] span[class*="slider"], label[for="${inputId}"] div[class*="slider"]`)
-              );
-              if (slider) {
-                return { clickTarget: slider, stateTarget: element };
-              }
-            } catch {
-              // Fall through to other methods
-            }
-          }
-          
-          // Alternative: Find the slider by using XPath from the input element
+        const inputId = await element.getAttribute('id');
+        
+        // Try to find the slider by using the input's ID to locate the parent label
+        if (inputId) {
           try {
-            const slider = await element.findElement({
-              using: 'xpath',
-              value: './parent::label//span[contains(@class, "slider")] | ./parent::label//div[contains(@class, "slider")] | ./following-sibling::*[contains(@class, "slider")][1] | ./preceding-sibling::*[contains(@class, "slider")][1]'
-            });
+            const slider = await browser.driver.findElement(
+              By.css(`label[for="${inputId}"] span.slider, label[for="${inputId}"] div.slider, label[for="${inputId}"] span[class*="slider"], label[for="${inputId}"] div[class*="slider"]`)
+            );
             if (slider) {
               return { clickTarget: slider, stateTarget: element };
             }
           } catch {
-            // No slider found
+            // Fall through to other methods
           }
+        }
+        
+        // Alternative: Find the slider by using XPath from the input element
+        try {
+          const slider = await element.findElement({
+            using: 'xpath',
+            value: './parent::label//span[contains(@class, "slider")] | ./parent::label//div[contains(@class, "slider")] | ./following-sibling::*[contains(@class, "slider")][1] | ./preceding-sibling::*[contains(@class, "slider")][1]'
+          });
+          if (slider) {
+            return { clickTarget: slider, stateTarget: element };
+          }
+        } catch {
+          // No slider found
         }
       }
     }
@@ -414,7 +447,17 @@ export class SwitchDelegate {
   async _isOn() {
     const browser = this.browser;
     try {
+      // Use hidden() modifier to include hidden elements
+      const originalStack = [...browser.stack];
+      // Modify the last item in the stack to set hidden: true
+      if (browser.stack.length > 0) {
+        const lastItem = browser.stack[browser.stack.length - 1];
+        if (lastItem && typeof lastItem === 'object') {
+          browser.stack[browser.stack.length - 1] = { ...lastItem, hidden: true };
+        }
+      }
       const locator = await browser._finder();
+      browser.stack = originalStack;
       const { stateTarget } = await this.#resolveSwitchElement(locator);
       const result = await this._checkState(stateTarget);
       browser.stack = [];

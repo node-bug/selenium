@@ -349,8 +349,10 @@ export class LocatorStrategy {
         // We just need to return the main frame elements here
 
         // Filter by visibility settings
+        // When hidden is true, include all elements (both visible and hidden)
+        // When hidden is false, only include visible elements
         const visibilityFilter = elementData.hidden
-          ? (e) => e.boundingBox.height < 1 || e.boundingBox.width < 1
+          ? () => true  // Include all elements
           : (e) => e.boundingBox.height > 0 && e.boundingBox.width > 0;
 
         return qualified.filter(visibilityFilter);
@@ -515,6 +517,22 @@ export class LocatorStrategy {
 
     for (const item of stack) {
       const newItem = { ...item };
+
+      // Check if this is a flag object (has exact/hidden but no type) that should be merged with previous element
+      const isFlagObject = item.type === undefined && 'hidden' in item;
+      if (isFlagObject && resolvedStack.length > 0) {
+        // Merge flags into the previous element
+        const prevItem = resolvedStack[resolvedStack.length - 1];
+        if (prevItem && !prevItem.type) {
+          // Previous item is also a flag, merge them
+          Object.assign(prevItem, newItem);
+        } else if (prevItem && Object.keys(ELEMENT_DEFINITIONS).includes(prevItem.type)) {
+          // Previous item is an element, merge flags into it
+          prevItem.hidden = prevItem.hidden || newItem.hidden;
+          prevItem.exact = prevItem.exact || newItem.exact;
+        }
+        continue; // Skip adding this flag object as a separate item
+      }
 
       // Only resolve items that are element types and don't have matches yet
       if (Object.keys(ELEMENT_DEFINITIONS).includes(newItem.type) && (!newItem.matches || newItem.matches.length === 0)) {
