@@ -1,5 +1,6 @@
 import { log } from '@nodebug/logger';
 import messenger from '../messenger.js';
+import { BaseDelegate } from './base-delegate.js';
 
 /**
  * Slider delegate for handling input slider control operations
@@ -9,9 +10,9 @@ import messenger from '../messenger.js';
  *
  * @class SliderDelegate
  */
-export class SliderDelegate {
+export class SliderDelegate extends BaseDelegate {
     constructor(browser) {
-        this.browser = browser;
+        super(browser);
         this.targetValue = null;
     }
 

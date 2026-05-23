@@ -1,6 +1,7 @@
 import { Select } from 'selenium-webdriver';
 import { log } from '@nodebug/logger';
 import messenger from '../messenger.js';
+import { BaseDelegate } from './base-delegate.js';
 
 /**
  * Select delegate for handling dropdown/combobox selection operations
@@ -10,9 +11,9 @@ import messenger from '../messenger.js';
  * 
  * @class SelectDelegate
  */
-export class SelectDelegate {
+export class SelectDelegate extends BaseDelegate {
   constructor(browser) {
-    this.browser = browser;
+    super(browser);
     this.optionValue = null;
     this.isIndex = false;
   }

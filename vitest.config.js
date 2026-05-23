@@ -6,6 +6,7 @@ export default defineConfig({
     include: ['tests/**/*.test.js'],
     testTimeout: 100000,
     globals: true,
+    watch: false,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov'],
@@ -15,7 +16,12 @@ export default defineConfig({
     // Force exit after tests complete to ensure browser cleanup
     forceExit: true,
     // Run tests sequentially to avoid browser conflicts
-    pool: 'forks',
+    // Use threads pool instead of forks for better cleanup
+    pool: 'threads',
     isolate: true,
+    minThreads: 1,
+    maxThreads: 1,
+    // Ensure all async operations complete before exit
+    teardownTimeout: 10000,
   },
 });

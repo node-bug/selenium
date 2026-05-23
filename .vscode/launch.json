@@ -28,9 +28,9 @@
       "runtimeArgs": [
         "vitest",
         "run",
-        "${workspaceFolder}/tests/integration/dropdown.test.js",
+        "${workspaceFolder}/tests/integration/15. table-operations.test.js",
         "-t",
-        "should start with subcategory disabled"
+        "should verify column data consistency across rows"
       ],
       "console": "integratedTerminal"
     }

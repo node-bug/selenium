@@ -1,3 +1,5 @@
+import { BaseDelegate } from './base-delegate.js';
+
 /**
  * Radio delegate for handling radio button operations
  * 
@@ -6,11 +8,7 @@
  * 
  * @class RadioDelegate
  */
-export class RadioDelegate {
-  constructor(browser) {
-    this.browser = browser;
-  }
-
+export class RadioDelegate extends BaseDelegate {
   /**
    * Internal helper to check if radio button is set.
    * 

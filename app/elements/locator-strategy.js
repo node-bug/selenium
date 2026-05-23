@@ -538,6 +538,10 @@ export class LocatorStrategy {
       if (Object.keys(ELEMENT_DEFINITIONS).includes(newItem.type) && (!newItem.matches || newItem.matches.length === 0)) {
         try {
           newItem.matches = await this.findElements(newItem);
+          // For column type, expand to all cells in the same column position
+          if (newItem.type === 'column' && newItem.matches.length > 0) {
+            newItem.matches = await this._expandColumnMatches(newItem);
+          }
         } catch (err) {
           if (this.debug) {
             console.error(`Failed to resolve element '${newItem.id}' of type '${newItem.type}':`, err.message);
@@ -550,6 +554,88 @@ export class LocatorStrategy {
     }
 
     return resolvedStack;
+  }
+
+  /**
+   * Expands column matches to include all cells in the same column position.
+   * When a column is found by text (e.g., column header "Age"), this method
+   * finds all cells in the same column position across all tables.
+   *
+   * @param {Object} columnItem - The column selector item with matches.
+   * @returns {Promise<WebElement[]>} Array of all cells in the column.
+   */
+  async _expandColumnMatches(columnItem) {
+    const originalMatches = columnItem.matches;
+    if (originalMatches.length === 0) return originalMatches;
+
+    // Get the first matching element (column header)
+    const headerElement = originalMatches[0];
+    const frameIndex = headerElement.frameIndex;
+
+    // First, get the cell index within its row
+    const headerCellIndex = await this.driver.executeScript(`
+      const el = arguments[0];
+      return Array.from(el.parentElement.children).indexOf(el);
+    `, headerElement);
+
+    // Now find all cells in the same column position across all tables
+    // Return elements with their bounding box data already computed
+    const expandedMatches = await this.driver.executeScript(`
+      const cellIndex = arguments[0];
+      const allElements = [];
+
+      // Find all tables in the document
+      const tables = document.querySelectorAll('table, [role="table"]');
+
+      for (const table of tables) {
+        // Find all rows in the table
+        const rows = table.querySelectorAll('tr, [role="row"]');
+
+        for (const row of rows) {
+          const cells = row.children;
+          if (cells.length > cellIndex) {
+            const cell = cells[cellIndex];
+            // Check if this cell matches the column type (td, th, or cell roles)
+            const tagName = cell.tagName.toLowerCase();
+            const role = cell.getAttribute('role');
+            if (tagName === 'td' || tagName === 'th' || role === 'cell' || role === 'gridcell' || role === 'columnheader') {
+              const rect = cell.getBoundingClientRect();
+              allElements.push({
+                element: cell,
+                tagName: tagName,
+                boundingBox: {
+                  x: rect.x,
+                  y: rect.y,
+                  width: rect.width,
+                  height: rect.height,
+                  top: rect.top,
+                  bottom: rect.bottom,
+                  left: rect.left,
+                  right: rect.right,
+                  midx: rect.x + rect.width / 2,
+                  midy: rect.y + rect.height / 2
+                }
+              });
+            }
+          }
+        }
+      }
+
+      return allElements;
+    `, headerCellIndex);
+
+    if (expandedMatches && expandedMatches.length > 0) {
+      // Convert to WebElements with proper metadata
+      return expandedMatches.map((item) => {
+        const webElement = item.element;
+        webElement.frameIndex = frameIndex;
+        webElement.tagName = item.tagName;
+        webElement.boundingBox = item.boundingBox;
+        return webElement;
+      });
+    }
+
+    return originalMatches;
   }
 
   /**
@@ -659,6 +745,15 @@ export class LocatorStrategy {
   async findAll(stack) {
     // 1. Resolve all stack items into physical WebElements
     const data = await this.resolveElements(stack);
+
+    // Check if this is a simple column query (just column with text, no spatial filters)
+    // If so, expand to all cells in that column
+    if (data.length === 1 && data[0].type === 'column' && data[0].id) {
+      const expandedMatches = await this._expandColumnMatches(data[0]);
+      if (expandedMatches.length > 0) {
+        return expandedMatches;
+      }
+    }
 
     let elements = [];
     let currentContextElement = null;

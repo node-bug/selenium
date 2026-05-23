@@ -200,6 +200,18 @@ describe('WebBrowser Spatial Selectors Tests', () => {
       ).rejects.toThrow();
     });
 
+    test('should throw error when element is within but not exactly within container', async () => {
+      await browser.goto(fileUrl);
+      // "Within Container" is the parent of "Within Item".
+      // This should fail "exactly.within" because the container is larger than the item.
+      await expect(
+        browser
+          .element('Within Container')
+          .exactly.within.element('Within Item')
+          .should.be.visible()
+      ).rejects.toThrow();
+    });
+
     test('should throw error when element is not near reference', async () => {
       await browser.goto(fileUrl);
       // Top Edge is at top: 10px, Bottom Edge is at bottom: 10px

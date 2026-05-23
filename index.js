@@ -125,7 +125,12 @@ class WebBrowser extends Browser {
         try {
           locator = await this.locatorStrategy.find(currentStack);
           if (locator) return locator;
-        } catch {
+        } catch (err) {
+          // Re-throw ReferenceError immediately - it indicates a fundamental problem
+          // like "element not found" due to spatial constraints not being met
+          if (err instanceof ReferenceError) {
+            throw err;
+          }
           continue; // Try next stack in the OR condition
         }
       }
@@ -408,6 +413,22 @@ class WebBrowser extends Browser {
    */
   async _clicker(e, x, y) {
     return await this.#clickDelegate._clicker(e, x, y);
+  }
+
+  /**
+   * Makes the WebBrowser instance "Thenable".
+   * If the browser is awaited while a selector stack is active, 
+   * it implicitly retrieves the text of the resolved element.
+   * 
+   * @param {Function} onFulfilled 
+   * @param {Function} onRejected 
+   * @returns {Promise<string|WebBrowser>}
+   */
+  then(onFulfilled, onRejected) {
+    if (this.stack.length > 0) {
+      return this.#retrieveElementText('Text').then(onFulfilled, onRejected);
+    }
+    return Promise.resolve(this).then(onFulfilled, onRejected);
   }
 
   /**
