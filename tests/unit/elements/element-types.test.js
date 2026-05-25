@@ -72,4 +72,18 @@ describe('element-types', () => {
       expect(definitions.column).toContain('@role=\'columnheader\'');
     });
   });
+
+  describe('cell element type', () => {
+    it('should have cell element type defined', () => {
+      const definitions = getElementDefinitions();
+      expect(definitions.cell).toBeDefined();
+    });
+
+    it('should match cell elements by tag or role', () => {
+      const definitions = getElementDefinitions();
+      expect(definitions.cell).toContain('self::td');
+      expect(definitions.cell).toContain('@role=\'cell\'');
+      expect(definitions.cell).toContain('@role=\'gridcell\'');
+    });
+  });
 });

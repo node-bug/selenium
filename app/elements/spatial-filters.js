@@ -100,12 +100,25 @@ export function createSpatialFilter(referenceRect, relationConfig, config = {}) 
 
     /**
      * within: Candidate's center point is inside reference's bounding box.
+     * If exactly: entire candidate must be within bounds.
      */
     within: (candidate) => {
       if (!candidate.boundingBox) return false;
       const e = candidate.boundingBox;
-      return r.left <= e.midx && r.right >= e.midx &&
-             r.top <= e.midy && r.bottom >= e.midy;
+      
+      // Check midpoint is inside reference
+      const midpointInside = r.left <= e.midx && r.right >= e.midx &&
+                             r.top <= e.midy && r.bottom >= e.midy;
+      
+      if (!midpointInside) return false;
+      
+      // When exactly is true, entire candidate must be within bounds
+      if (relationConfig.exactly) {
+        return r.left <= e.left && r.right >= e.right &&
+               r.top <= e.top && r.bottom >= e.bottom;
+      }
+      
+      return true;
     },
 
     /**
