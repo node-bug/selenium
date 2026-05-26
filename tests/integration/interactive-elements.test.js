@@ -29,14 +29,6 @@ describe('Interactive Elements Integration Tests', () => {
     expect(ariaDisabled).toBe('true');
   });
 
-  // test('should interact with sliders', async () => {
-  //   expect(await browser.slider('Enabled Slider').is.enabled()).toBe(true);
-
-  //   // Verify disabled slider detection works
-  //   const isDisabled = await browser.slider('Disabled Slider').is.disabled();
-  //   expect(isDisabled).toBe(true);
-  // });
-
   test('should interact with file inputs', async () => {
     expect(await browser.file(1).is.enabled()).toBe(true);
 

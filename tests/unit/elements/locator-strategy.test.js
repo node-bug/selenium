@@ -58,28 +58,6 @@ describe('LocatorStrategy', () => {
       expect(results[0].boundingBox.bottom).toBe(50);
     });
 
-    // it('should handle "within" by searching children', async () => {
-    //   const parent = { 
-    //     frame: 0, 
-    //     rect: { left: 0, right: 100, top: 0, bottom: 100 },
-    //     findElements: vi.fn().mockResolvedValue([{ id: 'child-web-el' }])
-    //   };
-      
-    //   const item = { type: 'element', matches: [] };
-      
-    //   // Mock the child's stats so midx (50) and midy (50) fall INSIDE parent
-    //   mockDriver.executeScript.mockResolvedValue([{ 
-    //     x: 40, y: 40, width: 20, height: 20, 
-    // top: 40, bottom: 60, left: 40, right: 60, 
-    //     tagName: 'div' 
-    //   }]);
-
-    //   const results = await locatorStrategy.relativeSearch(item, { located: 'within' }, parent);
-      
-    //   expect(results).toHaveLength(1);
-    //   expect(results[0].id).toBe('child-web-el');
-    // });
-
     it('should enforce "exactly" alignment for spatial filters', async () => {
       const rel = { located: 'below', exactly: true };
       const item = {

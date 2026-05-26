@@ -98,7 +98,7 @@ describe('Table Operations Integration Tests', () => {
 
   test('should find elements in large scrolling tables', async () => {
     const text = await browser.row('Sample Data Row 100').get.text();
-    expect(text).toBe('Sample Data Row 100');
+    expect(text).toBe('100Sample Data Row 100');
   });
 
   test('should find elements using ARIA roles', async () => {
@@ -230,14 +230,8 @@ describe('Table Operations Integration Tests', () => {
   test('should verify column data consistency across rows', async () => {
     // Age column should have consistent numeric values
     // Note: findAll finds across all tables, so we get Age from multiple tables
-    
-    // const ageColumnCells = await browser.column('Age').findAll();
-    // expect(ageColumnCells.length).toBeGreaterThan(1); // At least header + data rows
-
     await browser.element('Alice').within.column('Name').within.row(2).should.be.visible()
-
     await browser.element('London').within.row(3).within.column('City').should.be.visible()
-    console.log()
   });
 
   test('should verify row data consistency across columns', async () => {

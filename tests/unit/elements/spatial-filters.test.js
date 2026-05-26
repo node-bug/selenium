@@ -1,4 +1,4 @@
-import { createSpatialFilter, filterBySpatialRelation } from '../../../app/elements/spatial-filters.js';
+import { createSpatialFilter } from '../../../app/elements/spatial-filters.js';
 
 describe('spatial-filters', () => {
   describe('createSpatialFilter', () => {
@@ -157,44 +157,6 @@ describe('spatial-filters', () => {
       it('should throw ReferenceError for invalid location', () => {
         expect(() => createSpatialFilter(referenceRect, { located: 'invalid' })).toThrow(ReferenceError);
       });
-    });
-  });
-
-  describe('filterBySpatialRelation', () => {
-    const candidates = [
-      { id: 1, boundingBox: { top: 0, bottom: 50, left: 100, right: 200, midx: 150, midy: 25 } },
-      { id: 2, boundingBox: { top: 150, bottom: 250, left: 100, right: 200, midx: 150, midy: 200 } },
-      { id: 3, boundingBox: { top: 250, bottom: 350, left: 100, right: 200, midx: 150, midy: 300 } }
-    ];
-
-    it('should return all candidates when no constraint', () => {
-      const result = filterBySpatialRelation(candidates, null, null);
-      expect(result).toEqual(candidates);
-    });
-
-    it('should return all candidates when no reference', () => {
-      const result = filterBySpatialRelation(candidates, { located: 'above' }, null);
-      expect(result).toEqual(candidates);
-    });
-
-    it('should filter candidates by spatial relation', () => {
-      const reference = { boundingBox: { top: 100, bottom: 200, left: 100, right: 200 } };
-      const result = filterBySpatialRelation(candidates, { located: 'above' }, reference);
-      expect(result).toHaveLength(1);
-      expect(result[0].id).toBe(1);
-    });
-
-    it('should handle array of references for within', () => {
-      const candidatesWithMidpoints = [
-        { id: 1, boundingBox: { top: 0, bottom: 100, left: 0, right: 100, midx: 50, midy: 50 } },
-        { id: 2, boundingBox: { top: 100, bottom: 200, left: 100, right: 200, midx: 150, midy: 150 } }
-      ];
-      const references = [
-        { boundingBox: { top: 0, bottom: 100, left: 0, right: 100, midx: 50, midy: 50 } },
-        { boundingBox: { top: 100, bottom: 200, left: 100, right: 200, midx: 150, midy: 150 } }
-      ];
-      const result = filterBySpatialRelation(candidatesWithMidpoints, { located: 'within' }, references);
-      expect(result).toHaveLength(2);
     });
   });
 });

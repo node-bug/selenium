@@ -30,7 +30,7 @@
         "run",
         "${workspaceFolder}/tests/integration/15. table-operations.test.js",
         "-t",
-        "should verify column data consistency across rows"
+        "should find elements in large scrolling tables"
       ],
       "console": "integratedTerminal"
     }

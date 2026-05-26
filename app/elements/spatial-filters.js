@@ -10,8 +10,7 @@
  */
 const DEFAULT_CONFIG = {
   alignmentBuffer: 5,
-  proximityDistance: 100,
-  directionalPenalty: 5
+  proximityDistance: 100
 };
 
 /**
@@ -145,55 +144,4 @@ export function createSpatialFilter(referenceRect, relationConfig, config = {}) 
   return filterFn;
 }
 
-/**
- * Filters candidate elements based on spatial relationship to reference element(s).
- * 
- * Handles special cases:
- * - No reference: returns all candidates
- * - No spatial constraint: returns all candidates
- * - Array of references for 'within': checks against all
- * 
- * @param {Object} candidateMatches - Array of candidate elements
- * @param {Object} referenceRelation - Spatial relationship descriptor
- * @param {string} referenceRelation.located - Spatial relationship type
- * @param {boolean} [referenceRelation.exactly] - Alignment precision flag
- * @param {WebElement|WebElement[]} [referenceElement] - Reference element(s)
- * @param {Object} [config] - Configuration overrides
- * @returns {WebElement[]} Filtered array of elements
- */
-export function filterBySpatialRelation(
-  candidateMatches,
-  referenceRelation,
-  referenceElement,
-  config = {}
-) {
-  // Early exit: no constraint or reference
-  if (!referenceRelation?.located || !referenceElement) {
-    return candidateMatches || [];
-  }
 
-  const candidates = candidateMatches || [];
-
-  // Handle array of references for 'within'
-  if (referenceRelation.located === 'within' && Array.isArray(referenceElement)) {
-    return candidates.filter(candidate => {
-      if (!candidate.boundingBox) return false;
-      return referenceElement.some(ref => {
-        if (!ref.boundingBox) return false;
-        const r = ref.boundingBox;
-        const c = candidate.boundingBox;
-        return r.left <= c.midx && r.right >= c.midx &&
-               r.top <= c.midy && r.bottom >= c.midy;
-      });
-    });
-  }
-
-  // Single reference element
-  const reference = referenceElement;
-  if (!reference?.boundingBox) {
-    return candidates;
-  }
-
-  const filterFn = createSpatialFilter(reference.boundingBox, referenceRelation, config);
-  return candidates.filter(filterFn);
-}

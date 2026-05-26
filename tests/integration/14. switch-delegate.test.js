@@ -161,9 +161,9 @@ describe('Switch Delegate Integration Tests', () => {
       ).rejects.toThrow();
     });
 
-    test('should throw error when trying to turn off a disabled switch', async () => {
+    test('should throw error when trying to toggle a disabled switch', async () => {
       await expect(
-        browser.switch('Disabled Control Switch').off()
+        browser.switch('Disabled Control Switch').on()
       ).rejects.toThrow();
     });
 

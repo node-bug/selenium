@@ -224,40 +224,6 @@ describe('SwitchDelegate (ESM)', () => {
       expect(mockLocator.isSelected).not.toHaveBeenCalled();
     });
 
-    test('should find child checkbox when locator is a label', async () => {
-      const mockCheckbox = {
-        isSelected: vi.fn().mockResolvedValue(true),
-      };
-
-      const labelLocator = createLocatorMock({
-        tagName: 'label',
-        findElement: vi.fn().mockResolvedValue(mockCheckbox),
-      });
-
-      mockBrowser._finder.mockResolvedValue(labelLocator);
-
-      const result = await delegate._isOn();
-
-      expect(result).toBe(true);
-      expect(labelLocator.findElement).toHaveBeenCalled();
-      expect(mockCheckbox.isSelected).toHaveBeenCalled();
-    });
-
-    test('should throw error when label has no child checkbox', async () => {
-      const labelLocator = createLocatorMock({
-        tagName: 'label',
-        findElement: vi.fn().mockResolvedValue(null),
-      });
-
-      mockBrowser._finder.mockResolvedValue(labelLocator);
-
-      await expect(delegate._isOn()).rejects.toThrow('no child checkbox');
-      expect(mockBrowser.handleError).toHaveBeenCalledWith(
-        expect.any(Error),
-        'validating switch state'
-      );
-    });
-
     test('should fall back to isSelected when role is not "switch"', async () => {
       mockLocator.getAttribute.mockResolvedValueOnce(null); // No role attribute
       mockLocator.isSelected.mockResolvedValueOnce(true);

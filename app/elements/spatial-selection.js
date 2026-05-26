@@ -37,11 +37,9 @@ import { createSpatialFilter } from './spatial-filters.js';
  * - No spatial constraint: returns all candidates
  * - No matches: returns empty array
  * - Array of references for 'within': checks against all
- * - Stale elements: gracefully skipped via try/catch in 
  * @param {Object} item - The stack item containing `type` and `matches` array.
  * @param {Object} [rel] - Spatial constraint with `located` (required) and `exactly` (optional).
  * @param {WebElement|WebElement[]} [relativeElement] - Reference element(s) to filter by.
- * @param {Object} context - Context object with `findChildElements` method and `driver`.
  * @returns {Promise<WebElement[]>} Filtered array of elements matching the spatial constraint.
  * @throws {ReferenceError} If spatial location is not supported.
  */

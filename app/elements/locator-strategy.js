@@ -224,7 +224,7 @@ export class LocatorStrategy {
    * @throws {Error} If spatial location is unsupported
    */
   async relativeSearch(item, rel, relativeElement) {
-    return relativeSearch(item, rel, relativeElement, this);
+    return relativeSearch(item, rel, relativeElement);
   }
 
   /**
@@ -239,6 +239,11 @@ export class LocatorStrategy {
   async findElements(elementData) {
     // Ensure ElementFinder is injected
     await this._injectElementFinder();
+
+    // Switch elements have dedicated search logic (include hidden, custom processing)
+    if (elementData.type === 'switch') {
+      return this._findSwitchElements(elementData);
+    }
 
     // 1. Search in main frame first (frameIndex = -1)
     // ElementFinder searches ALL frames when called from main frame
@@ -273,6 +278,48 @@ export class LocatorStrategy {
             return webElement;
           });
       }
+    }
+
+    return [];
+  }
+
+  /**
+   * Finds switch elements across frames with dedicated logic.
+   * Always includes hidden elements since switches often have hidden checkboxes.
+   *
+   * @param {Object} elementData - Selector descriptor with `id`, `exact`, `type`, `hidden`.
+   * @returns {Promise<WebElement[]>} Array of qualified switch elements.
+   */
+  async _findSwitchElements(elementData) {
+    // 1. Search in main frame first (frameIndex = -1)
+    const mainFrameResults = await this._searchSwitchInFrame(-1, elementData);
+    if (mainFrameResults.length > 0) {
+      return mainFrameResults;
+    }
+
+    // 2. Get all iframe elements to search child frames directly
+    const frameCount = await this._getChildFrameCount();
+
+    // 3. Search each child frame
+    for (let frameIndex = 0; frameIndex < frameCount; frameIndex++) {
+      const frameResults = await this._searchSwitchInFrame(frameIndex, elementData);
+      if (frameResults.length > 0) {
+        return frameResults;
+      }
+    }
+
+    // 4. Fall back to closest switch element search
+    const closestResults = await this._findClosestSwitchElement(elementData);
+    if (closestResults && closestResults.elements && closestResults.elements.length > 0) {
+      return closestResults.elements
+        .filter(elem => elem.element)
+        .map((elem) => {
+          const webElement = elem.element;
+          webElement.frameIndex = elem.frameIndex;
+          webElement.tagName = elem.tagName;
+          webElement.boundingBox = elem.boundingBox;
+          return webElement;
+        });
     }
 
     return [];
@@ -363,6 +410,309 @@ export class LocatorStrategy {
         return [];
       }
     });
+  }
+
+  /**
+   * Searches for switch elements within a specific frame context.
+   * Always includes hidden elements since switches often have hidden checkboxes.
+   *
+   * @param {number} frameIndex - Frame index (-1 for main frame, 0+ for child frames).
+   * @param {Object} elementData - Selector descriptor with `id`, `exact`, `type`, `hidden`.
+   * @returns {Promise<WebElement[]>} Array of qualified switch elements.
+   */
+  async _searchSwitchInFrame(frameIndex, elementData) {
+    return this._withContext(frameIndex, async () => {
+      try {
+        // Inject ElementFinder in this frame context if not already present
+        const scriptContent = await readFile(elementFinderPath, 'utf8');
+        await this.driver.executeScript(`
+          if (typeof window.ElementFinder === 'undefined') {
+            ${scriptContent}
+            window.ElementFinder = ElementFinder;
+          }
+        `);
+
+        // First try to find switch elements directly by text
+        const directResults = await this.driver.executeScript(`
+          const type = arguments[0];
+          const text = arguments[1];
+          const exact = arguments[2];
+          const includeHidden = arguments[3];
+          
+          // Call ElementFinder.findElement in current frame context
+          const result = window.ElementFinder.findElement(type, text, exact, includeHidden);
+          
+          return result;
+        `, elementData.type, elementData.id, elementData.exact, true);
+
+        // If direct search found elements, use them
+        if (directResults && directResults.elements && directResults.elements.length > 0) {
+          const mainFrameElements = directResults.elements.filter(elem => elem.element);
+          const qualified = mainFrameElements.map((elem) => {
+            const webElement = elem.element;
+            webElement.frameIndex = frameIndex;
+            webElement.tagName = elem.tagName;
+            webElement.boundingBox = elem.boundingBox;
+            return webElement;
+          });
+          const processed = await this._postProcessSwitchElements(qualified, elementData);
+          return processed;
+        }
+
+        // If no direct match, try to find label elements and their associated switch inputs
+        const labelResults = await this.driver.executeScript(`
+          const text = arguments[0];
+          const exact = arguments[1];
+          
+          // Find label elements that match the text
+          const labels = window.ElementFinder.findElement('element', text, exact, true);
+          
+          if (!labels || !labels.elements || labels.elements.length === 0) {
+            return { elements: [] };
+          }
+          
+          const switchElements = [];
+          
+          for (const label of labels.elements) {
+            if (!label.element) continue;
+            const labelEl = label.element;
+            
+            // Check for label 'for' attribute pointing to a switch
+            const forId = labelEl.getAttribute('for');
+            if (forId) {
+              const forEl = document.getElementById(forId);
+              if (forEl && window.ElementFinder.matchesType(forEl, 'switch')) {
+                const rect = forEl.getBoundingClientRect();
+                switchElements.push({ 
+                  element: forEl, 
+                  frame: label.frame,
+                  tagName: forEl.tagName.toLowerCase(),
+                  boundingBox: {
+                    x: rect.x, y: rect.y, width: rect.width, height: rect.height,
+                    top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right,
+                    midx: rect.x + rect.width / 2, midy: rect.y + rect.height / 2
+                  }
+                });
+                continue;
+              }
+            }
+            
+            // Check if any switch element references this label via aria-labelledby
+            // Look for all switches and check their aria-labelledby for this label's id
+            const allSwitches = document.querySelectorAll('[role="switch"]');
+            for (const switchEl of allSwitches) {
+              const labelledBy = switchEl.getAttribute('aria-labelledby');
+              if (labelledBy) {
+                const ids = labelledBy.split(' ').filter(Boolean);
+                if (ids.includes(labelEl.id)) {
+                  const rect = switchEl.getBoundingClientRect();
+                  switchElements.push({ 
+                    element: switchEl,
+                    frame: label.frame,
+                    tagName: switchEl.tagName.toLowerCase(),
+                    boundingBox: {
+                      x: rect.x, y: rect.y, width: rect.width, height: rect.height,
+                      top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right,
+                      midx: rect.x + rect.width / 2, midy: rect.y + rect.height / 2
+                    }
+                  });
+                  // Found a switch for this label, break inner loop
+                  break;
+                }
+              }
+            }
+          }
+          
+          return { elements: switchElements };
+        `, elementData.id, elementData.exact);
+
+        if (!labelResults || !labelResults.elements || labelResults.elements.length === 0) {
+          return [];
+        }
+
+        // Process elements found via label association
+        const mainFrameElements = labelResults.elements.filter(elem => elem.element);
+        const qualified = mainFrameElements.map((elem) => {
+          const webElement = elem.element;
+          webElement.frameIndex = frameIndex;
+          webElement.tagName = elem.tagName;
+          webElement.boundingBox = elem.boundingBox;
+          return webElement;
+        });
+
+        // Apply switch-specific post-processing
+        const processed = await this._postProcessSwitchElements(qualified, elementData);
+
+        return processed;
+      } catch (err) {
+        if (this.debug) {
+          console.warn(`Error searching for switch in frame ${frameIndex}:`, err.message);
+        }
+        return [];
+      }
+    });
+  }
+
+  /**
+   * Finds the closest switch element using edge proximity.
+   *
+   * @param {Object} elementData - Selector descriptor with `id`, `exact`, `type`, `hidden`.
+   * @returns {Promise<Object>} Result object with `elements` array, or empty if none found.
+   */
+  async _findClosestSwitchElement(elementData) {
+    const DISTANCE_THRESHOLD = 500;
+
+    // 1. Search in main frame first
+    const mainFrameResult = await this._findClosestSwitchInFrame(-1, elementData, DISTANCE_THRESHOLD);
+    if (mainFrameResult) {
+      return { elements: [mainFrameResult] };
+    }
+
+    // 2. Get all iframe elements to search child frames
+    const frameCount = await this._getChildFrameCount();
+
+    // 3. Search each child frame
+    for (let frameIndex = 0; frameIndex < frameCount; frameIndex++) {
+      const frameResult = await this._findClosestSwitchInFrame(frameIndex, elementData, DISTANCE_THRESHOLD);
+      if (frameResult) {
+        return { elements: [frameResult] };
+      }
+    }
+
+    return { elements: [] };
+  }
+
+  /**
+   * Finds the closest switch element within a single frame.
+   *
+   * @param {number} frameIndex - Frame index (-1 for main frame, 0+ for child frames).
+   * @param {Object} elementData - Selector descriptor with `id`, `exact`, `type`, `hidden`.
+   * @param {number} threshold - Maximum distance to consider elements "close".
+   * @returns {Promise<Object|null>} Closest switch element object or null if none found.
+   */
+  async _findClosestSwitchInFrame(frameIndex, elementData, threshold) {
+    return this._withContext(frameIndex, async () => {
+      try {
+        // Inject ElementFinder in this frame context if not already present
+        const scriptContent = await readFile(elementFinderPath, 'utf8');
+        await this.driver.executeScript(`
+          if (typeof window.ElementFinder === 'undefined') {
+            ${scriptContent}
+            window.ElementFinder = ElementFinder;
+          }
+        `);
+
+        let result = await this.driver.executeScript(`
+          const text = arguments[0];
+          const exact = arguments[1];
+          const includeHidden = arguments[2];
+          const targetType = arguments[3];
+          const threshold = arguments[4];
+          
+          // First find the generic element (label or text) as reference
+          const genericResult = window.ElementFinder.findElement('element', text, exact, includeHidden);
+          
+          if (!genericResult || !genericResult.elements || genericResult.elements.length === 0) {
+            return null;
+          }
+          
+          // Get all elements of the target type
+          const targetResult = window.ElementFinder.findElement(targetType, null, false, includeHidden);
+          
+          if (!targetResult || !targetResult.elements || targetResult.elements.length === 0) {
+            return null;
+          }
+          
+          // Calculate edge proximity distance between two bounding boxes
+          function getEdgeProximityDistance(refRect, targetRect) {
+            const overlapsX = refRect.left <= targetRect.right && refRect.right >= targetRect.left;
+            const overlapsY = refRect.top <= targetRect.bottom && refRect.bottom >= targetRect.top;
+            
+            if (overlapsX && overlapsY) {
+              return 0;
+            }
+            
+            let dx = 0;
+            let dy = 0;
+            
+            if (refRect.left > targetRect.right) {
+              dx = refRect.left - targetRect.right;
+            } else if (refRect.right < targetRect.left) {
+              dx = targetRect.left - refRect.right;
+            }
+            
+            if (refRect.top > targetRect.bottom) {
+              dy = refRect.top - targetRect.bottom;
+            } else if (refRect.bottom < targetRect.top) {
+              dy = targetRect.top - refRect.bottom;
+            }
+            
+            return Math.sqrt(dx * dx + dy * dy);
+          }
+          
+          // Find the closest element to any of the generic elements
+          let closestElement = null;
+          let minDistance = Infinity;
+          
+          for (const generic of genericResult.elements) {
+            if (!generic.element) continue;
+            const refRect = generic.element.getBoundingClientRect();
+            
+            for (const target of targetResult.elements) {
+              if (!target.element) continue;
+              const targetRect = target.element.getBoundingClientRect();
+              const distance = getEdgeProximityDistance(refRect, targetRect);
+              
+              if (distance < minDistance && distance <= threshold) {
+                minDistance = distance;
+                closestElement = target;
+              }
+            }
+          }
+          
+          return closestElement;
+        `, elementData.id, elementData.exact, true, elementData.type, threshold);
+
+        if (result) {
+          result.frameIndex = frameIndex;
+          result = await this._postProcessSwitchElement(result, elementData);
+        }
+        return result;
+      } catch (err) {
+        if (this.debug) {
+          console.warn(`Error finding closest switch in frame ${frameIndex}:`, err.message);
+        }
+        return null;
+      }
+    });
+  }
+
+  /**
+   * Post-processes switch elements with custom logic.
+   * Override this method to add switch-specific behavior.
+   *
+   * @param {WebElement[]} elements - Array of switch elements to process.
+   * @param {Object} elementData - The selector descriptor for the switch.
+   * @returns {Promise<WebElement[]>} Processed array of switch elements.
+   */
+  async _postProcessSwitchElements(elements) {
+    // Custom logic for switch elements can be added here
+    // This method can be overridden in subclasses or extended
+    return elements;
+  }
+
+  /**
+   * Post-processes a single switch element with custom logic.
+   * Override this method to add switch-specific behavior for closest element search.
+   *
+   * @param {Object|null} element - The switch element object to process.
+   * @param {Object} elementData - The selector descriptor for the switch.
+   * @returns {Promise<Object|null>} Processed switch element object.
+   */
+  async _postProcessSwitchElement(element) {
+    // Custom logic for switch elements can be added here
+    // This method can be overridden in subclasses or extended
+    return element;
   }
 
   /**
