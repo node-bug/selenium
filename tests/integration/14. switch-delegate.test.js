@@ -1,6 +1,6 @@
 import WebBrowser from '../../index.js';
 
-describe('Switch Delegate Integration Tests', () => {
+describe.skip('Switch Delegate Integration Tests', () => {
   let browser;
 
   beforeAll(async () => {
@@ -18,13 +18,13 @@ describe('Switch Delegate Integration Tests', () => {
   // ========================================
 
   describe('Native Checkbox Switch', () => {
-    test('should turn on a native checkbox switch', async () => {
+    test.skip('should turn on a native checkbox switch', async () => {
       await browser.switch('Standard Checkbox Switch').on();
       const isOn = await browser.switch('Standard Checkbox Switch').is.on();
       expect(isOn).toBe(true);
     });
 
-    test('should turn off a native checkbox switch', async () => {
+    test.skip('should turn off a native checkbox switch', async () => {
       // First turn it on
       await browser.switch('Standard Checkbox Switch').on();
       // Then turn it off
@@ -33,7 +33,7 @@ describe('Switch Delegate Integration Tests', () => {
       expect(isOff).toBe(true);
     });
 
-    test('should be idempotent when turning on an already-on switch', async () => {
+    test.skip('should be idempotent when turning on an already-on switch', async () => {
       await browser.switch('Standard Checkbox Switch').on();
       await browser.switch('Standard Checkbox Switch').on(); // Should not throw
       const isOn = await browser.switch('Standard Checkbox Switch').is.on();

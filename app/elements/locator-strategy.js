@@ -15,7 +15,7 @@ const selenium = config('selenium');
 
 /**
  * Core element-finding strategy with Selenium WebDriver integration.
- * Uses ElementFinder.findElement() for element discovery, with support
+ * Uses ElementFinder.findProbableElements() for element discovery, with support
  * for cross-iframe scanning, spatial filtering, and stack-based element resolution.
  * 
  * ## Supported Finding Strategies
@@ -153,16 +153,16 @@ export class LocatorStrategy {
         // Ensure ElementFinder is injected
         await this._injectElementFinder();
 
-        // Use ElementFinder.findElement with parent parameter for within-element search
-        // ElementFinder already computes boundingBox and filters hidden elements
+        // Use ElementFinder.findProbableElements with parent parameter for within-element search
+        // Visibility filtering is done after based on boundingBox dimensions
         const elements = await this.driver.executeScript(`
           const parent = arguments[0];
           const type = arguments[1];
           const text = arguments[2];
           const exact = arguments[3];
           
-          // Call ElementFinder.findElement with parent parameter
-          const result = window.ElementFinder.findElement(type, text, exact, false, parent);
+          // Call ElementFinder.findProbableElements with parent parameter
+          const result = window.ElementFinder.findProbableElements(type, text, exact, parent);
           return result;
         `, parent, childData.type, childData.id, childData.exact);
 
@@ -231,7 +231,7 @@ export class LocatorStrategy {
    * Finds all matching elements across frames.
    * 
    * Searches frame-by-frame: main frame first, then child frames.
-   * Uses ElementFinder.findElement() for element discovery within each frame context.
+   * Uses ElementFinder.findProbableElements() for element discovery within each frame context.
    *
    * @param {Object} elementData - Selector descriptor with `id`, `exact`, `type`, `hidden`.
    * @returns {Promise<WebElement[]>} Array of qualified matching elements across frames.
@@ -261,22 +261,6 @@ export class LocatorStrategy {
       const frameResults = await this._searchInFrame(frameIndex, elementData);
       if (frameResults.length > 0) {
         return frameResults;
-      }
-    }
-
-    // 4. If no elements found in any frame, fall back to closest element search
-    if (elementData.type !== 'element') {
-      const closestResults = await this._findClosestElementOfType(elementData);
-      if (closestResults && closestResults.elements && closestResults.elements.length > 0) {
-        return closestResults.elements
-          .filter(elem => elem.element)
-          .map((elem) => {
-            const webElement = elem.element;
-            webElement.frameIndex = elem.frameIndex;
-            webElement.tagName = elem.tagName;
-            webElement.boundingBox = elem.boundingBox;
-            return webElement;
-          });
       }
     }
 
@@ -366,13 +350,12 @@ export class LocatorStrategy {
           const type = arguments[0];
           const text = arguments[1];
           const exact = arguments[2];
-          const includeHidden = arguments[3];
           
-          // Call ElementFinder.findElement in current frame context
-          const result = window.ElementFinder.findElement(type, text, exact, includeHidden);
+          // Call ElementFinder.findProbableElements in current frame context
+          const result = window.ElementFinder.findProbableElements(type, text, exact);
           
           return result;
-        `, elementData.type, elementData.id, elementData.exact, elementData.hidden);
+        `, elementData.type, elementData.id, elementData.exact);
 
         if (!results || !results.elements || results.elements.length === 0) {
           return [];
@@ -437,13 +420,13 @@ export class LocatorStrategy {
           const type = arguments[0];
           const text = arguments[1];
           const exact = arguments[2];
-          const includeHidden = arguments[3];
           
-          // Call ElementFinder.findElement in current frame context
-          const result = window.ElementFinder.findElement(type, text, exact, includeHidden);
+          // Call ElementFinder.findProbableElements in current frame context
+          // For switches, we need to include hidden elements (handled by visibility filter)
+          const result = window.ElementFinder.findProbableElements(type, text, exact);
           
           return result;
-        `, elementData.type, elementData.id, elementData.exact, true);
+        `, elementData.type, elementData.id, elementData.exact);
 
         // If direct search found elements, use them
         if (directResults && directResults.elements && directResults.elements.length > 0) {
@@ -465,7 +448,7 @@ export class LocatorStrategy {
           const exact = arguments[1];
           
           // Find label elements that match the text
-          const labels = window.ElementFinder.findElement('element', text, exact, true);
+          const labels = window.ElementFinder.findElements('element', text, exact);
           
           if (!labels || !labels.elements || labels.elements.length === 0) {
             return { elements: [] };
@@ -605,19 +588,19 @@ export class LocatorStrategy {
         let result = await this.driver.executeScript(`
           const text = arguments[0];
           const exact = arguments[1];
-          const includeHidden = arguments[2];
-          const targetType = arguments[3];
-          const threshold = arguments[4];
+          const targetType = arguments[2];
+          const threshold = arguments[3];
           
           // First find the generic element (label or text) as reference
-          const genericResult = window.ElementFinder.findElement('element', text, exact, includeHidden);
+          const genericResult = window.ElementFinder.findElements('element', text, exact);
           
           if (!genericResult || !genericResult.elements || genericResult.elements.length === 0) {
             return null;
           }
           
-          // Get all elements of the target type
-          const targetResult = window.ElementFinder.findElement(targetType, null, false, includeHidden);
+          // Get all elements of the target type (never include hidden for fallback search)
+          // Fallback should only find closest VISIBLE element, never return hidden elements
+          const targetResult = window.ElementFinder.findElements(targetType);
           
           if (!targetResult || !targetResult.elements || targetResult.elements.length === 0) {
             return null;
@@ -671,7 +654,7 @@ export class LocatorStrategy {
           }
           
           return closestElement;
-        `, elementData.id, elementData.exact, true, elementData.type, threshold);
+        `, elementData.id, elementData.exact, elementData.type, threshold);
 
         if (result) {
           result.frameIndex = frameIndex;
@@ -765,19 +748,19 @@ export class LocatorStrategy {
         const result = await this.driver.executeScript(`
           const text = arguments[0];
           const exact = arguments[1];
-          const includeHidden = arguments[2];
-          const targetType = arguments[3];
-          const threshold = arguments[4];
+          const targetType = arguments[2];
+          const threshold = arguments[3];
           
           // First find the generic element (label or text) as reference
-          const genericResult = window.ElementFinder.findElement('element', text, exact, includeHidden);
+          const genericResult = window.ElementFinder.findProbableElements('element', text, exact);
           
           if (!genericResult || !genericResult.elements || genericResult.elements.length === 0) {
             return null;
           }
           
-          // Get all elements of the target type
-          const targetResult = window.ElementFinder.findElement(targetType, null, false, includeHidden);
+          // Get all elements of the target type (never include hidden for fallback search)
+          // Fallback should only find closest VISIBLE element, never return hidden elements
+          const targetResult = window.ElementFinder.findProbableElements(targetType);
           
           if (!targetResult || !targetResult.elements || targetResult.elements.length === 0) {
             return null;
@@ -822,6 +805,8 @@ export class LocatorStrategy {
             for (const target of targetResult.elements) {
               // Skip elements without the element property (from cross-origin iframes)
               if (!target.element) continue;
+              // Skip hidden elements (zero dimension)
+              if (target.boundingBox.height === 0 || target.boundingBox.width === 0) continue;
               const targetRect = target.element.getBoundingClientRect();
               const distance = getEdgeProximityDistance(refRect, targetRect);
               
@@ -833,7 +818,7 @@ export class LocatorStrategy {
           }
           
           return closestElement;
-        `, elementData.id, elementData.exact, elementData.hidden, elementData.type, threshold);
+        `, elementData.id, elementData.exact, elementData.type, threshold);
 
         if (result) {
           // Attach frameIndex to the result

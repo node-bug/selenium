@@ -49,8 +49,7 @@ describe('WebBrowser Interaction Tests', () => {
 
   test('should interact with iFrame elements', async () => {
     await browser.goto(fixtureUrl);
-    // The demo page has a checkbox in an iframe
-    // Assuming the framework handles iframe switching automatically or via element search
     await browser.checkbox('CheckBox in iFrame').check();
+    await browser.checkbox('CheckBox in iFrame').should.be.checked();
   });
 });

@@ -144,69 +144,29 @@ describe('LocatorStrategy', () => {
       expect(results).toHaveLength(1);
     });
 
-    it('should use spatial fallback when element type not found', async () => {
+    it('should use findProbableElements for fallback when direct matches not found', async () => {
       const mockBoundingBox = { x: 0, y: 0, width: 10, height: 10, midx: 5, midy: 5 };
       
       // Mock sequence for findElements:
       // 1. ElementFinder exists check (from _injectElementFinder)
-      // 2. Main frame search - no matches (from _searchInFrame)
+      // 2. Main frame search - no direct matches, but findProbableElements returns fallback
       // 3. Get frame count - 0 frames (from _getChildFrameCount)
-      // 4. Closest element script result (from _findClosestInFrame)
       mockDriver.executeScript
         .mockResolvedValueOnce(true) // ElementFinder exists (from findElements)
         .mockResolvedValueOnce(undefined) // Script injection in frame
-        .mockResolvedValueOnce({ elements: [] }) // No direct matches in main frame
-        .mockResolvedValueOnce(0) // No child frames
         .mockResolvedValueOnce({ 
-          element: { id: 'checkbox1' }, 
-          frameIndex: -1, 
-          tagName: 'input', 
-          boundingBox: mockBoundingBox 
-        }); // Spatial fallback result
+          elements: [{
+            element: { id: 'checkbox1' }, 
+            frameIndex: -1, 
+            tagName: 'input', 
+            boundingBox: mockBoundingBox 
+          }]
+        }) // findProbableElements fallback result
+        .mockResolvedValueOnce(0); // No child frames
 
       const results = await locatorStrategy.findElements({ id: 'test', type: 'checkbox' });
       expect(results).toHaveLength(1);
       expect(results[0].id).toBe('checkbox1');
-    });
-  });
-
-  describe('_findClosestElementOfType', () => {
-    it('should return empty when no generic element found', async () => {
-      // Mock sequence:
-      // 1. Script result - no generic elements found (returns null)
-      mockDriver.executeScript
-        .mockResolvedValueOnce(null); // No generic elements found (script returns null)
-      
-      const results = await locatorStrategy._findClosestElementOfType({ id: 'test', type: 'checkbox' });
-      expect(results.elements).toHaveLength(0);
-    });
-
-    it('should return empty when no target type elements found', async () => {
-      // Mock sequence:
-      // 1. Script result - no target type elements found (returns null)
-      mockDriver.executeScript
-        .mockResolvedValueOnce(null); // No target type elements found (script returns null)
-      
-      const results = await locatorStrategy._findClosestElementOfType({ id: 'test', type: 'checkbox' });
-      expect(results.elements).toHaveLength(0);
-    });
-
-    it('should find closest element within threshold', async () => {
-      const closeBoundingBox = { top: 130, bottom: 150, left: 100, right: 150 };
-      
-      // Mock sequence:
-      // 1. Script result - found closest element
-      mockDriver.executeScript
-        .mockResolvedValueOnce({ 
-          element: { id: 'close' }, 
-          frameIndex: -1, 
-          tagName: 'input', 
-          boundingBox: closeBoundingBox 
-        });
-      
-      const results = await locatorStrategy._findClosestElementOfType({ id: 'test', type: 'checkbox' });
-      expect(results.elements).toHaveLength(1);
-      expect(results.elements[0].element.id).toBe('close');
     });
   });
 
