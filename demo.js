@@ -19,6 +19,21 @@ async function runDemo() {
     await browser.goto(fixtureUrl);
     console.log('Navigated to demo page');
 
+    // Add a tag first
+    await browser.drag.element('Item 1').onto.element('Item 3').drop();
+    await browser.element('Item 2').above.element('Item 1').should.be.visible()
+    await browser.element('Item 2').above.element('Item 3').should.be.visible()
+    await browser.element('some element').above.element('skills-container').should.be.visible()
+    await browser.element('some element').within.element('skills-container').is.visible()
+    await browser.element('×').within.element('Python').within.element('skills-container').should.be.visible()
+    await browser.element('×').within.element('Python').within.element('skills-container').click()
+    await browser.element('Python').within.element('skills-container').should.not.be.visible()
+
+    // Validate: get all elements within skills container and check if JavaScript is visible
+    await browser.element('×').within.element('JavaScript').within.element('skills-container').is.visible()
+    await browser.element('×').within.element('JavaScript').within.element('skills-container').click()
+    console.log('\n--- Validating JavaScript element in skills container ---');
+
     // Wait a moment to see the result
     await new Promise(resolve => setTimeout(resolve, 1000));
 
@@ -32,34 +47,3 @@ async function runDemo() {
 }
 
 runDemo();
-
-// async function demo2() {
-//   const __filename = fileURLToPath(import.meta.url);
-//   const __dirname = dirname(__filename);
-//   const fixturePath = join(__dirname, 'tests/fixtures/interactive-elements.html');
-//   const fixtureUrl = 'file://' + fixturePath;
-//
-//   const browser = new WebBrowser();
-//   await browser.start();
-//   console.log('Browser started successfully');
-//
-//   // Navigate to the demo page
-//   await browser.goto(fixtureUrl);
-//   console.log('Navigated to demo page');
-//
-//   // await browser
-//   //   .textbox('Below heading')
-//   //   .below.element('spatial-heading')
-//   //   .should.be.visible();
-//
-//   try{
-//     await browser.button('Hidden Button').click()
-//   } catch (err){
-//     console.log(err.message)
-//   }
-//
-//   await browser.close();
-//   console.log('Browser closed');
-// }
-
-// demo2()

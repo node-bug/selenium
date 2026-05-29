@@ -12,6 +12,7 @@ import { SelectDelegate } from './app/command-delegates/select-delegate.js';
 import { RadioDelegate } from './app/command-delegates/radio-delegate.js';
 import { SwitchDelegate } from './app/command-delegates/switch-delegate.js';
 import { SliderDelegate } from './app/command-delegates/slider-delegate.js';
+import { DragDropDelegate } from './app/command-delegates/drag-drop-delegate.js';
 import ELEMENT_DEFINITIONS from '@nodebug/browser-element-finder/element-definitions.json' with { type: 'json' };
 
 const selenium = config('selenium');
@@ -40,6 +41,7 @@ class WebBrowser extends Browser {
   #radioDelegate;
   #switchDelegate;
   #sliderDelegate;
+  #dragDropDelegate;
 
   constructor() {
     super()
@@ -53,6 +55,7 @@ class WebBrowser extends Browser {
     this.#radioDelegate = new RadioDelegate(this);
     this.#switchDelegate = new SwitchDelegate(this);
     this.#sliderDelegate = new SliderDelegate(this);
+    this.#dragDropDelegate = new DragDropDelegate(this);
 
     Object.keys(ELEMENT_DEFINITIONS).forEach(type => {
       this[type] = (data) => {
@@ -1553,15 +1556,8 @@ class WebBrowser extends Browser {
       // Scroll the target element into view
       await this.driver.executeScript('arguments[0].scrollIntoView(true);', dropLocator);
 
-      // 3. Execute precise Action sequence using built-in dragAndDrop
-      const actions = this.driver.actions({ async: true });
-
-      await actions
-        .dragAndDrop(dragLocator, dropLocator)
-        .perform();
-
-      // Allow the page's drag-and-drop handlers time to update the DOM
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // 3. Use DragDropDelegate which handles HTML5 drag events automatically
+      await this.#dragDropDelegate.perform(dragLocator, dropLocator);
 
       log.info(`Successfully dragged ${dragStack[0].id} onto ${dropStack[0].id}`);
     } catch (err) {

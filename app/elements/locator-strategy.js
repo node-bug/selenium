@@ -996,6 +996,7 @@ export class LocatorStrategy {
   async find(stack) {
     const data = await this.resolveElements(stack);
     let currentElement = null;
+    let lastElementId = null;
 
     // Process from bottom of stack up
     for (let i = data.length - 1; i >= 0; i--) {
@@ -1011,15 +1012,23 @@ export class LocatorStrategy {
 
           const results = await this.relativeSearch(target, item, refElement);
           currentElement = results[target.index ? target.index - 1 : 0];
+          
+          if (!currentElement) {
+            // For location items, report the target element's id with the context element's id
+            const relation = item.located || 'within';
+            throw new ReferenceError(`Matching element for '${target.id}' ${relation} '${lastElementId}' was not found.`);
+          }
         } else {
           // Regular element: apply spatial filter (even if no spatial constraint)
           const results = await this.relativeSearch(item);
           currentElement = results[item.index ? item.index - 1 : 0];
-        }
-
-        if (!currentElement) {
-          const location = item.type === 'location' ? ` ${item.located}` : '';
-          throw new ReferenceError(`Matching element for '${item.id}'${location} not found.`);
+          
+          // Track the id for error messages in subsequent location items
+          lastElementId = item.id;
+          
+          if (!currentElement) {
+            throw new ReferenceError(`Matching element for '${item.id}' was not found.`);
+          }
         }
       } catch (err) {
         if (err instanceof ReferenceError) {
@@ -1093,6 +1102,7 @@ export class LocatorStrategy {
     let elements = [];
     let currentContextElement = null;
     let currentMatches = [];
+    let lastContextId = null;
 
     // 2. Traverse the stack from bottom to top (Reverse)
     for (let i = data.length - 1; i >= 0; i--) {
@@ -1100,9 +1110,10 @@ export class LocatorStrategy {
       const isLocation = item.type === 'location';
 
       try {
+        let target;
         if (isLocation) {
           // Spatial location: current is the filter, next is the target element
-          const target = data[--i];
+          target = data[--i];
 
           // For 'within', pass all matches for multi-reference filtering
           const refElement = item.located === 'within' ? currentMatches : currentContextElement;
@@ -1110,6 +1121,8 @@ export class LocatorStrategy {
         } else {
           // Regular element: apply any spatial filter (or pass through if none)
           elements = await this.relativeSearch(item);
+          // Track the id of the context element for error messages
+          lastContextId = item.id;
         }
 
         // Set context for next level: use first match as reference point
@@ -1117,9 +1130,15 @@ export class LocatorStrategy {
         currentMatches = elements;
 
         if (elements.length === 0) {
-          const location = isLocation ? ` ${item.located}` : '';
+          if (isLocation) {
+            // For location items, report the target element's id with the context element's id
+            const relation = item.located || 'within';
+            throw new ReferenceError(
+              `Matching element for '${target.id}' ${relation} '${lastContextId}' was not found.`
+            );
+          }
           throw new ReferenceError(
-            `'${item.id}'${location} resulted in 0 matching elements.`
+            `Matching element for '${item.id}' was not found.`
           );
         }
       } catch (err) {

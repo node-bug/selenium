@@ -42,27 +42,21 @@ describe('Advanced Dropdown Interactions Integration Tests', () => {
   describe('Multi-select Tags', () => {
     test('should add tag by clicking button', async () => {
       await browser.button('JavaScript').click();
-      
-      const tags = await browser.element('tag').findAll();
-      expect(tags.length).toBeGreaterThan(0);
+      await browser.element('JavaScript').within.element('skills-container').should.be.visible()
     });
 
     test('should add multiple tags', async () => {
       await browser.button('Python').click();
-      
-      const tags = await browser.element('tag').findAll();
-      expect(tags.length).toBeGreaterThan(1);
+      await browser.element('JavaScript').within.element('skills-container').should.be.visible()
+      await browser.element('Python').within.element('skills-container').should.be.visible()
     });
 
     test('should remove tag by clicking remove button', async () => {
-      const tagsBefore = await browser.element('tag').findAll();
-      const removeButtons = await browser.element('×').findAll();
-      if (removeButtons.length > 0) {
-        await removeButtons[0].click();
-      }
-      
-      const tagsAfter = await browser.element('tag').findAll();
-      expect(tagsAfter.length).toBe(tagsBefore.length - 1);
+      await browser.element('×').within.element('Python').within.element('skills-container').should.be.visible()
+      await browser.element('×').within.element('Python').within.element('skills-container').click()
+      await browser.element('×').within.element('JavaScript').within.element('skills-container').click()
+      await browser.element('Python').within.element('skills-container').should.not.be.visible()
+      await browser.element('JavaScript').within.element('skills-container').should.not.be.visible()
     });
   });
 });

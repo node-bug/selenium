@@ -1,4 +1,5 @@
 import WebBrowser from '../../index.js';
+import { By } from 'selenium-webdriver';
 
 describe('Drag and Drop Integration Tests', () => {
   let browser;
@@ -25,14 +26,11 @@ describe('Drag and Drop Integration Tests', () => {
   });
 
   test('should reorder items in a sortable list', async () => {
-    // Drag Item 1 onto Item 3 to reorder
+    // Use the repo API to drag Item 1 onto Item 3
     await browser.drag.element('Item 1').onto.element('Item 3').drop();
-    
-    const items = await browser.element('sortable-item').findAll();
-    const texts = await Promise.all(items.map(i => i.getText()));
-    
-    // Verify Item 1 is no longer at the top
-    expect(texts[0]).not.toBe('☰ Item 1');
+    await browser.element('Item 2').above.element('Item 1').should.be.visible()
+    await browser.element('Item 2').above.element('Item 3').should.be.visible()
+
   });
 
   test('should drag items to different target zones', async () => {
@@ -46,8 +44,6 @@ describe('Drag and Drop Integration Tests', () => {
   });
 
   test('should handle file drag and drop (simulated)', async () => {
-    const { By } = await import('selenium-webdriver');
-    
     // Simulate a drop event using executeScript since we can't drag real files
     const fileZone = await browser.driver.findElement(By.id('file-drop-zone'));
     await browser.driver.executeScript(`

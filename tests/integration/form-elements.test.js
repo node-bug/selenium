@@ -83,8 +83,8 @@ describe('Form Elements Integration Tests', () => {
 
   describe('Special Inputs', () => {
     test('should interact with color picker', async () => {
-      await browser.textbox('Color Picker').write('#00ff00');
-      const value = await browser.textbox('Color Picker').get.value();
+      await browser.colorpicker('Color Picker').write('#00ff00');
+      const value = await browser.colorpicker('Color Picker').get.value();
       expect(value).toBe('#00ff00');
     });
 

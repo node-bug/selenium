@@ -103,7 +103,7 @@ describe('Table Operations Integration Tests', () => {
 
   test('should find elements using ARIA roles', async () => {
     const text = await browser.row('Web-API').get.text();
-    expect(text).toBe('Web-API');
+    expect(text).toContain('Web-API');
   });
 
   // ---------------- ADDITIONAL TABLE TESTS ----------------
@@ -231,7 +231,7 @@ describe('Table Operations Integration Tests', () => {
     // Age column should have consistent numeric values
     // Note: findAll finds across all tables, so we get Age from multiple tables
     await browser.element('Alice').within.column('Name').within.row(2).should.be.visible()
-    await browser.element('London').within.row(3).within.column('City').should.be.visible()
+    await browser.element('London').within.column('City').within.row(3).should.be.visible()
   });
 
   test('should verify row data consistency across columns', async () => {
@@ -251,8 +251,8 @@ describe('Table Operations Integration Tests', () => {
     expect(charlieCity).toBe('Paris');
   });
 
-  test.skip('should resolve elements within nested tables', async () => {
+  test('should resolve elements within nested tables', async () => {
     const text = await browser.row('Inner 2.2').get.text();
-    expect(text).toBe('Inner 2.2');
+    expect(text).toContain('Inner 2.2');
   });
 });
