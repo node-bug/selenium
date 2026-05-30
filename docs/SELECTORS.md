@@ -35,7 +35,6 @@ Specify element types to differentiate elements with identical text:
 | `checkbox`   | `browser.checkbox('Subscribe').check()`             |
 | `switch`     | `browser.switch('Dark Mode').on()`                  |
 | `radio`      | `browser.radio('Male').check()`                     |
-| `slider`     | `browser.slider('Volume').set(50)`                  |
 | `dropdown`   | `browser.dropdown('Country').option('US').select()` |
 | `textbox`    | `browser.textbox('Email').write('...')`             |
 | `file`       | `browser.file('Upload').upload('file.txt')`         |
@@ -45,6 +44,7 @@ Specify element types to differentiate elements with identical text:
 | `menuitem`   | `browser.menuitem('Save').click()`                  |
 | `toolbar`    | `browser.toolbar('Format').click()`                 |
 | `dialog`     | `browser.dialog('Confirm').click()`                 |
+| `table`      | `browser.table('Users').click()`                    |
 | `row`        | `browser.row('5').click()`                          |
 | `column`     | `browser.column('Name').click()`                    |
 | `image`      | `browser.image('Logo').click()`                     |
@@ -321,14 +321,36 @@ const elements = await browser.element('text').findAll()
 
 ## Element Index
 
-When multiple elements share the same name, use `atIndex()`:
+When multiple elements share the same name, you **must** use `.at.index()` to disambiguate:
 
 ```javascript
 // First textbox named 'Email'
-await browser.textbox('Email').atIndex(0).write('first@example.com')
+await browser.textbox('Email').at.index(1).write('first@example.com')
 
 // Third button named 'Delete'
-await browser.button('Delete').atIndex(2).click()
+await browser.button('Delete').at.index(3).click()
+```
+
+> **Important:** If multiple elements match your selector and you don't specify `.at.index()`, an error is thrown. Always use `.at.index(n)` when there's ambiguity.
+
+```javascript
+// ✗ Throws error if multiple 'Delete' buttons exist
+await browser.button('Delete').click()
+
+// ✓ Explicitly selects the second 'Delete' button
+await browser.button('Delete').at.index(2).click()
+```
+
+### When element() Works Without .at.index()
+
+Calling `element()` without `.at.index()` is safe when exactly one element matches:
+
+```javascript
+// ✓ Only one 'Submit' button on the page
+await browser.button('Submit').click()
+
+// ✓ Unique text match
+await browser.textbox('Password').write('secret')
 ```
 
 ## See Also
@@ -407,19 +429,21 @@ await browser.textbox('email_address').write('...') // by name
 await browser.button('Delete').click() // Gets first
 
 // ✓ Specify which one
-await browser.button('Delete').atIndex(1).click() // Get second
+await browser.button('Delete').at.index(2).click() // Get second
 ```
 
 ### Common Patterns That Fail
 
 **Pattern: Hidden Elements**
 
-```javascript
-// ✗ Hidden element not found
-await browser.element('Hidden Text').click()
+Elements that are visually hidden (via CSS opacity, display: none, etc.) can be selected using the `.hidden` modifier:
 
-// ✓ Make visible first or use within visible container
-await browser.element('Hidden Text').hidden.click() // if library supports this
+```javascript
+// ✗ Hidden element not found by default
+await browser.element('Hidden Text').click() // Fails - element is hidden
+
+// ✓ Use .hidden modifier to target hidden elements
+await browser.hidden.element('Hidden Text').click() // Successfully finds hidden element
 ```
 
 **Pattern: Dynamic Content**
@@ -466,7 +490,7 @@ Do you know the visible text or placeholder?
                  │
                  └─ NO → Use generic + index:
                          await browser.element('Text')
-                           .atIndex(2).click()
+                           .at.index(2).click()
 ```
 
 ---

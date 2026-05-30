@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Click Capabilities Test Fixture</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; line-height: 1.6; background-color: #f9f9f9; }
+        section { margin-bottom: 40px; border: 1px solid #ccc; padding: 20px; border-radius: 8px; background-color: white; }
+        h2 { margin-top: 0; color: #333; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        .field-group { margin-bottom: 15px; display: flex; flex-direction: column; gap: 5px; }
+        .click-counter { margin-top: 10px; padding: 10px; background: #e8f4f8; border-radius: 4px; }
+        .counter-value { font-weight: bold; font-size: 1.2em; }
+        
+        /* Button Styles */
+        .btn { padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin: 5px; }
+        .btn-primary { background-color: #007bff; color: white; }
+        .btn-success { background-color: #28a745; color: white; }
+        .btn-danger { background-color: #dc3545; color: white; }
+        .btn-warning { background-color: #ffc107; color: #333; }
+        
+        /* Text Input for triple-click testing */
+        .text-input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; width: 300px; }
+        
+        /* Hover target */
+        .hover-target { padding: 20px; background-color: #f0f0f0; border: 2px dashed #ccc; cursor: pointer; }
+        .hover-target:hover { background-color: #d4edda; border-color: #28a745; }
+        
+        /* Context menu area */
+        .context-area { padding: 40px; background-color: #fff3cd; border: 2px solid #ffc107; text-align: center; cursor: context-menu; }
+        
+        /* Middle-click area */
+        .middle-click-area { padding: 40px; background-color: #cce5ff; border: 2px solid #007bff; text-align: center; cursor: cell; }
+        
+        /* Long press area */
+        .long-press-area { padding: 40px; background-color: #f8d7da; border: 2px solid #dc3545; text-align: center; cursor: pointer; }
+        
+        /* Coordinate click area */
+        .coord-area { position: relative; width: 300px; height: 200px; background-color: #e2e3e5; border: 1px solid #6c757d; }
+        .coord-marker { position: absolute; width: 20px; height: 20px; background-color: #28a745; border-radius: 50%; cursor: pointer; }
+        .coord-marker.top-left { top: 10px; left: 10px; }
+        .coord-marker.top-right { top: 10px; right: 10px; }
+        .coord-marker.bottom-left { bottom: 10px; left: 10px; }
+        .coord-marker.bottom-right { bottom: 10px; right: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Click Capabilities Test Fixture</h1>
+
+    <!-- 1. Standard Click Counter -->
+    <section id="standard-click-section">
+        <h2>1. Standard Click</h2>
+        <div class="field-group">
+            <button id="btn-standard-click" class="btn btn-primary">Standard Click Me</button>
+            <div class="click-counter">Clicks: <span id="standard-click-count" class="counter-value">0</span></div>
+        </div>
+    </section>
+
+    <!-- 2. Double Click -->
+    <section id="double-click-section">
+        <h2>2. Double Click</h2>
+        <div class="field-group">
+            <button id="btn-double-click" class="btn btn-success">Double Click Me</button>
+            <div class="click-counter">Double Clicks: <span id="double-click-count" class="counter-value">0</span></div>
+        </div>
+    </section>
+
+    <!-- 3. Triple Click -->
+    <section id="triple-click-section">
+        <h2>3. Triple Click</h2>
+        <div class="field-group">
+            <input type="text" id="txt-triple-click" class="text-input" value="Triple click to select all this text">
+            <div class="click-counter">Triple Clicks: <span id="triple-click-count" class="counter-value">0</span></div>
+        </div>
+    </section>
+
+    <!-- 4. Multiple Clicks -->
+    <section id="multiple-click-section">
+        <h2>4. Multiple Clicks</h2>
+        <div class="field-group">
+            <button id="btn-multiple-click" class="btn btn-warning">Click Me Multiple Times</button>
+            <div class="click-counter">Total Clicks: <span id="multiple-click-count" class="counter-value">0</span></div>
+        </div>
+    </section>
+
+    <!-- 5. Right Click / Context Click -->
+    <section id="right-click-section">
+        <h2>5. Right Click (Context Click)</h2>
+        <div class="field-group">
+            <div id="area-right-click" class="context-area">Right Click Me</div>
+            <div class="click-counter">Right Clicks: <span id="right-click-count" class="counter-value">0</span></div>
+        </div>
+    </section>
+
+    <!-- 6. Middle Click -->
+    <section id="middle-click-section">
+        <h2>6. Middle Click</h2>
+        <div class="field-group">
+            <div id="area-middle-click" class="middle-click-area">Middle Click Me</div>
+            <div class="click-counter">Middle Clicks: <span id="middle-click-count" class="counter-value">0</span></div>
+        </div>
+    </section>
+
+    <!-- 7. Long Press -->
+    <section id="long-press-section">
+        <h2>7. Long Press</h2>
+        <div class="field-group">
+            <div id="area-long-press" class="long-press-area">Long Press Me</div>
+            <div class="click-counter">Long Presses: <span id="long-press-count" class="counter-value">0</span></div>
+        </div>
+    </section>
+
+    <!-- 8. Hover -->
+    <section id="hover-section">
+        <h2>8. Hover</h2>
+        <div class="field-group">
+            <div id="area-hover" class="hover-target">Hover Over Me</div>
+            <div class="click-counter">Hover Count: <span id="hover-count" class="counter-value">0</span></div>
+        </div>
+    </section>
+
+    <!-- 9. Coordinate-based Click -->
+    <section id="coordinate-click-section">
+        <h2>9. Coordinate-based Click</h2>
+        <div class="field-group">
+            <div id="area-coordinate-click" class="coord-area">
+                <div id="marker-top-left" class="coord-marker top-left" data-position="top-left"></div>
+                <div id="marker-top-right" class="coord-marker top-right" data-position="top-right"></div>
+                <div id="marker-bottom-left" class="coord-marker bottom-left" data-position="bottom-left"></div>
+                <div id="marker-bottom-right" class="coord-marker bottom-right" data-position="bottom-right"></div>
+            </div>
+            <div class="click-counter">Coordinate Clicks: <span id="coordinate-click-count" class="counter-value">0</span></div>
+        </div>
+    </section>
+
+    <!-- 10. Modifier Clicks -->
+    <section id="modifier-click-section">
+        <h2>10. Modifier Clicks</h2>
+        <div class="field-group">
+            <button id="btn-modifier-click" class="btn btn-danger">Ctrl+Click / Shift+Alt+Click</button>
+            <div class="click-counter">
+                Ctrl Clicks: <span id="ctrl-click-count" class="counter-value">0</span> | 
+                Shift+Alt Clicks: <span id="shift-alt-click-count" class="counter-value">0</span>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        // Standard click
+        document.getElementById('btn-standard-click').addEventListener('click', function() {
+            const count = parseInt(document.getElementById('standard-click-count').textContent);
+            document.getElementById('standard-click-count').textContent = count + 1;
+        });
+
+        // Double click
+        document.getElementById('btn-double-click').addEventListener('dblclick', function() {
+            const count = parseInt(document.getElementById('double-click-count').textContent);
+            document.getElementById('double-click-count').textContent = count + 1;
+        });
+
+        // Triple click (select event)
+        document.getElementById('txt-triple-click').addEventListener('select', function() {
+            const count = parseInt(document.getElementById('triple-click-count').textContent);
+            document.getElementById('triple-click-count').textContent = count + 1;
+        });
+
+        // Multiple clicks (same as standard, just count them)
+        document.getElementById('btn-multiple-click').addEventListener('click', function() {
+            const count = parseInt(document.getElementById('multiple-click-count').textContent);
+            document.getElementById('multiple-click-count').textContent = count + 1;
+        });
+
+        // Right click
+        document.getElementById('area-right-click').addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            const count = parseInt(document.getElementById('right-click-count').textContent);
+            document.getElementById('right-click-count').textContent = count + 1;
+        });
+
+        // Middle click
+        document.getElementById('area-middle-click').addEventListener('auxclick', function(e) {
+            if (e.button === 1) {
+                const count = parseInt(document.getElementById('middle-click-count').textContent);
+                document.getElementById('middle-click-count').textContent = count + 1;
+            }
+        });
+
+        // Long press (touchstart + touchend with timeout)
+        let longPressTimer;
+        document.getElementById('area-long-press').addEventListener('mousedown', function() {
+            longPressTimer = setTimeout(function() {
+                const count = parseInt(document.getElementById('long-press-count').textContent);
+                document.getElementById('long-press-count').textContent = count + 1;
+            }, 500);
+        });
+        document.getElementById('area-long-press').addEventListener('mouseup', function() {
+            clearTimeout(longPressTimer);
+        });
+        document.getElementById('area-long-press').addEventListener('mouseleave', function() {
+            clearTimeout(longPressTimer);
+        });
+
+        // Hover
+        document.getElementById('area-hover').addEventListener('mouseenter', function() {
+            const count = parseInt(document.getElementById('hover-count').textContent);
+            document.getElementById('hover-count').textContent = count + 1;
+        });
+
+        // Coordinate click markers
+        document.querySelectorAll('.coord-marker').forEach(function(marker) {
+            marker.addEventListener('click', function() {
+                const count = parseInt(document.getElementById('coordinate-click-count').textContent);
+                document.getElementById('coordinate-click-count').textContent = count + 1;
+            });
+        });
+
+        // Modifier clicks
+        document.getElementById('btn-modifier-click').addEventListener('click', function(e) {
+            if (e.ctrlKey) {
+                const count = parseInt(document.getElementById('ctrl-click-count').textContent);
+                document.getElementById('ctrl-click-count').textContent = count + 1;
+            }
+            if (e.shiftKey && e.altKey) {
+                const count = parseInt(document.getElementById('shift-alt-click-count').textContent);
+                document.getElementById('shift-alt-click-count').textContent = count + 1;
+            }
+        });
+    </script>
+</body>
+</html>

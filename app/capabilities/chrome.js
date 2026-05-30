@@ -7,69 +7,105 @@
  * 
  * @class Chrome
  */
-import { Capabilities } from 'selenium-webdriver'
+import { Capabilities } from 'selenium-webdriver';
+import { Options } from 'selenium-webdriver/chrome.js'
 import config from '@nodebug/config'
-import prefs from './preferences.js' // Note: ESM requires the .js extension
+import { downloadPath } from './preferences.js'
 
 const selenium = config('selenium')
 
-/**
- * Get Chrome browser capabilities
- * 
- * Configures Chrome with performance and security optimizations:
- * - Disables extensions, GPU, notifications, and the automation indicator
- * - Sets headless mode if `selenium.headless` is enabled in config
- * - Sets incognito mode if `selenium.incognito` is enabled in config
- * - Applies shared browser preferences from preferences.js
- * 
- * @returns {Object} Chrome browser capabilities configuration
- * @example
- * const chromeCaps = new Chrome().capabilities;
- * console.log(chromeCaps);
- */
 class Chrome {
+  /**
+   * Get Chrome browser capabilities
+   * 
+   * Configures Chrome with performance and security optimizations:
+   * - Disables extensions, GPU, notifications, and the automation indicator
+   * - Sets headless mode if `selenium.headless` is enabled in config
+   * - Sets incognito mode if `selenium.incognito` is enabled in config
+   * - Applies Chrome-specific preferences (downloads, security, UI)
+   * 
+   * @returns {Object} Chrome browser capabilities configuration
+   */
   get capabilities() {
-    /**
-     * Chrome-specific WebDriver options.
-     * @type {Object}
-     * @property {string[]} args - Command-line flags for Chrome.
-     * Disables extensions, GPU, notifications, sandbox restrictions,
-     * automation detection, and first-run UI.
-     * @property {Object} prefs - Shared browser preferences (downloads, security, UI).
-     * @property {string[]} excludeSwitches - Chrome switches to exclude;
-     * removes the default 'enable-automation' flag to avoid detection.
-     */
-    const options = {
-      args: [
-        '--force-device-scale-factor=1',
-        '--disable-extensions',
-        '--disable-gpu',
-        '--disable-notifications',
-        '--no-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-blink-features=AutomationControlled',
-        '--no-first-run',
-      ],
-      prefs,
-      excludeSwitches: ['enable-automation'],
+    const options = new Options()
+
+    // Add Chrome command-line flags (Arguments)
+    options.addArguments([
+      '--force-device-scale-factor=1',
+      '--disable-infobars',
+      '--disable-notifications',
+      '--no-sandbox',
+      '--disable-dev-shm-usage'
+    ])
+
+    // Exclude automation switch to avoid detection
+    options.excludeSwitches(['enable-automation'])
+
+    // Apply Chrome-specific preferences (User Prefs)
+    options.setUserPreferences({
+      // Downloads
+      'download.default_directory': downloadPath,
+      'download.prompt_for_download': false,
+      'download.directory_upgrade': true,
+      'profile.content_settings.exceptions.automatic_downloads.*.setting': 1,
+
+      // Password & credentials (silences "Change Password" popups)
+      'credentials_enable_service': false,
+      'profile.password_manager_enabled': false,
+      'profile.password_manager_leak_detection': false,
+      'password_manager_enable_autofill': false,
+      'password_manager_bubble_enabled': false,
+
+      // Security & Performance
+      'safebrowsing.enabled': false, // Disables background security checks for speed
+      'browser.check_default_action': 0,
+      'browser.default_popups_setting': 0,
+      'browser.show_first_run_ui': false,
+      'browser.enable_webrtc_privacy_indicator': false,
+
+      // Autofill
+      'autofill.profile_enabled': false,
+      'autofill.address_enabled': false,
+      'autofill.credit_card_enabled': false,
+      'autofill.merchant_data_collection_enabled': false,
+
+      // Translation & Metrics
+      'translate.enabled': false,
+      'metrics.reporting_enabled': false,
+      'metrics.client_metrics_opt_in_status': 0,
+
+      // Notifications & permissions (2 = Block)
+      'profile.default_content_setting_values.notifications': 2,
+      'profile.default_content_setting_values.geolocation': 2,
+      'profile.default_content_setting_values.midi_sysex': 2,
+      'profile.default_content_setting_values.popups': 2,
+
+      // Spell checking
+      'browser.enable_spellchecking': false,
+      'browser.enable_autospellcorrect': false,
+    })
+
+    // Enable headless mode if configured
+    if (String(selenium.headless) === 'true') {
+      options.addArguments('--headless=new')
     }
 
-    // Enable headless mode if configured (supports both string 'true' and boolean true)
-    if (selenium.headless === 'true' || selenium.headless === true) {
-      options.args.push('--headless=new')
-    }
     // Enable incognito (private browsing) mode if configured
-    if (selenium.incognito === 'true' || selenium.incognito === true) {
-      options.args.push('--incognito')
+    if (String(selenium.incognito) === 'true') {
+      options.addArguments('--incognito')
     }
 
-    this._capabilities = Capabilities.chrome()
-    // Apply Chrome-specific options via the goog:chromeOptions capability key
-    this._capabilities.set('goog:chromeOptions', options)
-    // Wait for the full page to load before returning control
-    this._capabilities.set('pageLoadStrategy', 'normal')
-    return this._capabilities
-     
+    // 1. Start with a standard Chrome capabilities object
+    const caps = Capabilities.chrome();
+
+    // 2. Merge the Options into the Capabilities object
+    // This correctly populates 'goog:chromeOptions' under the hood
+    caps.merge(options);
+
+    // 3. Set additional top-level WebDriver capabilities
+    caps.set('pageLoadStrategy', 'normal');
+
+    return caps;
   }
 }
 

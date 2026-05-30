@@ -146,10 +146,10 @@ class Browser {
       } finally {
         this.driver = null; // CRITICAL: Nullify the reference
       }
-      process.exit(0);
     };
 
-    if (process.listenerCount('SIGINT') === 0) {
+    // Only register signal handlers if not in a test environment
+    if (process.env.NODE_ENV !== 'test' && process.listenerCount('SIGINT') === 0) {
       ['SIGINT', 'SIGTERM', 'exit', 'uncaughtException'].forEach(signal => process.on(signal, cleanup));
     }
   }
@@ -193,13 +193,28 @@ class Browser {
    * await browser.close();
    */
   async close() {
+    // Check if driver exists before attempting to close
+    if (!this.driver) {
+      log.info('No active browser session to close.');
+      return true;
+    }
+
     try {
-      const currentUrl = await this.window().get.url()
-      log.info(`Closing the browser. Current URL is '${currentUrl}'.`)
+      // Try to get URL for logging, but don't fail if it's not available
+      try {
+        const currentUrl = await this.window().get.url()
+        log.info(`Closing the browser. Current URL is '${currentUrl}'.`)
+      } catch {
+        log.info('Closing the browser.')
+      }
       await this.driver.quit()
     } catch (err) {
       log.error(`Error closing browser session: ${err.message}`)
-      throw err
+      // If driver is already null or session is gone, we can just return true
+      if (err.message.includes('no session') || err.message.includes('invalid session')) return true;
+      throw err;
+    } finally {
+      this.driver = null; // CRITICAL: Nullify the reference to prevent orphaned browsers
     }
     return true
   }
@@ -227,8 +242,6 @@ class Browser {
       typeof size.height === 'number' &&
       !Number.isNaN(size.height);
 
-    // //maximize no matter what if this function is called
-    // await this.window().maximize()
     try {
       if (isValidSize) {
         await this.driver.manage().window().setRect(size)
@@ -250,7 +263,7 @@ class Browser {
         await this.driver.manage().window().setRect(lSize)
         log.info(`Resizing the browser to (${JSON.stringify(size)}).`)
 
-        return await this.driver.manage().window().setRect(size)
+        return true
       } else {
         log.info(`Invalid size provided (${JSON.stringify(size)}). Browser will not be resized.`)
       }
@@ -316,10 +329,56 @@ class Browser {
       const title = await this.window().get.title()
       log.info(`Refreshing window with title '${title}'.`)
       await this.driver.navigate().refresh()
+      // Wait for page to fully load
+      await this._waitForPageLoad()
     } catch (err) {
       log.error(`Error refreshing page: ${err.message}`)
       throw err
     }
+  }
+
+  /**
+   * Wait for the page to fully load after navigation.
+   * 
+   * Polls the readyState until it's complete or timeout is reached.
+   * 
+   * @param {number} [timeoutMs=10000] - Maximum time to wait in milliseconds
+   * @returns {Promise<void>}
+   * @private
+   */
+  async _waitForPageLoad(timeoutMs = 10000) {
+    const maxAttempts = timeoutMs / 500;
+    for (let i = 0; i < maxAttempts; i++) {
+      const readyState = await this.driver.executeScript('return document.readyState');
+      if (readyState === 'complete') {
+        return;
+      }
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+    log.warn(`Page did not fully load after ${timeoutMs}ms`);
+  }
+
+  /**
+   * Wait for the page title to change after navigation.
+   * 
+   * Polls the title until it differs from the previous title or timeout is reached.
+   * This is needed for dynamic pages where the title updates asynchronously.
+   * 
+   * @param {string} previousTitle - The title before navigation
+   * @param {number} [timeoutMs=10000] - Maximum time to wait in milliseconds
+   * @returns {Promise<void>}
+   * @private
+   */
+  async _waitForTitleChange(previousTitle, timeoutMs = 10000) {
+    const maxAttempts = timeoutMs / 200;
+    for (let i = 0; i < maxAttempts; i++) {
+      const currentTitle = await this.driver.getTitle();
+      if (currentTitle !== previousTitle) {
+        return;
+      }
+      await new Promise(resolve => setTimeout(resolve, 200));
+    }
+    log.warn(`Page title did not change from '${previousTitle}' after ${timeoutMs}ms`);
   }
 
   /**
@@ -338,8 +397,14 @@ class Browser {
       log.info(`Current page is '${currentTitle}'`)
       log.info(`Performing browser back`)
       await this.driver.navigate().back()
+      // Wait for page to fully load
+      await this._waitForPageLoad()
+      // Wait for title to change (needed for dynamic pages like Wikipedia)
+      await this._waitForTitleChange(currentTitle)
       const newTitle = await this.window().get.title()
       log.info(`Loaded page is '${newTitle}'`)
+      // Small delay to ensure browser history is updated before next navigation
+      await new Promise(resolve => setTimeout(resolve, 500));
       return true
     } catch (err) {
       log.error(`Error going back: ${err.message}`)
@@ -363,6 +428,10 @@ class Browser {
       log.info(`Current page is '${currentTitle}'`)
       log.info(`Performing browser forward`)
       await this.driver.navigate().forward()
+      // Wait for page to fully load
+      await this._waitForPageLoad()
+      // Wait for title to change (needed for dynamic pages like Wikipedia)
+      await this._waitForTitleChange(currentTitle)
       const newTitle = await this.window().get.title()
       log.info(`Loaded page is '${newTitle}'`)
       return true
@@ -484,6 +553,98 @@ class Browser {
           log.error(`Error getting browser size: ${err.message}`)
           throw err
         }
+      },
+    };
+  }
+
+  /**
+   * Accessor for scrolling the browser window.
+   * 
+   * Provides methods to scroll the browser window to specific positions.
+   * 
+   * @type {Object}
+   * @returns {Object} Object containing scroll accessor methods
+   * @example
+   * await browser.scroll.to.top();
+   * await browser.scroll.to.bottom();
+   * await browser.scroll.to.left();
+   * await browser.scroll.to.right();
+   */
+  get scroll() {
+    const self = this;
+    return {
+      /**
+       * Scroll the browser window to specific positions.
+       */
+      to: {
+        /**
+         * Scroll the browser window to the top (left: 0, top: 0).
+         * @returns {Promise<boolean>} True if successful
+         * @example
+         * await browser.scroll.to.top();
+         */
+        top: async () => {
+          try {
+            await self.driver.switchTo().defaultContent();
+            await self.driver.executeScript('window.scrollTo(0, 0);');
+            log.info('Scrolled to top of page.');
+            return true;
+          } catch (err) {
+            log.error(`Error scrolling to top: ${err.message}`);
+            throw err;
+          }
+        },
+        /**
+         * Scroll the browser window to the bottom (left: 0, top: document body height).
+         * @returns {Promise<boolean>} True if successful
+         * @example
+         * await browser.scroll.to.bottom();
+         */
+        bottom: async () => {
+          try {
+            await self.driver.switchTo().defaultContent();
+            await self.driver.executeScript('window.scrollTo(0, document.body.scrollHeight);');
+            log.info('Scrolled to bottom of page.');
+            return true;
+          } catch (err) {
+            log.error(`Error scrolling to bottom: ${err.message}`);
+            throw err;
+          }
+        },
+        /**
+         * Scroll the browser window to the leftmost position (left: 0, top: 0).
+         * @returns {Promise<boolean>} True if successful
+         * @example
+         * await browser.scroll.to.left();
+         */
+        left: async () => {
+          try {
+            await self.driver.switchTo().defaultContent();
+            await self.driver.executeScript('window.scrollTo(0, 0);');
+            log.info('Scrolled to left of page.');
+            return true;
+          } catch (err) {
+            log.error(`Error scrolling to left: ${err.message}`);
+            throw err;
+          }
+        },
+        /**
+         * Scroll the browser window to the rightmost position (left: document body width, top: 0).
+         * @returns {Promise<boolean>} True if successful
+         * @example
+         * await browser.scroll.to.right();
+         */
+        right: async () => {
+          try {
+            await self.driver.switchTo().defaultContent();
+            await self.driver.executeScript('window.scrollTo(document.body.scrollWidth, 0);');
+            log.info('Scrolled to right of page.');
+            return true;
+          } catch (err) {
+            log.error(`Error scrolling to right: ${err.message}`);
+            throw err;
+          }
+        },
       },
     };
   }

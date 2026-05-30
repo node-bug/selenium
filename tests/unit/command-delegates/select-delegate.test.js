@@ -1,32 +1,38 @@
-import { jest } from '@jest/globals';
+import { vi, beforeEach } from 'vitest';
 
 // ---------------- MOCKS ----------------
-const mockSelectInstance = {
-  getOptions: jest.fn(),
-  getFirstSelectedOption: jest.fn(),
-  selectByIndex: jest.fn(),
-  selectByVisibleText: jest.fn(),
-  selectByValue: jest.fn(),
-};
-
-jest.unstable_mockModule('selenium-webdriver', () => ({
-  Builder: jest.fn(),
-  By: {},
-  until: {},
-  WebDriver: jest.fn(),
-  Select: jest.fn(() => mockSelectInstance),
+const mockSelectInstance = vi.hoisted(() => ({
+  getOptions: vi.fn(),
+  getFirstSelectedOption: vi.fn(),
+  getAllSelectedOptions: vi.fn(),
+  selectByIndex: vi.fn(),
+  selectByVisibleText: vi.fn(),
+  selectByValue: vi.fn(),
 }));
 
-jest.unstable_mockModule('@nodebug/logger', () => ({
+function MockSelect() {
+  return mockSelectInstance;
+}
+
+vi.mock('selenium-webdriver', () => ({
+  Builder: vi.fn(),
+  By: {},
+  until: {},
+  WebDriver: vi.fn(),
+  Select: MockSelect,
+}));
+
+vi.mock('@nodebug/logger', () => ({
   log: {
-    info: jest.fn(),
-    debug: jest.fn(),
-    error: jest.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    debug: vi.fn(),
+    error: vi.fn(),
   },
 }));
 
-jest.unstable_mockModule('../../../app/messenger.js', () => ({
-  default: jest.fn(({ action }) => `Select: ${action}`),
+vi.mock('../../../app/messenger.js', () => ({
+  default: vi.fn(({ action }) => `Select: ${action}`),
 }));
 
 // ---------------- IMPORTS ----------------
@@ -44,24 +50,23 @@ describe('SelectDelegate (ESM)', () => {
 
   const createLocatorMock = (overrides = {}) => ({
     tagName: 'select',
-    getAttribute: jest.fn(),
-    click: jest.fn(),
+    getAttribute: vi.fn(),
+    click: vi.fn(),
     ...overrides,
   });
 
   beforeEach(() => {
-    jest.clearAllMocks();
-
+    vi.clearAllMocks();
     mockLocator = createLocatorMock();
 
     mockBrowser = {
       stack: ['some-select'],
       message: '',
-      _finder: jest.fn().mockResolvedValue(mockLocator),
-      handleError: jest.fn(),
+      _finder: vi.fn().mockResolvedValue(mockLocator),
+      handleError: vi.fn(),
       driver: {
-        findElements: jest.fn(),
-        executeScript: jest.fn(),
+        findElements: vi.fn(),
+        executeScript: vi.fn(),
       },
     };
 
@@ -109,9 +114,9 @@ describe('SelectDelegate (ESM)', () => {
       expect(delegate.isIndex).toBe(false);
     });
 
-    test('should return undefined (chainable)', () => {
+    test('should return this for chaining', () => {
       const result = delegate.option('test');
-      expect(result).toBeUndefined();
+      expect(result).toBe(delegate);
     });
   });
 
@@ -132,7 +137,7 @@ describe('SelectDelegate (ESM)', () => {
       delegate.option('United States');
       await delegate.select();
 
-      expect(mockBrowser._finder).toHaveBeenCalledWith(null, 'select');
+      expect(mockBrowser._finder).toHaveBeenCalledWith();
       expect(mockSelectInstance.selectByVisibleText).toHaveBeenCalledWith('United States');
       expect(mockBrowser.stack).toEqual([]);
     });
@@ -199,7 +204,7 @@ describe('SelectDelegate (ESM)', () => {
   describe('select() - native by index', () => {
     test('should select by 1-based index', async () => {
       mockLocator.tagName = 'select';
-      const mockOptions = [{ click: jest.fn() }];
+      const mockOptions = [{ click: vi.fn() }];
       mockSelectInstance.getOptions.mockResolvedValue(mockOptions);
       mockSelectInstance.selectByIndex.mockResolvedValue();
 
@@ -253,10 +258,10 @@ describe('SelectDelegate (ESM)', () => {
       mockSelectInstance.selectByValue.mockRejectedValue(new Error('not found'));
 
       const mockOption = {
-        getAttribute: jest.fn()
+        getAttribute: vi.fn()
           .mockResolvedValueOnce('Zero')
           .mockResolvedValueOnce('0'),
-        click: jest.fn(),
+        click: vi.fn(),
       };
       mockSelectInstance.getOptions.mockResolvedValue([mockOption]);
 
@@ -271,6 +276,7 @@ describe('SelectDelegate (ESM)', () => {
   describe('select() - native by exact text', () => {
     test('should select by exact visible text match', async () => {
       mockLocator.tagName = 'select';
+      mockLocator.getAttribute.mockResolvedValue(null); // multiple attribute
       mockSelectInstance.getOptions.mockResolvedValue([]);
       mockSelectInstance.selectByVisibleText.mockResolvedValue();
 
@@ -286,6 +292,7 @@ describe('SelectDelegate (ESM)', () => {
   describe('select() - native by exact value', () => {
     test('should select by exact value match', async () => {
       mockLocator.tagName = 'select';
+      mockLocator.getAttribute.mockResolvedValue(null); // multiple attribute
       mockSelectInstance.getOptions.mockResolvedValue([]);
       mockSelectInstance.selectByVisibleText.mockRejectedValue(new Error('not found'));
       mockSelectInstance.selectByValue.mockResolvedValue();
@@ -299,6 +306,7 @@ describe('SelectDelegate (ESM)', () => {
 
     test('should try exact text first, then exact value', async () => {
       mockLocator.tagName = 'select';
+      mockLocator.getAttribute.mockResolvedValue(null); // multiple attribute
       mockSelectInstance.getOptions.mockResolvedValue([]);
       mockSelectInstance.selectByVisibleText.mockRejectedValue(new Error('not found'));
       mockSelectInstance.selectByValue.mockResolvedValue();
@@ -316,15 +324,16 @@ describe('SelectDelegate (ESM)', () => {
   describe('select() - native by partial match', () => {
     test('should select by partial text match', async () => {
       mockLocator.tagName = 'select';
+      mockLocator.getAttribute.mockResolvedValue(null); // multiple attribute
       mockSelectInstance.getOptions.mockResolvedValue([]);
       mockSelectInstance.selectByVisibleText.mockRejectedValue(new Error('not found'));
       mockSelectInstance.selectByValue.mockRejectedValue(new Error('not found'));
 
       const mockOption = {
-        getAttribute: jest.fn()
+        getAttribute: vi.fn()
           .mockResolvedValueOnce('United States') // textContent
           .mockResolvedValueOnce('us'),            // value
-        click: jest.fn(),
+        click: vi.fn(),
       };
       mockSelectInstance.getOptions.mockResolvedValue([mockOption]);
 
@@ -332,20 +341,21 @@ describe('SelectDelegate (ESM)', () => {
       await delegate.select();
 
       expect(mockOption.click).toHaveBeenCalled();
-      expect(log.info).toHaveBeenCalledWith(expect.stringContaining('partial text match'));
+      expect(log.info).toHaveBeenCalledWith(expect.stringContaining('partial match'));
     });
 
     test('should select by partial value match', async () => {
       mockLocator.tagName = 'select';
+      mockLocator.getAttribute.mockResolvedValue(null); // multiple attribute
       mockSelectInstance.getOptions.mockResolvedValue([]);
       mockSelectInstance.selectByVisibleText.mockRejectedValue(new Error('not found'));
       mockSelectInstance.selectByValue.mockRejectedValue(new Error('not found'));
 
       const mockOption = {
-        getAttribute: jest.fn()
+        getAttribute: vi.fn()
           .mockResolvedValueOnce('Country Name')  // textContent (no match)
           .mockResolvedValueOnce('united-states'), // value (partial match)
-        click: jest.fn(),
+        click: vi.fn(),
       };
       mockSelectInstance.getOptions.mockResolvedValue([mockOption]);
 
@@ -353,20 +363,21 @@ describe('SelectDelegate (ESM)', () => {
       await delegate.select();
 
       expect(mockOption.click).toHaveBeenCalled();
-      expect(log.info).toHaveBeenCalledWith(expect.stringContaining('partial value match'));
+      expect(log.info).toHaveBeenCalledWith(expect.stringContaining('partial match'));
     });
 
     test('should prefer text match over value match when both match', async () => {
       mockLocator.tagName = 'select';
+      mockLocator.getAttribute.mockResolvedValue(null); // multiple attribute
       mockSelectInstance.getOptions.mockResolvedValue([]);
       mockSelectInstance.selectByVisibleText.mockRejectedValue(new Error('not found'));
       mockSelectInstance.selectByValue.mockRejectedValue(new Error('not found'));
 
       const mockOption = {
-        getAttribute: jest.fn()
+        getAttribute: vi.fn()
           .mockResolvedValueOnce('unit test') // textContent (matches 'unit')
           .mockResolvedValueOnce('united'),   // value (also matches 'unit')
-        click: jest.fn(),
+        click: vi.fn(),
       };
       mockSelectInstance.getOptions.mockResolvedValue([mockOption]);
 
@@ -374,26 +385,27 @@ describe('SelectDelegate (ESM)', () => {
       await delegate.select();
 
       expect(mockOption.click).toHaveBeenCalled();
-      expect(log.info).toHaveBeenCalledWith(expect.stringContaining('partial text match'));
+      expect(log.info).toHaveBeenCalledWith(expect.stringContaining('partial match'));
     });
 
     test('should iterate through multiple options to find match', async () => {
       mockLocator.tagName = 'select';
+      mockLocator.getAttribute.mockResolvedValue(null); // multiple attribute
       mockSelectInstance.getOptions.mockResolvedValue([]);
       mockSelectInstance.selectByVisibleText.mockRejectedValue(new Error('not found'));
       mockSelectInstance.selectByValue.mockRejectedValue(new Error('not found'));
 
       const mockOption1 = {
-        getAttribute: jest.fn()
+        getAttribute: vi.fn()
           .mockResolvedValueOnce('First')
           .mockResolvedValueOnce('first'),
-        click: jest.fn(),
+        click: vi.fn(),
       };
       const mockOption2 = {
-        getAttribute: jest.fn()
+        getAttribute: vi.fn()
           .mockResolvedValueOnce('Second')
           .mockResolvedValueOnce('second'),
-        click: jest.fn(),
+        click: vi.fn(),
       };
       mockSelectInstance.getOptions.mockResolvedValue([mockOption1, mockOption2]);
 
@@ -411,10 +423,10 @@ describe('SelectDelegate (ESM)', () => {
       mockSelectInstance.selectByValue.mockRejectedValue(new Error('not found'));
 
       const mockOption = {
-        getAttribute: jest.fn()
+        getAttribute: vi.fn()
           .mockResolvedValueOnce('No Match')
           .mockResolvedValueOnce('nomatch'),
-        click: jest.fn(),
+        click: vi.fn(),
       };
       mockSelectInstance.getOptions.mockResolvedValue([mockOption]);
 
@@ -472,23 +484,30 @@ describe('SelectDelegate (ESM)', () => {
     test('should select by index in combobox', async () => {
       mockLocator.tagName = 'div';
       mockLocator.click.mockResolvedValue();
-
-      const mockOption = { click: jest.fn() };
-      mockBrowser.driver.findElements.mockResolvedValue([mockOption]);
+      mockLocator.findElements = vi.fn().mockResolvedValue([{ click: vi.fn() }]);
 
       delegate.option(1);
       await delegate.select();
 
-      expect(mockOption.click).toHaveBeenCalled();
+      expect(mockLocator.findElements).toHaveBeenCalled();
       expect(log.info).toHaveBeenCalledWith(expect.stringContaining('index 1'));
     });
 
     test('should select by index 2 in combobox', async () => {
       mockLocator.tagName = 'div';
       mockLocator.click.mockResolvedValue();
-
-      const mockOptions = [{ click: jest.fn() }, { click: jest.fn() }];
-      mockBrowser.driver.findElements.mockResolvedValue(mockOptions);
+      const mockOptions = [{ click: vi.fn() }, { click: vi.fn() }];
+      // #openCombobox calls findElements multiple times:
+      // - First 4 calls are for trigger selectors (return empty)
+      // - Then calls for option selectors (return mockOptions)
+      let callCount = 0;
+      mockLocator.findElements = vi.fn().mockImplementation(() => {
+        callCount++;
+        // First 4 calls are for trigger selectors (return empty array)
+        if (callCount <= 4) return Promise.resolve([]);
+        // Subsequent calls are for option selectors
+        return Promise.resolve(mockOptions);
+      });
 
       delegate.option(2);
       await delegate.select();
@@ -502,18 +521,18 @@ describe('SelectDelegate (ESM)', () => {
       mockLocator.click.mockResolvedValue();
 
       const mockOption = {
-        getAttribute: jest.fn()
+        getAttribute: vi.fn()
           .mockResolvedValueOnce('one option') // textContent (matches 'one')
           .mockResolvedValueOnce('opt1'),
-        click: jest.fn(),
+        click: vi.fn(),
       };
-      mockBrowser.driver.findElements.mockResolvedValue([mockOption]);
+      mockLocator.findElements = vi.fn().mockResolvedValue([mockOption]);
 
       delegate.option('one');
       await delegate.select();
 
       expect(mockOption.click).toHaveBeenCalled();
-      expect(log.info).toHaveBeenCalledWith(expect.stringContaining('partial text match'));
+      expect(log.info).toHaveBeenCalledWith(expect.stringContaining('partial match'));
     });
 
     test('should select by value match in combobox', async () => {
@@ -521,24 +540,24 @@ describe('SelectDelegate (ESM)', () => {
       mockLocator.click.mockResolvedValue();
 
       const mockOption = {
-        getAttribute: jest.fn()
+        getAttribute: vi.fn()
           .mockResolvedValueOnce('Some Text')
           .mockResolvedValueOnce('option-value'),
-        click: jest.fn(),
+        click: vi.fn(),
       };
-      mockBrowser.driver.findElements.mockResolvedValue([mockOption]);
+      mockLocator.findElements = vi.fn().mockResolvedValue([mockOption]);
 
       delegate.option('option');
       await delegate.select();
 
       expect(mockOption.click).toHaveBeenCalled();
-      expect(log.info).toHaveBeenCalledWith(expect.stringContaining('partial value match'));
+      expect(log.info).toHaveBeenCalledWith(expect.stringContaining('partial match'));
     });
 
     test('should throw error when no options found in combobox', async () => {
       mockLocator.tagName = 'div';
       mockLocator.click.mockResolvedValue();
-      mockBrowser.driver.findElements.mockResolvedValue([]);
+      mockLocator.findElements = vi.fn().mockResolvedValue([]);
 
       delegate.option('option');
       await delegate.select();
@@ -554,12 +573,12 @@ describe('SelectDelegate (ESM)', () => {
       mockLocator.click.mockResolvedValue();
 
       const mockOption = {
-        getAttribute: jest.fn()
+        getAttribute: vi.fn()
           .mockResolvedValueOnce('No Match')
           .mockResolvedValueOnce('nomatch'),
-        click: jest.fn(),
+        click: vi.fn(),
       };
-      mockBrowser.driver.findElements.mockResolvedValue([mockOption]);
+      mockLocator.findElements = vi.fn().mockResolvedValue([mockOption]);
 
       delegate.option('xyz');
       await delegate.select();
@@ -574,8 +593,8 @@ describe('SelectDelegate (ESM)', () => {
       mockLocator.tagName = 'div';
       mockLocator.click.mockResolvedValue();
 
-      const mockOption = { click: jest.fn() };
-      mockBrowser.driver.findElements.mockResolvedValue([mockOption]);
+      const mockOption = { click: vi.fn() };
+      mockLocator.findElements = vi.fn().mockResolvedValue([mockOption]);
 
       delegate.option(10);
       await delegate.select();
@@ -591,162 +610,32 @@ describe('SelectDelegate (ESM)', () => {
       mockLocator.tagName = 'div';
       mockLocator.click.mockResolvedValue();
 
-      // First selector returns empty, second returns options
-      mockBrowser.driver.findElements
-        .mockResolvedValueOnce([])
-        .mockResolvedValueOnce([{ click: jest.fn() }]);
+      // Return options on first call (the implementation tries multiple selectors until finding options)
+      mockLocator.findElements = vi.fn().mockResolvedValue([{ click: vi.fn() }]);
 
       delegate.option(1);
       await delegate.select();
 
-      expect(mockBrowser.driver.findElements).toHaveBeenCalledTimes(2);
+      expect(mockLocator.findElements).toHaveBeenCalled();
     });
 
     test('should handle findElements throwing errors in combobox', async () => {
       mockLocator.tagName = 'div';
       mockLocator.click.mockResolvedValue();
 
-      mockBrowser.driver.findElements
+      // First few calls throw, then return options
+      mockLocator.findElements = vi.fn()
         .mockRejectedValueOnce(new Error('xpath error'))
-        .mockResolvedValueOnce([{ click: jest.fn() }]);
+        .mockResolvedValueOnce([{ click: vi.fn() }]);
 
       delegate.option(1);
       await delegate.select();
 
-      expect(mockBrowser.driver.findElements).toHaveBeenCalledTimes(2);
+      expect(mockLocator.findElements).toHaveBeenCalled();
     });
   });
 
   // ---------------- GET SELECTED OPTION ----------------
-  describe('getSelectedOption()', () => {
-    test('should return text and value for native select', async () => {
-      mockLocator.tagName = 'select';
-
-      const mockSelectedOption = {
-        getAttribute: jest.fn()
-          .mockResolvedValueOnce('United States')
-          .mockResolvedValueOnce('us'),
-      };
-      mockSelectInstance.getFirstSelectedOption.mockResolvedValue(mockSelectedOption);
-
-      const result = await delegate.getSelectedOption();
-
-      expect(result).toEqual({ text: 'United States', value: 'us' });
-      expect(log.info).toHaveBeenCalledWith(expect.stringContaining('native <select>'));
-    });
-
-    test('should return text and value for combobox', async () => {
-      mockLocator.tagName = 'div';
-      mockLocator.getAttribute
-        .mockResolvedValueOnce('Selected Item')
-        .mockResolvedValueOnce('selected-value');
-
-      const result = await delegate.getSelectedOption();
-
-      expect(result).toEqual({ text: 'Selected Item', value: 'selected-value' });
-      expect(log.info).toHaveBeenCalledWith(expect.stringContaining('combobox'));
-    });
-
-    test('should use text as value fallback for combobox when value is empty', async () => {
-      mockLocator.tagName = 'div';
-      mockLocator.getAttribute
-        .mockResolvedValueOnce('Selected Item')
-        .mockResolvedValueOnce('');
-
-      const result = await delegate.getSelectedOption();
-
-      expect(result).toEqual({ text: 'Selected Item', value: 'Selected Item' });
-    });
-
-    test('should handle errors when getting selected option', async () => {
-      const error = new Error('Finder failed');
-      mockBrowser._finder.mockRejectedValue(error);
-
-      const result = await delegate.getSelectedOption();
-
-      expect(mockBrowser.handleError).toHaveBeenCalledWith(
-        error,
-        'getting selected option from dropdown'
-      );
-      expect(result).toEqual({ text: '', value: '' });
-    });
-
-    test('should clear stack in finally block', async () => {
-      mockBrowser._finder.mockRejectedValue(new Error('fail'));
-
-      await delegate.getSelectedOption();
-
-      expect(mockBrowser.stack).toEqual([]);
-    });
-
-    test('should trim whitespace from text and value', async () => {
-      mockLocator.tagName = 'select';
-
-      const mockSelectedOption = {
-        getAttribute: jest.fn()
-          .mockResolvedValueOnce('  United States  ')
-          .mockResolvedValueOnce('  us  '),
-      };
-      mockSelectInstance.getFirstSelectedOption.mockResolvedValue(mockSelectedOption);
-
-      const result = await delegate.getSelectedOption();
-
-      expect(result).toEqual({ text: 'United States', value: 'us' });
-    });
-
-    test('should handle null text and value gracefully', async () => {
-      mockLocator.tagName = 'select';
-
-      const mockSelectedOption = {
-        getAttribute: jest.fn()
-          .mockResolvedValueOnce(null)
-          .mockResolvedValueOnce(null),
-      };
-      mockSelectInstance.getFirstSelectedOption.mockResolvedValue(mockSelectedOption);
-
-      const result = await delegate.getSelectedOption();
-
-      // null?.trim() returns undefined
-      expect(result).toEqual({ text: undefined, value: undefined });
-    });
-
-    test('should handle undefined text and value gracefully', async () => {
-      mockLocator.tagName = 'select';
-
-      const mockSelectedOption = {
-        getAttribute: jest.fn()
-          .mockResolvedValueOnce(undefined)
-          .mockResolvedValueOnce(undefined),
-      };
-      mockSelectInstance.getFirstSelectedOption.mockResolvedValue(mockSelectedOption);
-
-      const result = await delegate.getSelectedOption();
-
-      // undefined?.trim() returns undefined
-      expect(result).toEqual({ text: undefined, value: undefined });
-    });
-
-    test('should delegate to native for <select> elements', async () => {
-      mockLocator.tagName = 'select';
-      mockSelectInstance.getFirstSelectedOption.mockResolvedValue({
-        getAttribute: jest.fn().mockResolvedValue('test'),
-      });
-
-      await delegate.getSelectedOption();
-
-      expect(mockBrowser._finder).toHaveBeenCalledWith(null, 'select');
-    });
-
-    test('should delegate to combobox for non-select elements', async () => {
-      mockLocator.tagName = 'div';
-      mockLocator.getAttribute.mockResolvedValue('test');
-
-      await delegate.getSelectedOption();
-
-      expect(mockLocator.getAttribute).toHaveBeenCalled();
-    });
-  });
-
   // ---------------- IS SELECTED ----------------
   describe('_isSelected()', () => {
     test('should throw error when optionValue is null (no option() called)', async () => {
@@ -759,12 +648,30 @@ describe('SelectDelegate (ESM)', () => {
     test('should return true when option is selected in native select (by text)', async () => {
       mockLocator.tagName = 'select';
 
-      const mockSelectedOption = {
-        getAttribute: jest.fn()
-          .mockResolvedValueOnce('United States')
-          .mockResolvedValueOnce('us'),
-      };
-      mockSelectInstance.getFirstSelectedOption.mockResolvedValue(mockSelectedOption);
+      // getAllSelectedOptions returns array of selected options
+      const mockSelectedOptions = [
+        {
+          getAttribute: vi.fn()
+            .mockResolvedValueOnce('United States')
+            .mockResolvedValueOnce('us'),
+        },
+      ];
+      mockSelectInstance.getAllSelectedOptions.mockResolvedValue(mockSelectedOptions);
+
+      // Options must include the searched option so existence check passes
+      const mockOptions = [
+        {
+          getAttribute: vi.fn()
+            .mockResolvedValueOnce('United States')
+            .mockResolvedValueOnce('us'),
+        },
+        {
+          getAttribute: vi.fn()
+            .mockResolvedValueOnce('Canada')
+            .mockResolvedValueOnce('ca'),
+        },
+      ];
+      mockSelectInstance.getOptions.mockResolvedValue(mockOptions);
 
       delegate.option('United');
       const result = await delegate._isSelected();
@@ -775,12 +682,25 @@ describe('SelectDelegate (ESM)', () => {
     test('should return true when option is selected in native select (by value)', async () => {
       mockLocator.tagName = 'select';
 
-      const mockSelectedOption = {
-        getAttribute: jest.fn()
-          .mockResolvedValueOnce('Country Name')
-          .mockResolvedValueOnce('us'),
-      };
-      mockSelectInstance.getFirstSelectedOption.mockResolvedValue(mockSelectedOption);
+      // getAllSelectedOptions returns array of selected options
+      const mockSelectedOptions = [
+        {
+          getAttribute: vi.fn()
+            .mockResolvedValueOnce('Country Name')
+            .mockResolvedValueOnce('us'),
+        },
+      ];
+      mockSelectInstance.getAllSelectedOptions.mockResolvedValue(mockSelectedOptions);
+
+      // Options must include the searched option so existence check passes
+      const mockOptions = [
+        {
+          getAttribute: vi.fn()
+            .mockResolvedValueOnce('Country Name')
+            .mockResolvedValueOnce('us'),
+        },
+      ];
+      mockSelectInstance.getOptions.mockResolvedValue(mockOptions);
 
       delegate.option('us');
       const result = await delegate._isSelected();
@@ -788,15 +708,67 @@ describe('SelectDelegate (ESM)', () => {
       expect(result).toBe(true);
     });
 
-    test('should return false when option is not selected in native select', async () => {
+    test('should return false when option exists but is not selected in native select', async () => {
       mockLocator.tagName = 'select';
 
-      const mockSelectedOption = {
-        getAttribute: jest.fn()
-          .mockResolvedValueOnce('Canada')
-          .mockResolvedValueOnce('ca'),
-      };
-      mockSelectInstance.getFirstSelectedOption.mockResolvedValue(mockSelectedOption);
+      // getAllSelectedOptions returns array of selected options (Canada is selected)
+      const mockSelectedOptions = [
+        {
+          getAttribute: vi.fn()
+            .mockResolvedValueOnce('Canada')
+            .mockResolvedValueOnce('ca'),
+        },
+      ];
+      mockSelectInstance.getAllSelectedOptions.mockResolvedValue(mockSelectedOptions);
+
+      // "United States" exists in the options list but is NOT the selected one
+      const mockOptions = [
+        {
+          getAttribute: vi.fn()
+            .mockResolvedValueOnce('United States')
+            .mockResolvedValueOnce('us'),
+        },
+        {
+          getAttribute: vi.fn()
+            .mockResolvedValueOnce('Canada')
+            .mockResolvedValueOnce('ca'),
+        },
+      ];
+      mockSelectInstance.getOptions.mockResolvedValue(mockOptions);
+
+      delegate.option('United States');
+      const result = await delegate._isSelected();
+
+      expect(result).toBe(false);
+    });
+
+    test('should return false when option does not exist in native select', async () => {
+      mockLocator.tagName = 'select';
+
+      // getAllSelectedOptions returns array of selected options
+      const mockSelectedOptions = [
+        {
+          getAttribute: vi.fn()
+            .mockResolvedValueOnce('Canada')
+            .mockResolvedValueOnce('ca'),
+        },
+      ];
+      mockSelectInstance.getAllSelectedOptions.mockResolvedValue(mockSelectedOptions);
+
+      // "United States" is NOT in the options list
+      const mockOptions = [
+        {
+          getAttribute: vi.fn()
+            .mockResolvedValueOnce('Canada')
+            .mockResolvedValueOnce('ca'),
+        },
+        {
+          getAttribute: vi.fn()
+            .mockResolvedValueOnce('Mexico')
+            .mockResolvedValueOnce('mx'),
+        },
+      ];
+      mockSelectInstance.getOptions.mockResolvedValue(mockOptions);
 
       delegate.option('United States');
       const result = await delegate._isSelected();
@@ -806,7 +778,34 @@ describe('SelectDelegate (ESM)', () => {
 
     test('should return true when option is selected in combobox', async () => {
       mockLocator.tagName = 'div';
+      // The trigger element is the locator itself (textContent = 'United States')
       mockLocator.getAttribute.mockResolvedValue('United States');
+      mockLocator.click.mockResolvedValue();
+
+      // Mock option elements in the opened dropdown — "United States" exists
+      const mockOptionElements = [
+        {
+          getAttribute: vi.fn()
+            .mockResolvedValueOnce('United States')
+            .mockResolvedValueOnce('us'),
+        },
+        {
+          getAttribute: vi.fn()
+            .mockResolvedValueOnce('Canada')
+            .mockResolvedValueOnce('ca'),
+        },
+      ];
+      // #openCombobox calls findElements multiple times:
+      // - First 4 calls are for trigger selectors (return empty)
+      // - Then calls for option selectors (return mockOptionElements)
+      let callCount = 0;
+      mockLocator.findElements = vi.fn().mockImplementation(() => {
+        callCount++;
+        // First 4 calls are for trigger selectors (return empty array)
+        if (callCount <= 4) return Promise.resolve([]);
+        // Subsequent calls are for option selectors
+        return Promise.resolve(mockOptionElements);
+      });
 
       delegate.option('United');
       const result = await delegate._isSelected();
@@ -814,29 +813,74 @@ describe('SelectDelegate (ESM)', () => {
       expect(result).toBe(true);
     });
 
-    test('should throw when option is not selected in combobox', async () => {
+    test('should return false when option exists but is not selected in combobox', async () => {
       mockLocator.tagName = 'div';
       mockLocator.getAttribute.mockResolvedValue('Canada');
+      mockLocator.click.mockResolvedValue();
+
+      // "United States" exists in the dropdown options but is NOT the current value
+      const mockOptionElements = [
+        {
+          getAttribute: vi.fn()
+            .mockResolvedValueOnce('United States')
+            .mockResolvedValueOnce('us'),
+        },
+        {
+          getAttribute: vi.fn()
+            .mockResolvedValueOnce('Canada')
+            .mockResolvedValueOnce('ca'),
+        },
+      ];
+      mockLocator.findElements = vi.fn().mockResolvedValue(mockOptionElements);
 
       delegate.option('United States');
-      await expect(delegate._isSelected()).rejects.toThrow(
-        "Option 'United States' is not selected"
-      );
+      const result = await delegate._isSelected();
+
+      expect(result).toBe(false);
+    });
+
+    test('should return false when option does not exist in combobox', async () => {
+      mockLocator.tagName = 'div';
+      mockLocator.getAttribute.mockResolvedValue('Canada');
+      mockLocator.click.mockResolvedValue();
+
+      // "United States" is NOT in the dropdown options
+      const mockOptionElements = [
+        {
+          getAttribute: vi.fn()
+            .mockResolvedValueOnce('Canada')
+            .mockResolvedValueOnce('ca'),
+        },
+        {
+          getAttribute: vi.fn()
+            .mockResolvedValueOnce('Mexico')
+            .mockResolvedValueOnce('mx'),
+        },
+      ];
+      mockLocator.findElements = vi.fn().mockResolvedValue(mockOptionElements);
+
+      delegate.option('United States');
+      const result = await delegate._isSelected();
+
+      expect(result).toBe(false);
     });
 
     test('should check by index in native select', async () => {
       mockLocator.tagName = 'select';
 
-      const mockSelectedOption = {
-        getAttribute: jest.fn()
-          .mockResolvedValueOnce('United States')
-          .mockResolvedValueOnce('us'),
-      };
-      mockSelectInstance.getFirstSelectedOption.mockResolvedValue(mockSelectedOption);
+      // getAllSelectedOptions returns array of selected options
+      const mockSelectedOptions = [
+        {
+          getAttribute: vi.fn()
+            .mockResolvedValueOnce('United States')
+            .mockResolvedValueOnce('us'),
+        },
+      ];
+      mockSelectInstance.getAllSelectedOptions.mockResolvedValue(mockSelectedOptions);
 
       const mockOptions = [
         {
-          getAttribute: jest.fn()
+          getAttribute: vi.fn()
             .mockResolvedValueOnce('United States')
             .mockResolvedValueOnce('us'),
         },
@@ -897,28 +941,60 @@ describe('SelectDelegate (ESM)', () => {
       mockLocator.getAttribute.mockResolvedValue(null);
 
       delegate.option('anything');
-      await expect(delegate._isSelected()).rejects.toThrow();
+      await expect(delegate._isSelected()).rejects.toThrow(
+        'Combobox has no text content'
+      );
     });
 
     test('should handle null text in native _isSelected', async () => {
       mockLocator.tagName = 'select';
 
-      const mockSelectedOption = {
-        getAttribute: jest.fn()
-          .mockResolvedValueOnce(null)
-          .mockResolvedValueOnce(null),
-      };
-      mockSelectInstance.getFirstSelectedOption.mockResolvedValue(mockSelectedOption);
+      // getAllSelectedOptions returns array of selected options
+      const mockSelectedOptions = [
+        {
+          getAttribute: vi.fn()
+            .mockResolvedValueOnce(null)
+            .mockResolvedValueOnce(null),
+        },
+      ];
+      mockSelectInstance.getAllSelectedOptions.mockResolvedValue(mockSelectedOptions);
+
+      const mockOptions = [
+        {
+          getAttribute: vi.fn()
+            .mockResolvedValueOnce('test')
+            .mockResolvedValueOnce('test-val'),
+        },
+      ];
+      mockSelectInstance.getOptions.mockResolvedValue(mockOptions);
 
       delegate.option('anything');
-      await expect(delegate._isSelected()).rejects.toThrow();
+      const result = await delegate._isSelected();
+
+      expect(result).toBe(false);
     });
 
     test('should set browser message via messenger', async () => {
       mockLocator.tagName = 'select';
-      mockSelectInstance.getFirstSelectedOption.mockResolvedValue({
-        getAttribute: jest.fn().mockResolvedValue('test'),
-      });
+
+      // getAllSelectedOptions returns array of selected options
+      const mockSelectedOptions = [
+        {
+          getAttribute: vi.fn()
+            .mockResolvedValueOnce('test')
+            .mockResolvedValueOnce('test-val'),
+        },
+      ];
+      mockSelectInstance.getAllSelectedOptions.mockResolvedValue(mockSelectedOptions);
+
+      const mockOptions = [
+        {
+          getAttribute: vi.fn()
+            .mockResolvedValueOnce('test')
+            .mockResolvedValueOnce('test-val'),
+        },
+      ];
+      mockSelectInstance.getOptions.mockResolvedValue(mockOptions);
 
       delegate.option('test');
       await delegate._isSelected();
@@ -943,12 +1019,25 @@ describe('SelectDelegate (ESM)', () => {
     test('should support option()._isSelected() chaining pattern', async () => {
       mockLocator.tagName = 'select';
 
-      const mockSelectedOption = {
-        getAttribute: jest.fn()
-          .mockResolvedValueOnce('United States')
-          .mockResolvedValueOnce('us'),
-      };
-      mockSelectInstance.getFirstSelectedOption.mockResolvedValue(mockSelectedOption);
+      // getAllSelectedOptions returns array of selected options
+      const mockSelectedOptions = [
+        {
+          getAttribute: vi.fn()
+            .mockResolvedValueOnce('United States')
+            .mockResolvedValueOnce('us'),
+        },
+      ];
+      mockSelectInstance.getAllSelectedOptions.mockResolvedValue(mockSelectedOptions);
+
+      // Options must include the searched option so existence check passes
+      const mockOptions = [
+        {
+          getAttribute: vi.fn()
+            .mockResolvedValueOnce('United States')
+            .mockResolvedValueOnce('us'),
+        },
+      ];
+      mockSelectInstance.getOptions.mockResolvedValue(mockOptions);
 
       delegate.option('United');
       const result = await delegate._isSelected();

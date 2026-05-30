@@ -1,30 +1,34 @@
-import { jest } from '@jest/globals';
+import { vi } from 'vitest';
 
 // --- MOCKS (must come before imports) ---
 const mockDriver = {
-  wait: jest.fn(),
-  sleep: jest.fn(),
-  switchTo: jest.fn(),
+  wait: vi.fn(),
+  sleep: vi.fn(),
+  switchTo: vi.fn(),
 };
 
 const mockAlert = {
-  getText: jest.fn(),
-  accept: jest.fn(),
-  dismiss: jest.fn(),
-  sendKeys: jest.fn(),
+  getText: vi.fn(),
+  accept: vi.fn(),
+  dismiss: vi.fn(),
+  sendKeys: vi.fn(),
 };
 
-jest.unstable_mockModule('selenium-webdriver', () => ({
+vi.mock('selenium-webdriver', () => ({
   until: {
-    alertIsPresent: jest.fn(),
+    alertIsPresent: vi.fn(),
   },
 }));
 
-jest.unstable_mockModule('@nodebug/logger', () => ({
+vi.mock('@nodebug/logger', () => ({
   log: {
-    info: jest.fn(),
-    error: jest.fn(),
+    info: vi.fn(),
+    error: vi.fn(),
   },
+}));
+
+vi.mock('@nodebug/config', () => ({
+  default: vi.fn().mockReturnValue({ timeout: 10 }),
 }));
 
 // --- IMPORTS (AFTER MOCKS) ---
@@ -36,14 +40,14 @@ describe('Alerts (ESM)', () => {
   let alert;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Setup driver behavior
     mockDriver.wait.mockResolvedValue(true);
     mockDriver.sleep.mockResolvedValue();
 
     mockDriver.switchTo.mockReturnValue({
-      alert: jest.fn().mockResolvedValue(mockAlert),
+      alert: vi.fn().mockResolvedValue(mockAlert),
     });
 
     // Default alert text
@@ -197,6 +201,80 @@ describe('Alerts (ESM)', () => {
     test('full flow: dismiss', async () => {
       await alert.dismiss();
       expect(mockAlert.dismiss).toHaveBeenCalled();
+    });
+  });
+
+  describe('timeout', () => {
+    test('returns timeout from config', () => {
+      expect(alert.timeout).toBe(10000);
+    });
+  });
+
+  describe('is.visible()', () => {
+    test('returns true when alert is visible', async () => {
+      mockAlert.getText.mockResolvedValue('Test Alert');
+
+      const result = await alert.is.visible();
+
+      expect(result).toBe(true);
+    });
+
+    test('returns false when alert is not visible', async () => {
+      mockDriver.wait.mockRejectedValue(new Error('Not found'));
+
+      const result = await alert.is.visible();
+
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('is.not.visible()', () => {
+    test('returns false when alert is visible', async () => {
+      mockAlert.getText.mockResolvedValue('Test Alert');
+
+      const result = await alert.is.not.visible();
+
+      expect(result).toBe(false);
+    });
+
+    test('returns true when alert is not visible', async () => {
+      mockDriver.wait.mockRejectedValue(new Error('Not found'));
+
+      const result = await alert.is.not.visible();
+
+      expect(result).toBe(true);
+    });
+  });
+
+  describe('should.be.visible()', () => {
+    test('does not throw when alert is visible', async () => {
+      mockAlert.getText.mockResolvedValue('Test Alert');
+
+      await expect(alert.should.be.visible()).resolves.not.toThrow();
+    });
+
+    test('throws when alert is not visible', async () => {
+      mockDriver.wait.mockRejectedValue(new Error('Not found'));
+
+      await expect(alert.should.be.visible()).rejects.toThrow(
+        'Expected alert to be visible, but it was not'
+      );
+    });
+  });
+
+  describe('should.not.be.visible()', () => {
+    test('does not throw when alert is not visible', async () => {
+      mockDriver.wait.mockRejectedValue(new Error('Not found'));
+
+      await expect(alert.should.not.be.visible()).resolves.not.toThrow();
+    });
+
+    test('throws when alert is visible', async () => {
+      mockAlert.getText.mockResolvedValue('Test Alert');
+
+      await expect(alert.should.not.be.visible()).rejects.toThrow(
+        'Expected alert to not be visible, but it was'
+      );
     });
   });
 });

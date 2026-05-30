@@ -1,7 +1,7 @@
 {
   "browser": "chrome",
   "headless": true,
-  "timeout": 10,
+  "timeout": 5,
   "downloadsPath": "./reports/downloads",
   "incognito": false,
   "height": null,
@@ -13,5 +13,6 @@
     "docker": "http://chrome.local-mml.cloud:4444",
     "browserstack": "http://hub-cloud.browserstack.com",
     "local": "http://localhost:4444"
-  }
+  },
+  "debug": true
 }

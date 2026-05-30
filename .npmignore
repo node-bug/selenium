@@ -3,7 +3,6 @@ tests
 reports
 test.js
 *.test.js
-jest.config.js
 
 # Development directories
 .github/
@@ -79,5 +78,4 @@ tests
 .npmignore
 .prettierrc
 eslint.config.js
-jest.config.js
 package-lock.json

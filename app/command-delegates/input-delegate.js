@@ -1,5 +1,6 @@
 import { Key } from 'selenium-webdriver';
 import messenger from '../messenger.js';
+import { BaseDelegate } from './base-delegate.js';
 
 /**
  * Input delegate class for handling element input operations
@@ -10,11 +11,7 @@ import messenger from '../messenger.js';
  * - Clearing input fields
  * - Overwriting text in input fields
  */
-export class InputDelegate {
-  constructor(browser) {
-    this.browser = browser;
-  }
-
+export class InputDelegate extends BaseDelegate {
   /**
    * Enter text into an input field or content-editable element
    * 
@@ -32,7 +29,7 @@ export class InputDelegate {
     const browser = this.browser;
     browser.message = messenger({ stack: browser.stack, action: 'write', data: value });
     try {
-      const locator = await browser._finder(null, 'write');
+      const locator = await browser._finder();
       const isInput = ['input', 'textarea'].includes(locator.tagName);
 
       if (isInput) {
@@ -64,17 +61,10 @@ export class InputDelegate {
    * await browser.element('input').focus();
    */
   async focus() {
-    const browser = this.browser;
-    browser.message = messenger({ stack: browser.stack, action: 'focus' });
-    try {
-      const locator = await browser._finder();
-      await browser.driver.executeScript('arguments[0].focus();', locator);
-    } catch (err) {
-      browser.handleError(err, 'focusing');
-    } finally {
-      browser.stack = [];
-    }
-    return true;
+    return this.withErrorHandling('focus', async () => {
+      const locator = await this.findElement();
+      await this.browser.driver.executeScript('arguments[0].focus();', locator);
+    }, { errorMessage: 'focusing' });
   }
 
   /**
@@ -92,7 +82,7 @@ export class InputDelegate {
     const browser = this.browser;
     browser.message = messenger({ stack: browser.stack, action: 'clear' });
     try {
-      const locator = await browser._finder(null, 'write');
+      const locator = await browser._finder();
       const isInput = ['input', 'textarea'].includes(locator.tagName);
 
       if (isInput) {
@@ -131,12 +121,12 @@ export class InputDelegate {
     browser.message = messenger({ stack: browser.stack, action: 'overwrite', data: value });
     try {
       // to maintain stack after clear
-      let ogStack = browser.stack
+      const ogStack = browser.stack;
       await this.clear();
-      browser.stack = ogStack
+      browser.stack = ogStack;
 
       // Re-find in case the clear triggered a DOM refresh (common in React)
-      let locator = await browser._finder(null, 'write');
+      const locator = await browser._finder();
       await locator.sendKeys(value);
     } catch (err) {
       browser.handleError(err, 'overwriting text');
@@ -155,7 +145,6 @@ export class InputDelegate {
    * @param {string} key - The key to press (e.g., 'Enter', 'Tab', 'Escape', 'a', 'c')
    * @returns {Promise<boolean>} True if successful
    * @example
-   * @example
    * await browser.press('Enter');
    * await browser.press('Tab');
    * await browser.press('Escape');
@@ -166,24 +155,20 @@ export class InputDelegate {
    */
   async press(key) {
     const browser = this.browser;
-    const mods = browser._tempMods;
-
-    const modifiers = [];
-    if (mods.control) modifiers.push('ctrl');
-    if (mods.shift) modifiers.push('shift');
-    if (mods.alt) modifiers.push('alt');
-    if (mods.meta) modifiers.push('meta');
+    const modifiers = this.getModifiers();
     browser.message = messenger({ stack: browser.stack, action: 'press', data: key, modifiers });
 
-    const platformName = (await browser.driver.getCapabilities()).get('platformName').replace(/\s/g, '');
+    const platformName = await this.getPlatformName();
     try {
-      if (browser.stack.length > 0) await this.focus();
+      let locator = null;
+      if (browser.stack.length > 0) {
+        locator = await browser._finder();
+        await browser.driver.executeScript('arguments[0].focus();', locator);
+      }
       const actions = browser.actions();
 
-      if (mods.control) actions.keyDown(Key.CONTROL);
-      if (mods.shift) actions.keyDown(Key.SHIFT);
-      if (mods.alt) actions.keyDown(Key.ALT);
-      if (mods.meta) if (platformName === 'mac') actions.keyDown(Key.COMMAND); else actions.keyDown(Key.META);
+      if (locator) actions.move({ origin: locator });
+      await this.pressModifiers(actions, platformName);
 
       // Normalize key name to Selenium Key constant if applicable
       const keyMap = {
@@ -222,20 +207,16 @@ export class InputDelegate {
       const normalizedKey = key.toLowerCase();
       const resolvedKey = keyMap[normalizedKey] || key;
       actions.sendKeys(resolvedKey);
-      
       await actions.perform();
     } catch (err) {
       browser.handleError(err, `pressing key '${key}'`);
     } finally {
-      if (mods.control || mods.shift || mods.alt || mods.meta) {
+      if (this.hasModifiers()) {
         const actions = browser.actions();
-        if (mods.control) actions.keyUp(Key.CONTROL);
-        if (mods.shift) actions.keyUp(Key.SHIFT);
-        if (mods.alt) actions.keyUp(Key.ALT);
-        if (mods.meta) if (platformName === 'mac') actions.keyUp(Key.COMMAND); else actions.keyUp(Key.META);
-        await actions.perform()
+        await this.releaseModifiers(actions, platformName);
+        await actions.perform();
       }
-      browser._resetMods()
+      this.resetModifiers();
       browser.stack = [];
     }
     return true;
@@ -251,48 +232,38 @@ export class InputDelegate {
    * @param {string} value - The string to type character by character
    * @returns {Promise<boolean>} True if successful
    * @example
-   * @example
    * await browser.element('username').type('myusername');
    * await browser.ctrl.type('a'); // Types 'a' while holding Ctrl
    * await browser.shift.type('abc'); // Types 'abc' while holding Shift
    */
   async type(value) {
     const browser = this.browser;
-    const mods = browser._tempMods;
-
-    const modifiers = [];
-    if (mods.control) modifiers.push('ctrl');
-    if (mods.shift) modifiers.push('shift');
-    if (mods.alt) modifiers.push('alt');
-    if (mods.meta) modifiers.push('meta');
+    const modifiers = this.getModifiers();
     browser.message = messenger({ stack: browser.stack, action: 'type', data: value, modifiers });
 
-    const platformName = (await browser.driver.getCapabilities()).get('platformName').replace(/\s/g, '');
+    const platformName = await this.getPlatformName();
     try {
-      if (browser.stack.length > 0) await this.focus();
+      let locator = null;
+      if (browser.stack.length > 0) {
+        locator = await browser._finder();
+        await browser.driver.executeScript('arguments[0].focus();', locator);
+      }
 
       const actions = browser.actions();
 
-      if (mods.control) actions.keyDown(Key.CONTROL);
-      if (mods.shift) actions.keyDown(Key.SHIFT);
-      if (mods.alt) actions.keyDown(Key.ALT);
-      if (mods.meta) if (platformName === 'mac') actions.keyDown(Key.COMMAND); else actions.keyDown(Key.META);
-
+      if (locator) actions.move({ origin: locator });
+      await this.pressModifiers(actions, platformName);
       actions.sendKeys(value);
-
       await actions.perform();
     } catch (err) {
       browser.handleError(err, `typing '${value}'`);
     } finally {
-      if (mods.control || mods.shift || mods.alt || mods.meta) {
+      if (this.hasModifiers()) {
         const actions = browser.actions();
-        if (mods.control) actions.keyUp(Key.CONTROL);
-        if (mods.shift) actions.keyUp(Key.SHIFT);
-        if (mods.alt) actions.keyUp(Key.ALT);
-        if (mods.meta) if (platformName === 'mac') actions.keyUp(Key.COMMAND); else actions.keyUp(Key.META);
+        await this.releaseModifiers(actions, platformName);
         await actions.perform();
       }
-      browser._resetMods()
+      this.resetModifiers();
       browser.stack = [];
     }
     return true;

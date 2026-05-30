@@ -1,17 +1,17 @@
-import { jest } from '@jest/globals';
+import { vi } from 'vitest';
 
 // ---------------- MOCKS ----------------
 const mockDriver = {
-  executeScript: jest.fn(),
-  actions: jest.fn(),
-  getCapabilities: jest.fn(),
+  executeScript: vi.fn(),
+  actions: vi.fn(),
+  getCapabilities: vi.fn(),
 };
 
-jest.unstable_mockModule('selenium-webdriver', () => ({
-  Builder: jest.fn(),
+vi.mock('selenium-webdriver', () => ({
+  Builder: vi.fn(),
   By: {},
   until: {},
-  WebDriver: jest.fn(() => mockDriver),
+  WebDriver: vi.fn(() => mockDriver),
   Key: {
     CONTROL: '\uE009',
     SHIFT: '\uE008',
@@ -46,16 +46,16 @@ jest.unstable_mockModule('selenium-webdriver', () => ({
   },
 }));
 
-jest.unstable_mockModule('@nodebug/logger', () => ({
+vi.mock('@nodebug/logger', () => ({
   log: {
-    info: jest.fn(),
-    error: jest.fn(),
+    info: vi.fn(),
+    error: vi.fn(),
   },
 }));
 
 // Mock messenger module
-jest.unstable_mockModule('../../../app/messenger.js', () => ({
-  default: jest.fn(() => ({ stack: [], action: 'write', data: '' })),
+vi.mock('../../../app/messenger.js', () => ({
+  default: vi.fn(() => ({ stack: [], action: 'write', data: '' })),
 }));
 
 // ---------------- IMPORTS ----------------
@@ -69,30 +69,30 @@ describe('InputDelegate (ESM)', () => {
   let actionsMock;
 
   const createActionsMock = (overrides = {}) => ({
-    click: jest.fn().mockReturnThis(),
-    doubleClick: jest.fn().mockReturnThis(),
-    contextClick: jest.fn().mockReturnThis(),
-    middleClick: jest.fn().mockReturnThis(),
-    keyDown: jest.fn().mockReturnThis(),
-    keyUp: jest.fn().mockReturnThis(),
-    clickAndHold: jest.fn().mockReturnThis(),
-    pause: jest.fn().mockReturnThis(),
-    release: jest.fn().mockReturnThis(),
-    move: jest.fn().mockReturnThis(),
-    sendKeys: jest.fn().mockReturnThis(),
-    perform: jest.fn(),
+    click: vi.fn().mockReturnThis(),
+    doubleClick: vi.fn().mockReturnThis(),
+    contextClick: vi.fn().mockReturnThis(),
+    middleClick: vi.fn().mockReturnThis(),
+    keyDown: vi.fn().mockReturnThis(),
+    keyUp: vi.fn().mockReturnThis(),
+    clickAndHold: vi.fn().mockReturnThis(),
+    pause: vi.fn().mockReturnThis(),
+    release: vi.fn().mockReturnThis(),
+    move: vi.fn().mockReturnThis(),
+    sendKeys: vi.fn().mockReturnThis(),
+    perform: vi.fn(),
     ...overrides,
   });
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     mockElement = {
-      sendKeys: jest.fn(),
-      clear: jest.fn(),
-      getAttribute: jest.fn(),
-      click: jest.fn(),
-      getRect: jest.fn().mockResolvedValue({
+      sendKeys: vi.fn(),
+      clear: vi.fn(),
+      getAttribute: vi.fn(),
+      click: vi.fn(),
+      getRect: vi.fn().mockResolvedValue({
         x: 0,
         y: 0,
         width: 100,
@@ -107,17 +107,17 @@ describe('InputDelegate (ESM)', () => {
     mockBrowser = {
       driver: mockDriver,
       stack: [],
-      locatorStrategy: { build: jest.fn() },
-      handleError: jest.fn(),
+      locatorStrategy: { build: vi.fn() },
+      handleError: vi.fn(),
       message: null,
       _tempMods: { control: false, shift: false, alt: false, meta: false },
-      _resetMods: jest.fn(),
+      _resetMods: vi.fn(),
 
       // REQUIRED
-      _finder: jest.fn().mockResolvedValue(mockElement),
-      _clicker: jest.fn(), // mocked for click() tests
-      actions: jest.fn(() => actionsMock),
-      clear: jest.fn(), // for overwrite test
+      _finder: vi.fn().mockResolvedValue(mockElement),
+      _clicker: vi.fn(), // mocked for click() tests
+      actions: vi.fn(() => actionsMock),
+      clear: vi.fn(), // for overwrite test
     };
 
     inputDelegate = new InputDelegate(mockBrowser);
@@ -128,7 +128,7 @@ describe('InputDelegate (ESM)', () => {
     test('calls finder with correct parameters', async () => {
       await inputDelegate.write('test');
 
-      expect(mockBrowser._finder).toHaveBeenCalledWith(null, 'write');
+      expect(mockBrowser._finder).toHaveBeenCalledWith();
     });
 
     test('sends text to input elements', async () => {
@@ -207,7 +207,7 @@ describe('InputDelegate (ESM)', () => {
     test('calls finder with correct parameters', async () => {
       await inputDelegate.clear();
 
-      expect(mockBrowser._finder).toHaveBeenCalledWith(null, 'write');
+      expect(mockBrowser._finder).toHaveBeenCalledWith();
     });
 
     test('clears input elements', async () => {
@@ -300,7 +300,7 @@ describe('InputDelegate (ESM)', () => {
     beforeEach(() => {
       // Default platform
       mockDriver.getCapabilities.mockReturnValue({
-        get: jest.fn().mockReturnValue('mac'),
+        get: vi.fn().mockReturnValue('mac'),
       });
     });
 
@@ -454,7 +454,7 @@ describe('InputDelegate (ESM)', () => {
 
     test('presses key with Meta modifier on Windows uses META', async () => {
       mockDriver.getCapabilities.mockReturnValue({
-        get: jest.fn().mockReturnValue('windows'),
+        get: vi.fn().mockReturnValue('windows'),
       });
       mockBrowser._tempMods = { control: false, shift: false, alt: false, meta: true };
 
@@ -549,7 +549,7 @@ describe('InputDelegate (ESM)', () => {
     beforeEach(() => {
       // Default platform
       mockDriver.getCapabilities.mockReturnValue({
-        get: jest.fn().mockReturnValue('mac'),
+        get: vi.fn().mockReturnValue('mac'),
       });
       actionsMock.keyDown.mockClear();
       actionsMock.sendKeys.mockClear();
@@ -602,7 +602,7 @@ describe('InputDelegate (ESM)', () => {
 
     test('types with meta modifier on Windows uses META', async () => {
       mockDriver.getCapabilities.mockReturnValue({
-        get: jest.fn().mockReturnValue('windows'),
+        get: vi.fn().mockReturnValue('windows'),
       });
       mockBrowser._tempMods = { control: false, shift: false, alt: false, meta: true };
 

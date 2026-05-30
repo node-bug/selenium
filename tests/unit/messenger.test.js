@@ -73,7 +73,7 @@ describe('messenger', () => {
     };
 
     const result = messenger(action);
-    expect(result).toBe("Clicking on element 'list-item' of index '2'");
+    expect(result).toBe("Clicking on element 'list-item' at index '2'");
   });
 
   test('should handle location type in stack', () => {
@@ -321,5 +321,57 @@ describe('messenger', () => {
 
     const result = messenger(action);
     expect(result).toBe("Clicking on exact button 'save' hidden element 'form' located exactly 'center' element 'submit'");
+  });
+
+  test('should handle hasValue action', () => {
+    const action = {
+      action: 'hasValue',
+      data: '75',
+      stack: [
+        { type: 'slider', id: 'range' }
+      ]
+    };
+
+    const result = messenger(action);
+    expect(result).toBe("Validating if slider 'range' has value");
+  });
+
+  test('should handle doesNotHaveValue action', () => {
+    const action = {
+      action: 'doesNotHaveValue',
+      data: '100',
+      stack: [
+        { type: 'slider', id: 'range' }
+      ]
+    };
+
+    const result = messenger(action);
+    expect(result).toBe("Validating if slider 'range' does not have value");
+  });
+
+  test('should handle shouldHaveValue action', () => {
+    const action = {
+      action: 'shouldHaveValue',
+      data: '75',
+      stack: [
+        { type: 'slider', id: 'range' }
+      ]
+    };
+
+    const result = messenger(action);
+    expect(result).toBe("Validating that slider 'range' should have value");
+  });
+
+  test('should handle shouldNotHaveValue action', () => {
+    const action = {
+      action: 'shouldNotHaveValue',
+      data: '100',
+      stack: [
+        { type: 'slider', id: 'range' }
+      ]
+    };
+
+    const result = messenger(action);
+    expect(result).toBe("Validating that slider 'range' should not have value");
   });
 });

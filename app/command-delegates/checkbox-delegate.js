@@ -1,5 +1,6 @@
 import { log } from '@nodebug/logger';
 import messenger from '../messenger.js';
+import { BaseDelegate } from './base-delegate.js';
 
 /**
  * Checkbox delegate for handling checkbox operations
@@ -9,9 +10,17 @@ import messenger from '../messenger.js';
  * 
  * @class CheckboxDelegate
  */
-export class CheckboxDelegate {
-  constructor(browser) {
-    this.browser = browser;
+export class CheckboxDelegate extends BaseDelegate {
+  /**
+   * Set the validations delegate reference.
+   * @param {ValidationsDelegate} delegate - The validations delegate instance
+   */
+  set validationsDelegate(delegate) {
+    this._validationsDelegate = delegate;
+  }
+
+  get validationsDelegate() {
+    return this._validationsDelegate;
   }
 
   /**
@@ -26,7 +35,7 @@ export class CheckboxDelegate {
     browser.message = messenger({ stack: browser.stack, action: targetState });
 
     try {
-      const locator = await browser._finder(null, targetState);
+      const locator = await browser._finder();
       const isChecked = await locator.isSelected();
       const needsChange = (targetState === 'check' && !isChecked) ||
         (targetState === 'uncheck' && isChecked);

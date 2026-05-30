@@ -252,6 +252,125 @@ await browser.down(2) // Press down arrow 2 times
 - Move cursor in text field
 - Scroll page content
 
+## Keyboard Modifiers
+
+Chain modifier keys (`ctrl`, `shift`, `alt`, `meta`) before click or type actions to simulate keyboard combinations.
+
+### Modifier Keys
+
+Available modifiers:
+
+- `ctrl` / `control` - Control key (Ctrl on Windows/Linux, Cmd+Ctrl on Mac)
+- `shift` - Shift key
+- `alt` - Alt key (Option on Mac)
+- `meta` / `command` / `win` - Meta/Command/Windows key (Cmd on Mac, Win on Windows/Linux)
+
+### Examples
+
+**Click with modifiers:**
+
+```javascript
+await browser.ctrl.click() // Ctrl+click
+await browser.button('Link').meta.click() // Cmd/Win+click
+await browser.element('item').shift.alt.click() // Shift+Alt+click
+```
+
+**Press keys with modifiers:**
+
+```javascript
+await browser.ctrl.press('c') // Ctrl+C (copy)
+await browser.ctrl.press('v') // Ctrl+V (paste)
+await browser.ctrl.press('a') // Ctrl+A (select all)
+await browser.shift.press('Tab') // Shift+Tab (focus previous)
+await browser.alt.press('Tab') // Alt+Tab (switch window)
+await browser.meta.press('Enter') // Cmd+Enter / Win+Enter
+```
+
+**Type with modifiers:**
+
+```javascript
+await browser.shift.type('abc') // Types 'ABC' (capital letters)
+await browser.ctrl.type('text') // Ctrl held while typing
+await browser.ctrl.shift.type('z') // Ctrl+Shift held while typing
+```
+
+**Chaining modifiers:**
+
+```javascript
+// Multiple modifiers together
+await browser.ctrl.shift.press('s') // Ctrl+Shift+S
+await browser.alt.shift.click() // Alt+Shift+click
+```
+
+**Note:** Modifiers reset after each action, so you must re-specify them for the next action.
+
+## Scroll Operations
+
+### Window-Level Scrolling
+
+Scroll the entire browser window:
+
+```javascript
+await browser.scroll.to.top()
+await browser.scroll.to.bottom()
+await browser.scroll.to.left()
+await browser.scroll.to.right()
+```
+
+**Returns**: `Promise<boolean>`
+
+### Element-Level Scrolling
+
+#### scroll.into.view()
+
+Scroll element into the center of the viewport:
+
+```javascript
+await browser.element('target').scroll.into.view()
+```
+
+**Returns**: `Promise<boolean>`
+
+#### scroll.to.top()
+
+Scroll element to the top (scrollTop = 0):
+
+```javascript
+await browser.element('scrollable-div').scroll.to.top()
+```
+
+**Returns**: `Promise<boolean>`
+
+#### scroll.to.bottom()
+
+Scroll element to the bottom (scrollTop = scrollHeight):
+
+```javascript
+await browser.element('scrollable-div').scroll.to.bottom()
+```
+
+**Returns**: `Promise<boolean>`
+
+#### scroll.to.left()
+
+Scroll element to the left (scrollLeft = 0):
+
+```javascript
+await browser.element('scrollable-div').scroll.to.left()
+```
+
+**Returns**: `Promise<boolean>`
+
+#### scroll.to.right()
+
+Scroll element to the right (scrollLeft = scrollWidth):
+
+```javascript
+await browser.element('scrollable-div').scroll.to.right()
+```
+
+**Returns**: `Promise<boolean>`
+
 ## Hover Interactions
 
 ### hover()

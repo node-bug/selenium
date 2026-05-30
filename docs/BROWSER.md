@@ -617,7 +617,7 @@ await browser.button('Submit').should.be.visible()
 await browser.button('Submit').click()
 
 // 2. Scroll element into view
-await browser.button('Submit').scroll()
+await browser.button('Submit').scroll.into.view()
 
 // 3. Use JavaScript click if standard click fails
 await browser.button('Submit').click() // Falls back to JS automatically

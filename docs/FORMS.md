@@ -16,11 +16,11 @@ await browser.checkbox('Subscribe').should.not.be.checked()
 // Switches
 await browser.switch('Dark Mode').on()
 await browser.switch('Dark Mode').off()
-await browser.switch('Dark Mode').isOn()
-await browser.switch('Dark Mode').isOff()
+await browser.switch('Dark Mode').is.on()
+await browser.switch('Dark Mode').is.off()
 
 // Radio Buttons
-await browser.radio('Male').set()
+await browser.radio('Male').click()
 await browser.radio('Male').is.set()
 await browser.radio('Male').is.not.set()
 await browser.radio('Male').should.be.set()
@@ -31,6 +31,9 @@ await browser.dropdown('Country').option('United States').select()
 await browser.dropdown('Country').option(1).select()
 const selected = await browser.dropdown('Country').get.text()
 const value = await browser.dropdown('Country').get.value()
+const options = await browser.dropdown('Country').get.options()
+await browser.dropdown('Country').has.option('United States')
+await browser.dropdown('Country').should.have.option('United States')
 ```
 
 ## Checkboxes
@@ -159,7 +162,11 @@ await browser.checkbox('Push Alerts').check()
 
 ## Switches
 
-Switches are toggle controls (similar to checkboxes but styled as on/off).
+Switches are toggle controls (similar to checkboxes but styled as on/off). The switch API supports **three element types** automatically:
+
+1. **Native checkboxes** (`<input type="checkbox">`) — checked via `isSelected()`
+2. **ARIA switches** (`role="switch"`) — checked via `aria-checked` attribute
+3. **Label-wrapped checkboxes** (`<label>` containing a checkbox) — the child input is located and toggled
 
 ### on()
 
@@ -169,6 +176,13 @@ Turn a switch on:
 await browser.switch('Dark Mode').on()
 await browser.switch('Notifications').on()
 ```
+
+**Behavior**:
+
+- If already on → skips (idempotent, no action)
+- If off → clicks to turn on
+- Falls back to JavaScript click if standard Selenium click fails (e.g., zero-size targets covered by a `<label>`)
+- Verifies final state after clicking
 
 **Returns**: `Promise<boolean>`
 
@@ -180,31 +194,38 @@ Turn a switch off:
 await browser.switch('Dark Mode').off()
 ```
 
+**Behavior**:
+
+- If already off → skips (idempotent, no action)
+- If on → clicks to turn off
+- Falls back to JavaScript click if standard Selenium click fails
+- Verifies final state after clicking
+
 **Returns**: `Promise<boolean>`
 
-### isOn()
+### is.on()
 
-Assert that switch is currently on:
+Return whether the switch is currently on:
 
 ```javascript
-await browser.switch('Dark Mode').isOn()
+const on = await browser.switch('Dark Mode').is.on()
 ```
-
-**Throws**: Error if switch is off
 
 **Returns**: `Promise<boolean>`
 
-### isOff()
+**Use when**: You need to read the switch state without failing the test
 
-Assert that switch is currently off:
+### is.off()
+
+Return whether the switch is currently off:
 
 ```javascript
-await browser.switch('Notifications').isOff()
+const off = await browser.switch('Notifications').is.off()
 ```
 
-**Throws**: Error if switch is on
-
 **Returns**: `Promise<boolean>`
+
+**Use when**: You need to read the switch state without failing the test
 
 ### Switch Patterns
 
@@ -212,7 +233,7 @@ await browser.switch('Notifications').isOff()
 
 ```javascript
 if (await browser.switch('Feature').is.visible()) {
-  if (await browser.switch('Feature').isOn()) {
+  if (await browser.switch('Feature').is.on()) {
     await browser.switch('Feature').off()
   } else {
     await browser.switch('Feature').on()
@@ -220,26 +241,43 @@ if (await browser.switch('Feature').is.visible()) {
 }
 ```
 
+**Idempotent toggling** (safe to call multiple times):
+
+```javascript
+// These are safe to call repeatedly — no error if already in target state
+await browser.switch('Dark Mode').on()
+await browser.switch('Dark Mode').on() // no-op, already on
+await browser.switch('Dark Mode').off()
+await browser.switch('Dark Mode').off() // no-op, already off
+```
+
+**Using switch API on native checkboxes**:
+
+```javascript
+// The switch API also works on native checkboxes
+await browser.switch('Check this').on()
+await browser.switch('Check this').off()
+```
+
 ## Radio Buttons
 
 Radio buttons allow selecting one option from a group.
 
-### set()
+### click()
 
-Set a radio button:
+Click a radio button:
 
 ```javascript
-await browser.radio('Male').set()
-await browser.radio('Female').set()
-await browser.radio('Prefer not to say').set()
+await browser.radio('Male').click()
+await browser.radio('Female').click()
+await browser.radio('Prefer not to say').click()
 ```
 
 **Behavior**:
 
-- If already set → skips (no action)
-- If not set → clicks to set
-- Falls back to JavaScript click if standard click fails
-- Verifies final state
+- Clicks the radio button to select it.
+- Falls back to JavaScript click if standard click fails.
+- Verifies final state.
 
 **Returns**: `Promise<boolean>`
 
@@ -306,7 +344,7 @@ await browser.radio('Female').should.not.be.set()
 **Gender selection**:
 
 ```javascript
-await browser.radio('Female').set()
+await browser.radio('Female').click()
 await browser.radio('Female').should.be.set()
 ```
 
@@ -323,7 +361,7 @@ await browser.radio('Express (2-3 days)').should.not.be.set()
 
 ```javascript
 // Select shipping method
-await browser.radio('Express (2-3 days)').set()
+await browser.radio('Express (2-3 days)').click()
 await browser.radio('Express (2-3 days)').should.be.set()
 await browser.radio('Standard (5-7 days)').should.not.be.set()
 ```
@@ -378,18 +416,6 @@ await browser.dropdown('Color').option(1).select()
 **Returns**: `Promise<boolean>`
 
 **Throws**: Error if `.option()` was not called first
-
-### getSelectedOption()
-
-Get the currently selected option:
-
-```javascript
-const selected = await browser.dropdown('Country').getSelectedOption()
-console.log(selected.text) // "United States"
-console.log(selected.value) // "us"
-```
-
-**Returns**: `Promise<{text: string, value: string}>`
 
 ### get.text()
 
@@ -472,6 +498,101 @@ await browser.dropdown('Country').option('Canada').should.not.be.selected()
 ```
 
 **Throws**: Error if option IS selected
+
+### get.options()
+
+Get all options from a dropdown as an array of objects with `text` and `value` properties. Works with both native `<select>` elements and custom combobox widgets.
+
+```javascript
+const options = await browser.dropdown('Country').get.options()
+console.log(options)
+// Output: [
+//   { text: 'United States', value: 'us' },
+//   { text: 'Canada', value: 'ca' },
+//   { text: 'Mexico', value: 'mx' }
+// ]
+```
+
+**Returns**: `Promise<Array<{text: string, value: string}>>` - Array of option objects
+
+**Throws**: Error if dropdown not found.
+
+### has.option(value)
+
+**Returns `true`/`false` for conditional logic** - Does not throw errors.
+
+Check if a dropdown has a specific option. Accepts text, value, or index. Use this **only in if conditions** for branching logic.
+
+```javascript
+// Check by text
+const hasOption = await browser.dropdown('Country').has.option('United States')
+if (hasOption) {
+  console.log('United States is available')
+}
+
+// Check by value
+const hasOption = await browser.dropdown('Country').has.option('US')
+```
+
+**Parameters**:
+
+- `value` (string|number): Option text, value, or index to check for
+
+**Returns**: `Promise<boolean>` - `true` if the option exists, `false` otherwise
+
+**QA Best Practice**: For test validations, use `should.have.option()` or `should.not.have.option()` instead.
+
+### does.not.have.option(value)
+
+**Assertion that throws an error and stops test execution on failure.**
+
+Assert that a dropdown does NOT have a specific option. Accepts text, value, or index.
+
+```javascript
+// Assert option doesn't exist
+await browser.dropdown('Country').does.not.have.option('NonExistent')
+```
+
+**Parameters**:
+
+- `value` (string|number): Option text, value, or index to check for
+
+**Throws**: Error if the option exists - **Test execution stops**
+
+### should.have.option(value)
+
+**Assertion that throws an error and stops test execution on failure.**
+
+Assert that a dropdown has a specific option. Accepts text, value, or index.
+
+```javascript
+// Assert option exists
+await browser.dropdown('Country').should.have.option('United States')
+await browser.dropdown('Country').should.have.option('US')
+```
+
+**Parameters**:
+
+- `value` (string|number): Option text, value, or index to check for
+
+**Throws**: Error if the option does not exist - **Test execution stops**
+
+### should.not.have.option(value)
+
+**Assertion that throws an error and stops test execution on failure.**
+
+Assert that a dropdown does NOT have a specific option. Accepts text, value, or index.
+
+```javascript
+// Assert option doesn't exist
+await browser.dropdown('Country').should.not.have.option('NonExistent')
+```
+
+**Parameters**:
+
+- `value` (string|number): Option text, value, or index to check for
+
+**Throws**: Error if the option exists - **Test execution stops**
 
 ### Dropdown Patterns
 

@@ -123,6 +123,12 @@ await browser.textbox('Full Name').write('John Doe')
 // Select from dropdown
 await browser.dropdown('Country').option('United States').select()
 
+// Check if option exists
+await browser.dropdown('Country').should.have.option('United States')
+
+// Get all options
+const options = await browser.dropdown('Country').get.options()
+
 // Check multiple checkboxes
 await browser.checkbox('Subscribe').check()
 await browser.checkbox('Accept Terms').check()
@@ -383,7 +389,7 @@ await browser.row('John Doe').should.not.be.visible()
 
 **Text Input**: `write()`, `clear()`, `overwrite()`, `type()`, `press()`, `left()`, `right()`, `up()`, `down()`
 
-**Form Elements**: `check()`, `uncheck()`, `set()`, `on()`, `off()`, `option()`, `select()`
+**Form Elements**: `check()`, `uncheck()`, `on()`, `off()`, `option()`, `select()`
 
 **Element State**: `is.visible()`, `is.enabled()`, `is.checked()`, `should.be.visible()`, `should.be.disabled()`
 
@@ -395,7 +401,7 @@ await browser.row('John Doe').should.not.be.visible()
 
 **Windows/Tabs/Alerts**: `window()`, `tab()`, `alert()`
 
-**Spatial Positioning**: `above`, `below`, `toLeftOf`, `toRightOf`, `within`, `near`, `exactly`, `or`, `exact`, `atIndex()`
+**Spatial Positioning**: `above`, `below`, `toLeftOf`, `toRightOf`, `within`, `near`, `exactly`, `or`, `exact`, `at.index()`
 
 **Drag & Drop**: `drag()`, `onto()`, `drop()`
 

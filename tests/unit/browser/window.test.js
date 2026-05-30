@@ -1,60 +1,60 @@
-import { jest } from '@jest/globals';
+import { vi } from 'vitest';
 
 // ---------------- MOCKS ----------------
 const mockDriver = {
-  getAllWindowHandles: jest.fn(),
-  getWindowHandle: jest.fn(),
-  switchTo: jest.fn(),
-  getTitle: jest.fn(),
-  getCurrentUrl: jest.fn(),
-  close: jest.fn(),
-  manage: jest.fn(),
-  executeScript: jest.fn(),
+  getAllWindowHandles: vi.fn(),
+  getWindowHandle: vi.fn(),
+  switchTo: vi.fn(),
+  getTitle: vi.fn(),
+  getCurrentUrl: vi.fn(),
+  close: vi.fn(),
+  manage: vi.fn(),
+  executeScript: vi.fn(),
 };
 
 const mockSwitchTo = {
-  window: jest.fn(),
-  defaultContent: jest.fn(),
-  frame: jest.fn(),
-  newWindow: jest.fn(),
+  window: vi.fn(),
+  defaultContent: vi.fn(),
+  frame: vi.fn(),
+  newWindow: vi.fn(),
 };
 
 const mockManage = {
-  window: jest.fn(),
-  logs: jest.fn(),
+  window: vi.fn(),
+  logs: vi.fn(),
 };
 
 const mockWindow = {
-  maximize: jest.fn(),
-  minimize: jest.fn(),
-  fullscreen: jest.fn(),
+  maximize: vi.fn(),
+  minimize: vi.fn(),
+  fullscreen: vi.fn(),
 };
 
 mockDriver.switchTo.mockReturnValue(mockSwitchTo);
 mockDriver.manage.mockReturnValue(mockManage);
 mockManage.window.mockReturnValue(mockWindow);
 
-jest.unstable_mockModule('selenium-webdriver', () => ({
-  Builder: jest.fn(),
+vi.mock('selenium-webdriver', () => ({
+  Builder: vi.fn(),
   By: {},
   until: {},
-  WebDriver: jest.fn(() => mockDriver),
+  WebDriver: vi.fn(() => mockDriver),
   Key: {
     ARROW_RIGHT: '\uE015',
   },
 }));
 
-jest.unstable_mockModule('@nodebug/logger', () => ({
+vi.mock('@nodebug/logger', () => ({
   log: {
-    info: jest.fn(),
-    error: jest.fn(),
-    debug: jest.fn(),
+    info: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
   },
 }));
 
 // Mock config module
-jest.unstable_mockModule('@nodebug/config', () => ({
-  default: jest.fn(() => ({
+vi.mock('@nodebug/config', () => ({
+  default: vi.fn(() => ({
     selenium: {
       timeout: 5,
     },
@@ -73,7 +73,7 @@ describe('Window (ESM)', () => {
   let mockLogEntries;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     mockWindowHandle = 'window-handle-1';
     mockWindowHandles = ['window-handle-1', 'window-handle-2'];
@@ -82,7 +82,7 @@ describe('Window (ESM)', () => {
       { level: { name: 'INFO' }, message: 'Info 1' },
     ];
     mockLogs = {
-      get: jest.fn().mockResolvedValue(mockLogEntries),
+      get: vi.fn().mockResolvedValue(mockLogEntries),
     };
 
     mockDriver.getWindowHandle.mockResolvedValue(mockWindowHandle);
@@ -105,7 +105,7 @@ describe('Window (ESM)', () => {
     test('switches to window and returns true', async () => {
       // Mock the internal _findTarget method to return true
       const originalFindTarget = window._findTarget;
-      window._findTarget = jest.fn().mockResolvedValue(true);
+      window._findTarget = vi.fn().mockResolvedValue(true);
       
       const result = await window.switch();
       
@@ -116,7 +116,7 @@ describe('Window (ESM)', () => {
     test('throws error when window is not found during switch', async () => {
       // Mock the internal _findTarget method to throw an error
       const originalFindTarget = window._findTarget;
-      window._findTarget = jest.fn().mockRejectedValue(new Error('Window not found'));
+      window._findTarget = vi.fn().mockRejectedValue(new Error('Window not found'));
       
       await expect(window.switch()).rejects.toThrow();
       window._findTarget = originalFindTarget;

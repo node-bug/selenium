@@ -1,105 +1,89 @@
-import { ElementTypes } from '../../../app/elements/element-types.js';
+import { readFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 
-describe('ElementTypes', () => {
-  let elementTypes;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const elementDefinitionsPath = join(__dirname, '../../../node_modules/@nodebug/browser-element-finder/src/element-definitions.json');
 
-  beforeEach(() => {
-    elementTypes = new ElementTypes();
-  });
+function getElementDefinitions() {
+  return JSON.parse(readFileSync(elementDefinitionsPath, 'utf8'));
+}
 
-  describe('constructor', () => {
-    it('should initialize attributes array', () => {
-      expect(elementTypes.attributes).toBeDefined();
-      expect(Array.isArray(elementTypes.attributes)).toBe(true);
-      expect(elementTypes.attributes.length).toBeGreaterThan(0);
+function isValidElementType(type) {
+  const types = Object.keys(getElementDefinitions());
+  return Boolean(type && typeof type === 'string' && types.includes(type));
+}
+
+describe('element-types', () => {
+  describe('isValidElementType', () => {
+    it('should return true for valid types', () => {
+      expect(isValidElementType('button')).toBe(true);
+      expect(isValidElementType('link')).toBe(true);
+      expect(isValidElementType('element')).toBe(true);
     });
 
-    it('should initialize definitions object', () => {
-      expect(elementTypes.definitions).toBeDefined();
-      expect(typeof elementTypes.definitions).toBe('object');
-      expect(Object.keys(elementTypes.definitions).length).toBeGreaterThan(0);
-    });
-
-    it('should have expected element types in definitions', () => {
-      const expectedTypes = ['link', 'navigation', 'heading', 'button', 'checkbox', 'radio', 'slider', 'dropdown', 'textbox', 'file', 'list', 'listitem', 'menu', 'menuitem', 'toolbar', 'dialog', 'row', 'column', 'image', 'element'];
-      expectedTypes.forEach(type => {
-        expect(elementTypes.definitions).toHaveProperty(type);
-      });
-    });
-  });
-
-  describe('transform method', () => {
-    it('should handle null values', () => {
-      expect(elementTypes.transform(null)).toBe("''");
-    });
-
-    it('should handle undefined values', () => {
-      expect(elementTypes.transform(undefined)).toBe("''");
-    });
-
-    it('should handle values without quotes', () => {
-      expect(elementTypes.transform('test')).toBe("'test'");
-    });
-
-    it('should escape single quotes properly', () => {
-      expect(elementTypes.transform("test'value")).toBe("concat('test',\"'\",'value')");
-    });
-
-    it('should handle multiple single quotes', () => {
-      expect(elementTypes.transform("test'value'with'more")).toBe("concat('test',\"'\",'value',\"'\",'with',\"'\",'more')");
+    it('should return false for invalid types', () => {
+      expect(isValidElementType('invalid')).toBe(false);
+      expect(isValidElementType('')).toBe(false);
+      expect(isValidElementType(null)).toBe(false);
+      expect(isValidElementType(undefined)).toBe(false);
     });
   });
 
-  describe('buildMatcher method', () => {
-    it('should build matcher for exact match', () => {
-      const matcher = elementTypes.buildMatcher('test', true);
-      expect(matcher).toContain('normalize-space(.)=');
-      expect(matcher).not.toContain('true()');
+  describe('table element type', () => {
+    it('should have table element type defined', () => {
+      const definitions = getElementDefinitions();
+      expect(definitions.table).toBeDefined();
     });
 
-    it('should build matcher for partial match', () => {
-      const matcher = elementTypes.buildMatcher('test', false);
-      expect(matcher).toContain('contains(normalize-space(.),');
-      expect(matcher).not.toContain('true()');
-    });
-
-    it('should include all attributes in matcher', () => {
-      const matcher = elementTypes.buildMatcher('test');
-      elementTypes.attributes.forEach(attr => {
-        expect(matcher).toContain(`@${attr}`);
-      });
-      expect(matcher).toContain('.');
+    it('should match table elements by tag or role', () => {
+      const definitions = getElementDefinitions();
+      expect(definitions.table).toContain('self::table');
+      expect(definitions.table).toContain('@role=\'table\'');
     });
   });
 
-  describe('getSelectors method', () => {
-    it('should return object with element types as keys', () => {
-      const selectors = elementTypes.getSelectors('test');
-      expect(selectors).toBeDefined();
-      expect(typeof selectors).toBe('object');
-      Object.keys(elementTypes.definitions).forEach(type => {
-        expect(selectors).toHaveProperty(type);
-      });
+  describe('row element type', () => {
+    it('should have row element type defined', () => {
+      const definitions = getElementDefinitions();
+      expect(definitions.row).toBeDefined();
     });
 
-    it('should generate valid XPath selectors', () => {
-      const selectors = elementTypes.getSelectors('test');
-      Object.values(selectors).forEach(xpath => {
-        expect(typeof xpath).toBe('string');
-        expect(xpath).toContain('//*[(');
-        expect(xpath).toContain(') and (');
-      });
+    it('should match row elements by tag or role', () => {
+      const definitions = getElementDefinitions();
+      expect(definitions.row).toContain('self::tr');
+      expect(definitions.row).toContain('@role=\'row\'');
+    });
+  });
+
+  describe('column element type', () => {
+    it('should have column element type defined', () => {
+      const definitions = getElementDefinitions();
+      expect(definitions.column).toBeDefined();
     });
 
-    it('should generate different selectors for exact vs partial matching', () => {
-      const partialSelectors = elementTypes.getSelectors('test', false);
-      const exactSelectors = elementTypes.getSelectors('test', true);
-      
-      // Both should have the same structure but different matchers
-      Object.keys(partialSelectors).forEach(type => {
-        expect(partialSelectors[type]).toContain('contains(normalize-space(.),');
-        expect(exactSelectors[type]).toContain('normalize-space(.)=');
-      });
+    it('should match column elements by tag or role', () => {
+      const definitions = getElementDefinitions();
+      expect(definitions.column).toContain('self::td');
+      expect(definitions.column).toContain('self::th');
+      expect(definitions.column).toContain('@role=\'cell\'');
+      expect(definitions.column).toContain('@role=\'gridcell\'');
+      expect(definitions.column).toContain('@role=\'columnheader\'');
+    });
+  });
+
+  describe('cell element type', () => {
+    it('should have cell element type defined', () => {
+      const definitions = getElementDefinitions();
+      expect(definitions.cell).toBeDefined();
+    });
+
+    it('should match cell elements by tag or role', () => {
+      const definitions = getElementDefinitions();
+      expect(definitions.cell).toContain('self::td');
+      expect(definitions.cell).toContain('@role=\'cell\'');
+      expect(definitions.cell).toContain('@role=\'gridcell\'');
     });
   });
 });

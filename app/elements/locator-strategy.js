@@ -1,13 +1,37 @@
-import { By } from 'selenium-webdriver';
-import { ElementTypes } from './element-types.js';
+import config from '@nodebug/config';
+import { log } from '@nodebug/logger';
+import { relativeSearch } from './spatial-selection.js';
+import { readFile } from 'fs/promises';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+import ELEMENT_DEFINITIONS from '@nodebug/browser-element-finder/element-definitions.json' with { type: 'json' };
+
+// Load ElementFinder script from @nodebug/browser-element-finder package
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const elementFinderPath = join(__dirname, '../../node_modules/@nodebug/browser-element-finder/index.js');
+
+const selenium = config('selenium');
 
 /**
- * Core element-finding strategy that extends {@link ElementTypes} with
- * Selenium WebDriver integration. Handles cross-iframe scanning, spatial
- * filtering (above, below, left, right, within), and stack-based element
- * resolution.
+ * Core element-finding strategy with Selenium WebDriver integration.
+ * Uses ElementFinder.findProbableElements() for element discovery, with support
+ * for cross-iframe scanning, spatial filtering, and stack-based element resolution.
+ * 
+ * ## Supported Finding Strategies
+ * 1. **Direct Matching**: Match by element type + text/attribute content
+ * 2. **Exact vs Substring**: Full-text or partial matching
+ * 3. **Index Selection**: 1-based indexing into result sets
+ * 4. **Spatial Filtering**: above, below, toLeftOf, toRightOf, within, near
+ * 5. **Frame Scanning**: Cross-iframe element resolution
+ * 6. **Visibility Filtering**: Include/exclude hidden elements
+ * 7. **Chained Filters**: Combine spatial filters in sequence
+ * 8. **Alignment Precision**: Optional exact alignment (for above/below/left/right)
  */
-export class LocatorStrategy extends ElementTypes {
+export class LocatorStrategy {
+  // Flag to track if ElementFinder script has been injected
+  #elementFinderInjected = false;
+
   /**
    * @type {import('selenium-webdriver').WebDriver}
    */
@@ -15,314 +39,850 @@ export class LocatorStrategy extends ElementTypes {
   get driver() { return this._driver; }
 
   /**
+   * @type {boolean}
+   */
+  get debug() { return selenium.debug ?? false; }
+
+  /**
+   * Injects the ElementFinder script into the browser context.
+   * This is called once per session to make ElementFinder available.
+   * @private
+   */
+  async _injectElementFinder() {
+    if (this.#elementFinderInjected) return;
+
+    try {
+      // Check if ElementFinder already exists
+      const exists = await this.driver.executeScript(`
+        return typeof window.ElementFinder !== 'undefined';
+      `);
+
+      if (!exists) {
+        // Inject the ElementFinder script from @nodebug/browser-element-finder package
+        const scriptContent = await readFile(elementFinderPath, 'utf8');
+        // Execute the IIFE script and assign to window.ElementFinder
+        await this.driver.executeScript(`
+          ${scriptContent}
+          window.ElementFinder = ElementFinder;
+        `);
+
+        // Verify injection succeeded
+        const injected = await this.driver.executeScript(`
+          return typeof window.ElementFinder !== 'undefined';
+        `);
+        if (!injected) {
+          throw new Error('ElementFinder script injection failed - window.ElementFinder not defined');
+        }
+      }
+      this.#elementFinderInjected = true;
+    } catch (err) {
+      if (this.debug) {
+        console.warn('Failed to inject ElementFinder:', err.message);
+      }
+      throw err; // Re-throw to ensure we know if injection fails
+    }
+  }
+
+  /**
    * Helper to switch context safely.
+   * 
    * Switches to the default content, then optionally into a specific frame
-   * before executing the callback. Silently swallows NoSuchFrameError.
+   * before executing the callback. Handles frame errors gracefully by returning null
+   * if the frame is no longer accessible (common in dynamic SPAs).
    *
-   * @param {number} frame - The frame index to switch into, or -1 for default content.
+   * @param {number} frameIndex - The frame index to switch into, or -1 for default content.
    * @param {Function} callback - The async function to execute within the frame context.
    * @returns {Promise<*>} The result of the callback, or null if the frame was not found.
+   * @throws {Error} Any error from the callback (not frame-switching errors)
    */
-  async _withContext(frame, callback) {
-    await this.driver.switchTo().defaultContent();
-    if (frame >= 0) {
+  async _withContext(frameIndex, callback) {
+    try {
+      await this.driver.switchTo().defaultContent();
+    } catch (err) {
+      // If we can't switch to default content, the driver may be detached
+      if (this.debug) console.warn('Failed to switch to default content:', err.message);
+      return null;
+    }
+
+    if (frameIndex >= 0) {
       try {
-        await this.driver.switchTo().frame(frame);
+        await this.driver.switchTo().frame(frameIndex);
       } catch (err) {
-        if (err.name !== 'NoSuchFrameError') throw err;
-        return null;
+        // Frame doesn't exist, moved, or is inaccessible - this is normal in dynamic pages
+        // Only catch NoSuchFrameError, rethrow other errors
+        if (err.name === 'NoSuchFrameError') {
+          if (this.debug) console.warn(`Frame ${frameIndex} not found`);
+          return null;
+        }
+        throw err;
       }
     }
-    return callback();
+
+    try {
+      return await callback();
+    } finally {
+      // CRITICAL: Always switch back to default content after callback
+      // This ensures the driver context is restored for subsequent operations
+      try {
+        await this.driver.switchTo().defaultContent();
+      } catch (err) {
+        if (this.debug) console.warn('Failed to restore default content after callback:', err.message);
+      }
+    }
   }
 
   /**
    * Finds child elements within a parent element's frame context.
-   * Switches to the parent's frame, queries for matching children using
-   * the childData selector, qualifies them with bounding-box metadata,
-   * and filters out zero-dimension elements.
+   *
+   * This method is used for the 'within' spatial filter. It switches to the parent's
+   * frame and uses ElementFinder to find matching children, then qualifies them
+   * with bounding-box metadata and filters out zero-dimension (invisible) elements.
    *
    * @param {WebElement} parent - The parent WebElement whose frame context to use.
    * @param {Object} childData - The selector descriptor containing `id`, `exact`, and `type`.
    * @returns {Promise<WebElement[]>} Array of qualified child elements with visible dimensions.
+   * @throws {Error} If context switching or query fails
    */
   async findChildElements(parent, childData) {
-    return this._withContext(parent.frame, async () => {
-      const xpath = this.getSelectors(childData.id, childData.exact)[childData.type];
-      const elements = await parent.findElements(By.xpath(xpath));
+    if (!parent) {
+      return [];
+    }
 
-      const qualified = await Promise.all(
-        elements.map(async (el) => {
-          el.frame = parent.frame;
-          return this.addQualifiers(el);
-        })
-      );
+    return this._withContext(parent.frameIndex, async () => {
+      try {
+        // Ensure ElementFinder is injected
+        await this._injectElementFinder();
 
-      return qualified.filter(e => e.rect.height > 0 && e.rect.width > 0);
+        // Use ElementFinder.findProbableElements with parent parameter for within-element search
+        // Visibility filtering is done after based on boundingBox dimensions
+        const elements = await this.driver.executeScript(`
+          const parent = arguments[0];
+          const type = arguments[1];
+          const text = arguments[2];
+          const exact = arguments[3];
+          
+          // Call ElementFinder.findProbableElements with parent parameter
+          const result = window.ElementFinder.findProbableElements(type, text, exact, parent);
+          return result;
+        `, parent, childData.type, childData.id, childData.exact);
+
+        if (this.debug) {
+          log.debug(`findChildElements: type='${childData.type}', id='${childData.id}', exact=${childData.exact}, result count=${elements?.elements?.length || 0}`);
+        }
+
+        if (!elements || !elements.elements || elements.elements.length === 0) {
+          return [];
+        }
+
+        // Selenium has wrapped the DOM elements as WebElements
+        // Now attach the metadata to each WebElement
+        // Use parent's frameIndex since we're searching within the parent's context
+        // Filter out elements without the element property (from cross-origin iframes)
+        const qualified = elements.elements
+          .filter(elem => elem.element)
+          .map((elem) => {
+            const webElement = elem.element;
+            webElement.frameIndex = parent.frameIndex;
+            webElement.tagName = elem.tagName;
+            webElement.boundingBox = elem.boundingBox;
+            return webElement;
+          });
+
+        return qualified;
+      } catch (err) {
+        if (this.debug) {
+          console.error(`Error finding child elements of type '${childData.type}':`, err.message);
+        }
+        return [];
+      }
     });
   }
 
   /**
    * Filters a set of candidate elements based on their spatial relationship
-   * to a reference element.
+   * to a reference element (or array of reference elements for 'within').
    *
-   * Supported locations: 'above', 'below', 'toLeftOf', 'toRightOf', 'within'.
-   * When `rel.exactly` is true, the filter also requires horizontal (for above/below)
-   * or vertical (for left/right) alignment within a 5px buffer.
-   * For 'within', the filter checks that the candidate's midpoint lies inside
-   * the reference element's bounding box.
+   * Supported spatial relationships:
+   * - `above`: Candidate is vertically above reference (r.top >= e.boundingBox.bottom)
+   * - `below`: Candidate is vertically below reference (r.bottom <= e.boundingBox.top)
+   * - `toLeftOf`: Candidate is horizontally left of reference (r.left >= e.boundingBox.right)
+   * - `toRightOf`: Candidate is horizontally right of reference (r.right <= e.boundingBox.left)
+   * - `within`: Candidate's midpoint is inside reference's bounding box
+   * - `near`: Candidate vertically overlaps reference (on same row, within 100px)
+   * 
+   * When `rel.exactly` is true, alignment is also checked (within 5px buffer):
+   * - For above/below: horizontal alignment required
+   * - For left/right: vertical alignment required
    *
-   * If no relative constraint is provided, returns `item.matches` unchanged.
+   * For 'within', supports array of reference elements (all must be checked).
+   * If no spatial constraint, returns all candidates unchanged.
    *
    * @param {Object} item - The stack item containing `type` and `matches` array.
-   * @param {Object} [rel] - The relative constraint object with `located` and optional `exactly`.
-   * @param {WebElement} [relativeElement] - The reference element to compare positions against.
+   * @param {Object} [rel] - Spatial constraint object with `located` and optional `exactly`.
+   * @param {WebElement|WebElement[]} [relativeElement] - Reference element(s) to filter by.
    * @returns {Promise<WebElement[]>} Filtered array of elements matching the spatial constraint.
+   * @throws {Error} If spatial location is unsupported
    */
   async relativeSearch(item, rel, relativeElement) {
-    if (rel?.located) {
-      const validLocations = ['above', 'below', 'toLeftOf', 'toRightOf', 'within'];
-      if (!validLocations.includes(rel.located)) {
-        throw new ReferenceError(`Location '${rel.located}' is not supported`);
-      }
-    }
-
-    if (!rel?.located || !relativeElement) return item.matches;
-
-    const { rect: r } = relativeElement;
-    const BUFFER = 5;
-
-    const spatialFilters = {
-      above: (e) => r.top >= e.rect.bottom && (!rel.exactly || (r.left - BUFFER <= e.rect.left && r.right + BUFFER >= e.rect.right)),
-      below: (e) => r.bottom <= e.rect.top && (!rel.exactly || (r.left - BUFFER <= e.rect.left && r.right + BUFFER >= e.rect.right)),
-      toLeftOf: (e) => r.left >= e.rect.right && (!rel.exactly || (r.top - BUFFER <= e.rect.top && r.bottom + BUFFER >= e.rect.bottom)),
-      toRightOf: (e) => r.right <= e.rect.left && (!rel.exactly || (r.top - BUFFER <= e.rect.top && r.bottom + BUFFER >= e.rect.bottom)),
-      within: async (e) => {
-        if (item.type === 'element') {
-          item.matches = await this.findChildElements(relativeElement, item);
-        }
-        return (r.left <= e.rect.midx && r.right >= e.rect.midx && r.top <= e.rect.midy && r.bottom >= e.rect.midy);
-      }
-    };
-
-    const filterFn = spatialFilters[rel.located];
-    if (!filterFn) throw new ReferenceError(`Location '${rel.located}' is not supported`);
-
-    // Handle the 'within' async exception separately or use a regular filter
-    const results = [];
-    for (const el of item.matches) {
-      if (await filterFn(el)) results.push(el);
-    }
-    return results;
+    return relativeSearch(item, rel, relativeElement);
   }
 
   /**
-   * Injects bounding-box metadata into WebElement(s) by executing a script
-   * in the browser to retrieve `getBoundingClientRect()` data.
+   * Finds all matching elements across frames.
+   * 
+   * Searches frame-by-frame: main frame first, then child frames.
+   * Uses ElementFinder.findProbableElements() for element discovery within each frame context.
    *
-   * Adds `tagName` (lowercased) and `rect` (with `midx`/`midy` midpoints)
-   * directly onto each WebElement instance.
-   *
-   * @param {WebElement|WebElement[]|null} elements - Single element, array of elements, or null.
-   * @returns {Promise<WebElement[]>} Array of qualified elements with rect metadata.
+   * @param {Object} elementData - Selector descriptor with `id`, `exact`, `type`, `hidden`.
+   * @returns {Promise<WebElement[]>} Array of qualified matching elements across frames.
    */
-  async addQualifiers(elements) {
-    if (!elements) return []; // Fix for "should handle null elements"
-    const targets = Array.isArray(elements) ? elements : [elements];
-    if (targets.length === 0) return [];
+  async findElements(elementData) {
+    // Ensure ElementFinder is injected
+    await this._injectElementFinder();
 
-    const stats = await this.driver.executeScript(`
-      return Array.from(arguments).map(el => {
-        const r = el.getBoundingClientRect();
-        return {
-          x: r.x, y: r.y, width: r.width, height: r.height,
-          top: r.top, bottom: r.bottom, left: r.left, right: r.right,
-          tagName: el.tagName
-        };
-      });
-    `, ...targets);
+    // Switch elements have dedicated search logic (include hidden, custom processing)
+    if (elementData.type === 'switch') {
+      return this._findSwitchElements(elementData);
+    }
 
-    return targets.map((el, i) => {
-      const s = stats[i];
-      el.tagName = s.tagName.toLowerCase();
-      el.rect = {
-        ...s,
-        midx: s.x + s.width / 2,
-        midy: s.y + s.height / 2
-      };
-      return el;
+    // 1. Search in main frame first (frameIndex = -1)
+    // ElementFinder searches ALL frames when called from main frame
+    // Elements from child frames are returned without the `element` property
+    const mainFrameResults = await this._searchInFrame(-1, elementData);
+    if (mainFrameResults.length > 0) {
+      return mainFrameResults;
+    }
+
+    // 2. Get all iframe elements to search child frames directly
+    const frameCount = await this._getChildFrameCount();
+
+    // 3. Search each child frame
+    for (let frameIndex = 0; frameIndex < frameCount; frameIndex++) {
+      const frameResults = await this._searchInFrame(frameIndex, elementData);
+      if (frameResults.length > 0) {
+        return frameResults;
+      }
+    }
+
+    return [];
+  }
+
+  /**
+   * Finds switch elements across frames with dedicated logic.
+   * Always includes hidden elements since switches often have hidden checkboxes.
+   *
+   * @param {Object} elementData - Selector descriptor with `id`, `exact`, `type`, `hidden`.
+   * @returns {Promise<WebElement[]>} Array of qualified switch elements.
+   */
+  async _findSwitchElements(elementData) {
+    // 1. Search in main frame first (frameIndex = -1)
+    const mainFrameResults = await this._searchSwitchInFrame(-1, elementData);
+    if (mainFrameResults.length > 0) {
+      return mainFrameResults;
+    }
+
+    // 2. Get all iframe elements to search child frames directly
+    const frameCount = await this._getChildFrameCount();
+
+    // 3. Search each child frame
+    for (let frameIndex = 0; frameIndex < frameCount; frameIndex++) {
+      const frameResults = await this._searchSwitchInFrame(frameIndex, elementData);
+      if (frameResults.length > 0) {
+        return frameResults;
+      }
+    }
+
+    // 4. Fall back to closest switch element search
+    const closestResults = await this._findClosestSwitchElement(elementData);
+    if (closestResults && closestResults.elements && closestResults.elements.length > 0) {
+      return closestResults.elements
+        .filter(elem => elem.element)
+        .map((elem) => {
+          const webElement = elem.element;
+          webElement.frameIndex = elem.frameIndex;
+          webElement.tagName = elem.tagName;
+          webElement.boundingBox = elem.boundingBox;
+          return webElement;
+        });
+    }
+
+    return [];
+  }
+
+  /**
+   * Gets the count of child iframes in the current document.
+   * @returns {Promise<number>} Number of iframe elements.
+   */
+  async _getChildFrameCount() {
+    try {
+      const count = await this.driver.executeScript(`
+        return document.querySelectorAll('iframe').length;
+      `);
+      return count || 0;
+    } catch (err) {
+      if (this.debug) {
+        console.warn('Failed to get frame count:', err.message);
+      }
+      return 0;
+    }
+  }
+
+  /**
+   * Searches for elements within a specific frame context.
+   * 
+   * @param {number} frameIndex - Frame index (-1 for main frame, 0+ for child frames).
+   * @param {Object} elementData - Selector descriptor with `id`, `exact`, `type`, `hidden`.
+   * @returns {Promise<WebElement[]>} Array of qualified matching elements.
+   */
+  async _searchInFrame(frameIndex, elementData) {
+    return this._withContext(frameIndex, async () => {
+      try {
+        // Inject ElementFinder in this frame context if not already present
+        const scriptContent = await readFile(elementFinderPath, 'utf8');
+        await this.driver.executeScript(`
+          if (typeof window.ElementFinder === 'undefined') {
+            ${scriptContent}
+            window.ElementFinder = ElementFinder;
+          }
+        `);
+
+        const results = await this.driver.executeScript(`
+          const type = arguments[0];
+          const text = arguments[1];
+          const exact = arguments[2];
+          
+          // Call ElementFinder.findProbableElements in current frame context
+          const result = window.ElementFinder.findProbableElements(type, text, exact);
+          
+          return result;
+        `, elementData.type, elementData.id, elementData.exact);
+
+        if (!results || !results.elements || results.elements.length === 0) {
+          return [];
+        }
+
+        // Separate elements by whether they have the element property
+        // Elements from child frames (found when searching main frame) don't have element property
+        const mainFrameElements = results.elements.filter(elem => elem.element);
+
+        // Process main frame elements (have the element property)
+        const qualified = mainFrameElements.map((elem) => {
+          const webElement = elem.element;
+          webElement.frameIndex = frameIndex;
+          webElement.tagName = elem.tagName;
+          webElement.boundingBox = elem.boundingBox;
+          return webElement;
+        });
+
+        // For child frame elements, we need to switch to that frame and find the element
+        // This is handled by the findElements method which searches child frames separately
+        // We just need to return the main frame elements here
+
+        // Filter by visibility settings
+        // When hidden is true, include all elements (both visible and hidden)
+        // When hidden is false, only include visible elements
+        const visibilityFilter = elementData.hidden
+          ? () => true  // Include all elements
+          : (e) => e.boundingBox.height > 0 && e.boundingBox.width > 0;
+
+        return qualified.filter(visibilityFilter);
+      } catch (err) {
+        if (this.debug) {
+          console.warn(`Error searching in frame ${frameIndex}:`, err.message);
+        }
+        return [];
+      }
     });
   }
 
   /**
-   * Finds the closest element of a specific type relative to a starting element.
-   * Calculated using Euclidean distance between midpoints.
+   * Searches for switch elements within a specific frame context.
+   * Always includes hidden elements since switches often have hidden checkboxes.
    *
-   * @param {WebElement} originElement - The reference element to measure distance from.
-   * @param {string} [targetType='element'] - The element type to search for.
-   * @returns {Promise<WebElement>} The nearest qualified element, or the origin if no candidates exist.
+   * @param {number} frameIndex - Frame index (-1 for main frame, 0+ for child frames).
+   * @param {Object} elementData - Selector descriptor with `id`, `exact`, `type`, `hidden`.
+   * @returns {Promise<WebElement[]>} Array of qualified switch elements.
    */
-  async nearestElement(originElement, targetType = 'element') {
-    // 1. Find all potential candidates in the same frame
-    const xpath = this.getSelectors('', false)[targetType];
-    const candidates = await this.driver.findElements(By.xpath(xpath));
+  async _searchSwitchInFrame(frameIndex, elementData) {
+    return this._withContext(frameIndex, async () => {
+      try {
+        // Inject ElementFinder in this frame context if not already present
+        const scriptContent = await readFile(elementFinderPath, 'utf8');
+        await this.driver.executeScript(`
+          if (typeof window.ElementFinder === 'undefined') {
+            ${scriptContent}
+            window.ElementFinder = ElementFinder;
+          }
+        `);
 
-    if (candidates.length === 0) return originElement;
+        // First try to find switch elements directly by text
+        const directResults = await this.driver.executeScript(`
+          const type = arguments[0];
+          const text = arguments[1];
+          const exact = arguments[2];
+          
+          // Call ElementFinder.findProbableElements in current frame context
+          // For switches, we need to include hidden elements (handled by visibility filter)
+          const result = window.ElementFinder.findProbableElements(type, text, exact);
+          
+          return result;
+        `, elementData.type, elementData.id, elementData.exact);
 
-    // 2. Optimization: Send all candidates and the origin to the browser 
-    // to calculate distances in a single execution.
-    const distances = await this.driver.executeScript(`
-      const origin = arguments[0].getBoundingClientRect();
-      const originMid = { 
-        x: origin.left + origin.width / 2, 
-        y: origin.top + origin.height / 2 
-      };
+        // If direct search found elements, use them
+        if (directResults && directResults.elements && directResults.elements.length > 0) {
+          const mainFrameElements = directResults.elements.filter(elem => elem.element);
+          const qualified = mainFrameElements.map((elem) => {
+            const webElement = elem.element;
+            webElement.frameIndex = frameIndex;
+            webElement.tagName = elem.tagName;
+            webElement.boundingBox = elem.boundingBox;
+            return webElement;
+          });
+          const processed = await this._postProcessSwitchElements(qualified, elementData);
+          return processed;
+        }
 
-      return Array.from(arguments).slice(1).map(el => {
-        const r = el.getBoundingClientRect();
-        const targetMid = { 
-          x: r.left + r.width / 2, 
-          y: r.top + r.height / 2 
-        };
-        
-        // Euclidean distance formula: sqrt((x2-x1)^2 + (y2-y1)^2)
-        return Math.sqrt(
-          Math.pow(targetMid.x - originMid.x, 2) + 
-          Math.pow(targetMid.y - originMid.y, 2)
-        );
-      });
-    `, originElement, ...candidates);
+        // If no direct match, try to find label elements and their associated switch inputs
+        const labelResults = await this.driver.executeScript(`
+          const text = arguments[0];
+          const exact = arguments[1];
+          
+          // Find label elements that match the text
+          const labels = window.ElementFinder.findElements('element', text, exact);
+          
+          if (!labels || !labels.elements || labels.elements.length === 0) {
+            return { elements: [] };
+          }
+          
+          const switchElements = [];
+          
+          for (const label of labels.elements) {
+            if (!label.element) continue;
+            const labelEl = label.element;
+            
+            // Check for label 'for' attribute pointing to a switch
+            const forId = labelEl.getAttribute('for');
+            if (forId) {
+              const forEl = document.getElementById(forId);
+              if (forEl && window.ElementFinder.matchesType(forEl, 'switch')) {
+                const rect = forEl.getBoundingClientRect();
+                switchElements.push({ 
+                  element: forEl, 
+                  frame: label.frame,
+                  tagName: forEl.tagName.toLowerCase(),
+                  boundingBox: {
+                    x: rect.x, y: rect.y, width: rect.width, height: rect.height,
+                    top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right,
+                    midx: rect.x + rect.width / 2, midy: rect.y + rect.height / 2
+                  }
+                });
+                continue;
+              }
+            }
+            
+            // Check if any switch element references this label via aria-labelledby
+            // Look for all switches and check their aria-labelledby for this label's id
+            const allSwitches = document.querySelectorAll('[role="switch"]');
+            for (const switchEl of allSwitches) {
+              const labelledBy = switchEl.getAttribute('aria-labelledby');
+              if (labelledBy) {
+                const ids = labelledBy.split(' ').filter(Boolean);
+                if (ids.includes(labelEl.id)) {
+                  const rect = switchEl.getBoundingClientRect();
+                  switchElements.push({ 
+                    element: switchEl,
+                    frame: label.frame,
+                    tagName: switchEl.tagName.toLowerCase(),
+                    boundingBox: {
+                      x: rect.x, y: rect.y, width: rect.width, height: rect.height,
+                      top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right,
+                      midx: rect.x + rect.width / 2, midy: rect.y + rect.height / 2
+                    }
+                  });
+                  // Found a switch for this label, break inner loop
+                  break;
+                }
+              }
+            }
+          }
+          
+          return { elements: switchElements };
+        `, elementData.id, elementData.exact);
 
-    // 3. Map distances back to elements and sort
-    const sortedCandidates = candidates
-      .map((el, index) => {
-        el.distance = distances[index];
-        el.frame = originElement.frame;
-        return el;
-      })
-      .sort((a, b) => a.distance - b.distance);
+        if (!labelResults || !labelResults.elements || labelResults.elements.length === 0) {
+          return [];
+        }
 
-    // 4. Qualify the winner (add rect and midx/midy)
-    const [winner] = await this.addQualifiers(sortedCandidates[0]);
+        // Process elements found via label association
+        const mainFrameElements = labelResults.elements.filter(elem => elem.element);
+        const qualified = mainFrameElements.map((elem) => {
+          const webElement = elem.element;
+          webElement.frameIndex = frameIndex;
+          webElement.tagName = elem.tagName;
+          webElement.boundingBox = elem.boundingBox;
+          return webElement;
+        });
 
-    // Clean up temporary property
-    delete winner.distance;
+        // Apply switch-specific post-processing
+        const processed = await this._postProcessSwitchElements(qualified, elementData);
 
-    return winner;
+        return processed;
+      } catch (err) {
+        if (this.debug) {
+          console.warn(`Error searching for switch in frame ${frameIndex}:`, err.message);
+        }
+        return [];
+      }
+    });
   }
 
   /**
-   * Finds all matching elements across all frames (including default content).
+   * Finds the closest switch element using edge proximity.
    *
-   * Primary pass: queries using the requested element type's XPath selector.
-   * Fallback pass (if primary yields no results): queries using the generic
-   * 'element' selector, then replaces each match with the nearest element
-   * of the requested type via {@link nearestElement}.
-   *
-   * Results are qualified with bounding-box metadata and filtered by visibility
-   * (or hidden status, if `elementData.hidden` is true).
-   *
-   * @param {Object} elementData - The selector descriptor containing `id`, `exact`, `type`, and `hidden`.
-   * @returns {Promise<WebElement[]>} Array of qualified matching elements across all frames.
+   * @param {Object} elementData - Selector descriptor with `id`, `exact`, `type`, `hidden`.
+   * @returns {Promise<Object>} Result object with `elements` array, or empty if none found.
    */
-  async findElements(elementData) {
-    const found = [];
-    const frames = await this.driver.findElements(By.xpath('//iframe'));
-    const frameIndices = [-1, ...frames.keys()]; // -1 represents default content
+  async _findClosestSwitchElement(elementData) {
+    const DISTANCE_THRESHOLD = 500;
 
-    for (const i of frameIndices) {
-      await this._withContext(i, async () => {
-        const xpaths = this.getSelectors(elementData.id, elementData.exact);
-        const targetXpath = xpaths[elementData.type] || xpaths['element'];
-
-        let elements = await this.driver.findElements(By.xpath(targetXpath));
-
-        if (elements.length > 0) {
-          // 1. Tag the elements with the frame index first
-          elements.forEach(el => el.frame = i);
-
-          // 2. Pass the WHOLE array to addQualifiers (much faster, 1 driver call)
-          const qualified = await this.addQualifiers(elements);
-
-          // 3. Define the filter
-          const filter = elementData.hidden
-            ? (e) => e.rect.height < 1 || e.rect.width < 1
-            : (e) => e.rect.height > 0 && e.rect.width > 0;
-
-          // 4. Filter and push
-          found.push(...qualified.filter(filter));
-        }
-      });
+    // 1. Search in main frame first
+    const mainFrameResult = await this._findClosestSwitchInFrame(-1, elementData, DISTANCE_THRESHOLD);
+    if (mainFrameResult) {
+      return { elements: [mainFrameResult] };
     }
 
-    if (found.length < 1) {
-      const frames = await this.driver.findElements(By.xpath('//iframe'));
-      const frameIndices = [-1, ...frames.keys()]; // -1 represents default content
+    // 2. Get all iframe elements to search child frames
+    const frameCount = await this._getChildFrameCount();
 
-      for (const i of frameIndices) {
-        await this._withContext(i, async () => {
-          const xpaths = this.getSelectors(elementData.id, elementData.exact);
-          const targetXpath = xpaths['element'];
-
-          let elements = await this.driver.findElements(By.xpath(targetXpath));
-          for (const [index, element] of elements.entries()) {
-            elements[index] = await this.nearestElement(element, elementData.type)
-          }
-
-          if (elements.length > 0) {
-            // 1. Tag the elements with the frame index first
-            elements.forEach(el => el.frame = i);
-
-            // 2. Pass the WHOLE array to addQualifiers (much faster, 1 driver call)
-            const qualified = await this.addQualifiers(elements);
-
-            // 3. Define the filter
-            const filter = elementData.hidden
-              ? (e) => e.rect.height < 1 || e.rect.width < 1
-              : (e) => e.rect.height > 0 && e.rect.width > 0;
-
-            // 4. Filter and push
-            found.push(...qualified.filter(filter));
-          }
-        });
+    // 3. Search each child frame
+    for (let frameIndex = 0; frameIndex < frameCount; frameIndex++) {
+      const frameResult = await this._findClosestSwitchInFrame(frameIndex, elementData, DISTANCE_THRESHOLD);
+      if (frameResult) {
+        return { elements: [frameResult] };
       }
     }
-    return found;
+
+    return { elements: [] };
   }
 
   /**
-   * Iterates through the stack and finds the actual WebElements
-   * for any entry that doesn't have matches yet.
+   * Finds the closest switch element within a single frame.
    *
-   * Processes items sequentially because frame switching is a stateful
-   * operation on the driver and cannot be done in parallel.
+   * @param {number} frameIndex - Frame index (-1 for main frame, 0+ for child frames).
+   * @param {Object} elementData - Selector descriptor with `id`, `exact`, `type`, `hidden`.
+   * @param {number} threshold - Maximum distance to consider elements "close".
+   * @returns {Promise<Object|null>} Closest switch element object or null if none found.
+   */
+  async _findClosestSwitchInFrame(frameIndex, elementData, threshold) {
+    return this._withContext(frameIndex, async () => {
+      try {
+        // Inject ElementFinder in this frame context if not already present
+        const scriptContent = await readFile(elementFinderPath, 'utf8');
+        await this.driver.executeScript(`
+          if (typeof window.ElementFinder === 'undefined') {
+            ${scriptContent}
+            window.ElementFinder = ElementFinder;
+          }
+        `);
+
+        let result = await this.driver.executeScript(`
+          const text = arguments[0];
+          const exact = arguments[1];
+          const targetType = arguments[2];
+          const threshold = arguments[3];
+          
+          // First find the generic element (label or text) as reference
+          const genericResult = window.ElementFinder.findElements('element', text, exact);
+          
+          if (!genericResult || !genericResult.elements || genericResult.elements.length === 0) {
+            return null;
+          }
+          
+          // Get all elements of the target type (never include hidden for fallback search)
+          // Fallback should only find closest VISIBLE element, never return hidden elements
+          const targetResult = window.ElementFinder.findElements(targetType);
+          
+          if (!targetResult || !targetResult.elements || targetResult.elements.length === 0) {
+            return null;
+          }
+          
+          // Calculate edge proximity distance between two bounding boxes
+          function getEdgeProximityDistance(refRect, targetRect) {
+            const overlapsX = refRect.left <= targetRect.right && refRect.right >= targetRect.left;
+            const overlapsY = refRect.top <= targetRect.bottom && refRect.bottom >= targetRect.top;
+            
+            if (overlapsX && overlapsY) {
+              return 0;
+            }
+            
+            let dx = 0;
+            let dy = 0;
+            
+            if (refRect.left > targetRect.right) {
+              dx = refRect.left - targetRect.right;
+            } else if (refRect.right < targetRect.left) {
+              dx = targetRect.left - refRect.right;
+            }
+            
+            if (refRect.top > targetRect.bottom) {
+              dy = refRect.top - targetRect.bottom;
+            } else if (refRect.bottom < targetRect.top) {
+              dy = targetRect.top - refRect.bottom;
+            }
+            
+            return Math.sqrt(dx * dx + dy * dy);
+          }
+          
+          // Find the closest element to any of the generic elements
+          let closestElement = null;
+          let minDistance = Infinity;
+          
+          for (const generic of genericResult.elements) {
+            if (!generic.element) continue;
+            const refRect = generic.element.getBoundingClientRect();
+            
+            for (const target of targetResult.elements) {
+              if (!target.element) continue;
+              const targetRect = target.element.getBoundingClientRect();
+              const distance = getEdgeProximityDistance(refRect, targetRect);
+              
+              if (distance < minDistance && distance <= threshold) {
+                minDistance = distance;
+                closestElement = target;
+              }
+            }
+          }
+          
+          return closestElement;
+        `, elementData.id, elementData.exact, elementData.type, threshold);
+
+        if (result) {
+          result.frameIndex = frameIndex;
+          result = await this._postProcessSwitchElement(result, elementData);
+        }
+        return result;
+      } catch (err) {
+        if (this.debug) {
+          console.warn(`Error finding closest switch in frame ${frameIndex}:`, err.message);
+        }
+        return null;
+      }
+    });
+  }
+
+  /**
+   * Post-processes switch elements with custom logic.
+   * Override this method to add switch-specific behavior.
+   *
+   * @param {WebElement[]} elements - Array of switch elements to process.
+   * @param {Object} elementData - The selector descriptor for the switch.
+   * @returns {Promise<WebElement[]>} Processed array of switch elements.
+   */
+  async _postProcessSwitchElements(elements) {
+    // Custom logic for switch elements can be added here
+    // This method can be overridden in subclasses or extended
+    return elements;
+  }
+
+  /**
+   * Post-processes a single switch element with custom logic.
+   * Override this method to add switch-specific behavior for closest element search.
+   *
+   * @param {Object|null} element - The switch element object to process.
+   * @param {Object} elementData - The selector descriptor for the switch.
+   * @returns {Promise<Object|null>} Processed switch element object.
+   */
+  async _postProcessSwitchElement(element) {
+    // Custom logic for switch elements can be added here
+    // This method can be overridden in subclasses or extended
+    return element;
+  }
+
+  /**
+   * Finds the closest element of a specific type using edge proximity.
+   * 
+   * When an element type is not found directly, this method finds the closest
+   * matching element by searching frame-by-frame:
+   * 1. Finding generic elements matching the identifier (label/text)
+   * 2. Finding all elements of the target type
+   * 3. Calculating edge proximity distance between reference and candidates
+   * 4. Returning the closest element within the distance threshold
+   *
+   * @param {Object} elementData - Selector descriptor with `id`, `exact`, `type`, `hidden`.
+   * @returns {Promise<Object>} Result object with `elements` array, or empty if none found.
+   */
+  async _findClosestElementOfType(elementData) {
+    const DISTANCE_THRESHOLD = 500; // Maximum distance to consider elements "close"
+
+    // 1. Search in main frame first
+    const mainFrameResult = await this._findClosestInFrame(-1, elementData, DISTANCE_THRESHOLD);
+    if (mainFrameResult) {
+      return { elements: [mainFrameResult] };
+    }
+
+    // 2. Get all iframe elements to search child frames
+    const frameCount = await this._getChildFrameCount();
+
+    // 3. Search each child frame
+    for (let frameIndex = 0; frameIndex < frameCount; frameIndex++) {
+      const frameResult = await this._findClosestInFrame(frameIndex, elementData, DISTANCE_THRESHOLD);
+      if (frameResult) {
+        return { elements: [frameResult] };
+      }
+    }
+
+    return { elements: [] };
+  }
+
+  /**
+   * Finds the closest element of a specific type within a single frame.
+   * 
+   * @param {number} frameIndex - Frame index (-1 for main frame, 0+ for child frames).
+   * @param {Object} elementData - Selector descriptor with `id`, `exact`, `type`, `hidden`.
+   * @param {number} threshold - Maximum distance to consider elements "close".
+   * @returns {Promise<Object|null>} Closest element object or null if none found.
+   */
+  async _findClosestInFrame(frameIndex, elementData, threshold) {
+    return this._withContext(frameIndex, async () => {
+      try {
+        const result = await this.driver.executeScript(`
+          const text = arguments[0];
+          const exact = arguments[1];
+          const targetType = arguments[2];
+          const threshold = arguments[3];
+          
+          // First find the generic element (label or text) as reference
+          const genericResult = window.ElementFinder.findProbableElements('element', text, exact);
+          
+          if (!genericResult || !genericResult.elements || genericResult.elements.length === 0) {
+            return null;
+          }
+          
+          // Get all elements of the target type (never include hidden for fallback search)
+          // Fallback should only find closest VISIBLE element, never return hidden elements
+          const targetResult = window.ElementFinder.findProbableElements(targetType);
+          
+          if (!targetResult || !targetResult.elements || targetResult.elements.length === 0) {
+            return null;
+          }
+          
+          // Calculate edge proximity distance between two bounding boxes
+          function getEdgeProximityDistance(refRect, targetRect) {
+            const overlapsX = refRect.left <= targetRect.right && refRect.right >= targetRect.left;
+            const overlapsY = refRect.top <= targetRect.bottom && refRect.bottom >= targetRect.top;
+            
+            if (overlapsX && overlapsY) {
+              return 0;
+            }
+            
+            let dx = 0;
+            let dy = 0;
+            
+            if (refRect.left > targetRect.right) {
+              dx = refRect.left - targetRect.right;
+            } else if (refRect.right < targetRect.left) {
+              dx = targetRect.left - refRect.right;
+            }
+            
+            if (refRect.top > targetRect.bottom) {
+              dy = refRect.top - targetRect.bottom;
+            } else if (refRect.bottom < targetRect.top) {
+              dy = targetRect.top - refRect.bottom;
+            }
+            
+            return Math.sqrt(dx * dx + dy * dy);
+          }
+          
+          // Find the closest element to any of the generic elements
+          let closestElement = null;
+          let minDistance = Infinity;
+          
+          for (const generic of genericResult.elements) {
+            // Skip elements without the element property (from cross-origin iframes)
+            if (!generic.element) continue;
+            const refRect = generic.element.getBoundingClientRect();
+            
+            for (const target of targetResult.elements) {
+              // Skip elements without the element property (from cross-origin iframes)
+              if (!target.element) continue;
+              // Skip hidden elements (zero dimension)
+              if (target.boundingBox.height === 0 || target.boundingBox.width === 0) continue;
+              const targetRect = target.element.getBoundingClientRect();
+              const distance = getEdgeProximityDistance(refRect, targetRect);
+              
+              if (distance < minDistance && distance <= threshold) {
+                minDistance = distance;
+                closestElement = target;
+              }
+            }
+          }
+          
+          return closestElement;
+        `, elementData.id, elementData.exact, elementData.type, threshold);
+
+        if (result) {
+          // Attach frameIndex to the result
+          result.frameIndex = frameIndex;
+        }
+        return result;
+      } catch (err) {
+        if (this.debug) {
+          console.warn(`Error finding closest element in frame ${frameIndex}:`, err.message);
+        }
+        return null;
+      }
+    });
+  }
+
+  /**
+   * Processes a selector stack and resolves each item into actual WebElement(s).
+   *
+   * Iterates through the stack and calls findElements() for any item that:
+   * - Has a valid element type (button, textbox, element, etc.)
+   * - Has not yet been resolved (no matches yet)
+   *
+   * Processes sequentially because frame switching is stateful on the driver.
+   * Other stack items (like 'location' or 'condition') are passed through unchanged.
    *
    * @param {Object[]} stack - Array of selector descriptor items from the stack builder.
-   * @returns {Promise<Object[]>} Resolved stack with `matches` arrays populated on each item.
+   * @returns {Promise<Object[]>} Resolved stack with `matches` arrays populated.
    */
   async resolveElements(stack) {
-    const ELEMENT_TYPES = new Set([
-      'link', 'navigation', 'heading',
-      'button', 'checkbox', 'switch', 'radio', 'slider', 'dropdown',
-      'textbox', 'file',
-      'list', 'listitem', 'menu', 'menuitem',
-      'toolbar', 'dialog',
-      'row', 'column',
-      'image',
-      'element'
-    ]);
-
-    // Map through the stack and resolve each item
-    // We use a loop here because finding elements involves frame switching, 
-    // which is a stateful operation on the driver and cannot be done in parallel.
     const resolvedStack = [];
 
     for (const item of stack) {
       const newItem = { ...item };
 
-      if (ELEMENT_TYPES.has(newItem.type) && (!newItem.matches || newItem.matches.length === 0)) {
-        // FindElements handles the cross-iframe scanning logic
-        newItem.matches = await this.findElements(newItem)
+      // Check if this is a flag object (has exact/hidden but no type) that should be merged with previous element
+      const isFlagObject = item.type === undefined && 'hidden' in item;
+      if (isFlagObject && resolvedStack.length > 0) {
+        // Merge flags into the previous element
+        const prevItem = resolvedStack[resolvedStack.length - 1];
+        if (prevItem && !prevItem.type) {
+          // Previous item is also a flag, merge them
+          Object.assign(prevItem, newItem);
+        } else if (prevItem && Object.keys(ELEMENT_DEFINITIONS).includes(prevItem.type)) {
+          // Previous item is an element, merge flags into it
+          prevItem.hidden = prevItem.hidden || newItem.hidden;
+          prevItem.exact = prevItem.exact || newItem.exact;
+        }
+        continue; // Skip adding this flag object as a separate item
+      }
+
+      // Only resolve items that are element types and don't have matches yet
+      if (Object.keys(ELEMENT_DEFINITIONS).includes(newItem.type) && (!newItem.matches || newItem.matches.length === 0)) {
+        try {
+          newItem.matches = await this.findElements(newItem);
+          // For column type, expand to all cells in the same column position
+          if (newItem.type === 'column' && newItem.matches.length > 0) {
+            newItem.matches = await this._expandColumnMatches(newItem);
+          }
+        } catch (err) {
+          if (this.debug) {
+            console.error(`Failed to resolve element '${newItem.id}' of type '${newItem.type}':`, err.message);
+          }
+          newItem.matches = []; // Empty matches on error
+        }
       }
 
       resolvedStack.push(newItem);
@@ -332,13 +892,102 @@ export class LocatorStrategy extends ElementTypes {
   }
 
   /**
+   * Expands column matches to include all cells in the same column position.
+   * When a column is found by text (e.g., column header "Age"), this method
+   * finds all cells in the same column position across all tables.
+   *
+   * @param {Object} columnItem - The column selector item with matches.
+   * @returns {Promise<WebElement[]>} Array of all cells in the column.
+   */
+  async _expandColumnMatches(columnItem) {
+    const originalMatches = columnItem.matches;
+    if (originalMatches.length === 0) return originalMatches;
+
+    // Get the first matching element (column header)
+    const headerElement = originalMatches[0];
+    const frameIndex = headerElement.frameIndex;
+
+    // First, get the cell index within its row
+    const headerCellIndex = await this.driver.executeScript(`
+      const el = arguments[0];
+      return Array.from(el.parentElement.children).indexOf(el);
+    `, headerElement);
+
+    // Now find all cells in the same column position across all tables
+    // Return elements with their bounding box data already computed
+    const expandedMatches = await this.driver.executeScript(`
+      const cellIndex = arguments[0];
+      const allElements = [];
+
+      // Find all tables in the document
+      const tables = document.querySelectorAll('table, [role="table"]');
+
+      for (const table of tables) {
+        // Find all rows in the table
+        const rows = table.querySelectorAll('tr, [role="row"]');
+
+        for (const row of rows) {
+          const cells = row.children;
+          if (cells.length > cellIndex) {
+            const cell = cells[cellIndex];
+            // Check if this cell matches the column type (td, th, or cell roles)
+            const tagName = cell.tagName.toLowerCase();
+            const role = cell.getAttribute('role');
+            if (tagName === 'td' || tagName === 'th' || role === 'cell' || role === 'gridcell' || role === 'columnheader') {
+              const rect = cell.getBoundingClientRect();
+              allElements.push({
+                element: cell,
+                tagName: tagName,
+                boundingBox: {
+                  x: rect.x,
+                  y: rect.y,
+                  width: rect.width,
+                  height: rect.height,
+                  top: rect.top,
+                  bottom: rect.bottom,
+                  left: rect.left,
+                  right: rect.right,
+                  midx: rect.x + rect.width / 2,
+                  midy: rect.y + rect.height / 2
+                }
+              });
+            }
+          }
+        }
+      }
+
+      return allElements;
+    `, headerCellIndex);
+
+    if (expandedMatches && expandedMatches.length > 0) {
+      // Convert to WebElements with proper metadata
+      return expandedMatches.map((item) => {
+        const webElement = item.element;
+        webElement.frameIndex = frameIndex;
+        webElement.tagName = item.tagName;
+        webElement.boundingBox = item.boundingBox;
+        return webElement;
+      });
+    }
+
+    return originalMatches;
+  }
+
+  /**
    * Resolves a selector stack into a single WebElement.
    *
-   * Traverses the resolved stack from bottom to top, applying relative
-   * spatial filters and index selection at each step. Throws a
-   * ReferenceError if any step yields no matching element.
+   * **Algorithm:**
+   * 1. Resolve all stack items into WebElement arrays
+   * 2. Process stack from BOTTOM TO TOP (reverse order):
+   *    - Spatial filters are paired with their target element
+   *    - Apply spatial constraint to filter matches
+   *    - Select by index (1-based), defaulting to first match
+   * 3. Ensure driver is in correct frame before returning
+   * 4. Apply debug highlighting if enabled
    *
-   * Ensures the driver is switched to the correct frame before returning.
+   * **Error Handling:**
+   * - Throws ReferenceError if any step yields zero matches
+   * - Includes stack context in error message for debugging
    *
    * @param {Object[]} stack - Array of selector descriptor items from the stack builder.
    * @returns {Promise<WebElement>} The final resolved WebElement.
@@ -347,75 +996,170 @@ export class LocatorStrategy extends ElementTypes {
   async find(stack) {
     const data = await this.resolveElements(stack);
     let currentElement = null;
+    let lastElementId = null;
 
     // Process from bottom of stack up
     for (let i = data.length - 1; i >= 0; i--) {
       const item = data[i];
 
-      if (item.type === 'location') {
-        const target = data[--i];
-        const results = await this.relativeSearch(target, item, currentElement);
-        currentElement = results[target.index ? target.index - 1 : 0];
-      } else {
-        const results = await this.relativeSearch(item);
-        currentElement = results[item.index ? item.index - 1 : 0];
-      }
+      try {
+        if (item.type === 'location') {
+          // Spatial filter: current item is location, target is next item
+          const target = data[--i];
 
-      if (!currentElement) {
-        throw new ReferenceError(`Matching element for '${item.id}' not found.`);
+          // For 'within', pass the reference element (not matches array) to find child elements
+          const refElement = currentElement;
+
+          const results = await this.relativeSearch(target, item, refElement);
+          currentElement = results[target.index ? target.index - 1 : 0];
+          
+          if (!currentElement) {
+            // For location items, report the target element's id with the context element's id
+            const relation = item.located || 'within';
+            throw new ReferenceError(`Matching element for '${target.id}' ${relation} '${lastElementId}' was not found.`);
+          }
+        } else {
+          // Regular element: apply spatial filter (even if no spatial constraint)
+          const results = await this.relativeSearch(item);
+          currentElement = results[item.index ? item.index - 1 : 0];
+          
+          // Track the id for error messages in subsequent location items
+          lastElementId = item.id;
+          
+          if (!currentElement) {
+            throw new ReferenceError(`Matching element for '${item.id}' was not found.`);
+          }
+        }
+      } catch (err) {
+        if (err instanceof ReferenceError) {
+          throw err; // Re-throw ReferenceErrors as-is
+        }
+        // Wrap other errors with context
+        throw new Error(`Stack resolution failed at index ${i}: ${err.message}`, { cause: err });
       }
     }
 
     // Ensure driver is in the correct frame for the final element
-    await this.driver.switchTo().defaultContent();
-    if (currentElement.frame >= 0) await this.driver.switchTo().frame(currentElement.frame);
+    try {
+      await this.driver.switchTo().defaultContent();
+      if (currentElement.frameIndex >= 0) {
+        await this.driver.switchTo().frame(currentElement.frameIndex);
+      }
+    } catch (err) {
+      if (this.debug) {
+        log.warn('Failed to switch to final element frame:', err.message);
+      }
+      // Don't throw - element may still be valid even if frame switch fails
+    }
+
+    // Highlight the element with a thick red box when debug is enabled
+    if (this.debug) {
+      try {
+        await this.driver.executeScript(`
+          const el = arguments[0];
+          el.style.outline = '4px solid red';
+          el.style.outlineOffset = '2px';
+        `, currentElement);
+      } catch (err) {
+        log.warn('Failed to highlight element:', err.message);
+      }
+    }
 
     return currentElement;
   }
 
   /**
    * Resolves the entire stack and returns all matching elements.
-   * Supports 'OR' conditions and spatial/relative searches for the whole set.
    *
-   * Traverses the resolved stack from bottom to top, maintaining a context
-   * element (the first match of each step) for relative spatial filtering.
+   * **Algorithm:**
+   * 1. Resolve all stack items into WebElement arrays
+   * 2. Process stack from BOTTOM TO TOP:
+   *    - Apply spatial filters if present
+   *    - Keep ALL matches (not just first)
+   *    - Use first match as context for next level's spatial filter
+   * 3. Return complete array of final matches
+   *
+   * Used for fetching multiple elements matching criteria, supporting OR conditions
+   * and spatial/relative searches on the entire result set.
    *
    * @param {Object[]} stack - Array of selector descriptor items from the stack builder.
    * @returns {Promise<WebElement[]>} Array of all matching WebElements.
    * @throws {ReferenceError} If any step in the chain yields zero matches.
    */
   async findAll(stack) {
-    // 1. Resolve logical descriptions into physical WebElements
+    // 1. Resolve all stack items into physical WebElements
     const data = await this.resolveElements(stack);
+
+    // Check if this is a simple column query (just column with text, no spatial filters)
+    // If so, expand to all cells in that column
+    if (data.length === 1 && data[0].type === 'column' && data[0].id) {
+      const expandedMatches = await this._expandColumnMatches(data[0]);
+      if (expandedMatches.length > 0) {
+        return expandedMatches;
+      }
+    }
 
     let elements = [];
     let currentContextElement = null;
+    let currentMatches = [];
+    let lastContextId = null;
 
     // 2. Traverse the stack from bottom to top (Reverse)
     for (let i = data.length - 1; i >= 0; i--) {
       const item = data[i];
       const isLocation = item.type === 'location';
 
-      if (isLocation) {
-        // If we hit a location (above, below, etc.), the target is the NEXT item in the loop
-        const target = data[--i];
+      try {
+        let target;
+        if (isLocation) {
+          // Spatial location: current is the filter, next is the target element
+          target = data[--i];
 
-        // We perform a relative search against the 'currentContextElement' 
-        // established by the previous step in the chain
-        elements = await this.relativeSearch(target, item, currentContextElement);
-      } else {
-        // Standard search or the start of a chain
-        elements = await this.relativeSearch(item);
+          // For 'within', pass all matches for multi-reference filtering
+          const refElement = item.located === 'within' ? currentMatches : currentContextElement;
+          elements = await this.relativeSearch(target, item, refElement);
+        } else {
+          // Regular element: apply any spatial filter (or pass through if none)
+          elements = await this.relativeSearch(item);
+          // Track the id of the context element for error messages
+          lastContextId = item.id;
+        }
+
+        // Set context for next level: use first match as reference point
+        currentContextElement = elements[0];
+        currentMatches = elements;
+
+        if (elements.length === 0) {
+          if (isLocation) {
+            // For location items, report the target element's id with the context element's id
+            const relation = item.located || 'within';
+            throw new ReferenceError(
+              `Matching element for '${target.id}' ${relation} '${lastContextId}' was not found.`
+            );
+          }
+          throw new ReferenceError(
+            `Matching element for '${item.id}' was not found.`
+          );
+        }
+      } catch (err) {
+        if (err instanceof ReferenceError) {
+          throw err;
+        }
+        throw new Error(`Stack resolution failed at index ${i}: ${err.message}`, { cause: err });
       }
+    }
 
-      // In a findAll chain, the 'context' for the next step is usually 
-      // the first match of the current set (standard index behavior)
-      currentContextElement = elements[0];
-
-      if (elements.length === 0) {
-        throw new ReferenceError(
-          `'${item.id}' ${isLocation ? item.located : ''} resulted in 0 matching elements.`
-        );
+    // Highlight all elements with debug outline
+    if (this.debug && elements.length > 0) {
+      try {
+        await this.driver.executeScript(`
+          Array.from(arguments).forEach(el => {
+            el.style.outline = '4px solid red';
+            el.style.outlineOffset = '2px';
+          });
+        `, ...elements);
+      } catch (err) {
+        console.warn('Failed to highlight elements:', err.message);
       }
     }
 

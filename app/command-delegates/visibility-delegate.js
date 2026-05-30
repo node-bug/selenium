@@ -1,6 +1,7 @@
 import { log } from '@nodebug/logger';
 import messenger from '../messenger.js';
 import config from '@nodebug/config';
+import { BaseDelegate } from './base-delegate.js';
 
 const selenium = config('selenium');
 
@@ -12,44 +13,9 @@ const selenium = config('selenium');
  * 
  * @class VisibilityDelegate
  */
-export class VisibilityDelegate {
+export class VisibilityDelegate extends BaseDelegate {
   constructor(browser) {
-    this.browser = browser;
-  }
-
-  /**
-   * Scrolls an element into the viewport.
-   * 
-   * @param {boolean} [alignToTop=true] - If true, top of element aligns to top of viewport.
-   * @returns {Promise<boolean>} True if successful
-   * @example
-   * await browser.element('submit').scroll();
-   * await browser.element('footer').scroll(false); // Align to bottom
-   */
-  async scroll(alignToTop = true) {
-    const browser = this.browser;
-    browser.message = messenger({ stack: browser.stack, action: 'scroll' });
-
-    try {
-      const locator = await browser._finder();
-
-      // 'smooth' behavior can be added here if desired for visual debugging
-      await browser.driver.executeScript(
-        'arguments[0].scrollIntoView({ behavior: "instant", block: arguments[1] ? "start" : "end" });',
-        locator,
-        alignToTop
-      );
-
-      // Optional: Horizontal scroll handling for tables or carousels
-      if (alignToTop === 'right') {
-        await browser.driver.executeScript('arguments[0].scrollLeft = arguments[0].scrollWidth;', locator);
-      }
-    } catch (err) {
-      browser.handleError(err, 'scrolling into view');
-    } finally {
-      browser.stack = [];
-    }
-    return true;
+    super(browser);
   }
 
   /**
@@ -178,10 +144,213 @@ export class VisibilityDelegate {
   }
 
   /**
+   * Get the scroll accessor object.
+   *
+   * Provides methods to scroll elements to specific positions.
+   * Only works in element context (when stack has elements).
+   *
+   * @type {Object}
+   * @returns {Object} Object containing scroll accessor methods
+   * @example
+   * // Element scrolling
+   * await browser.element('scrollable-div').scroll.to.top();
+   * await browser.element('scrollable-div').scroll.to.bottom();
+   * await browser.element('scrollable-div').scroll.to.left();
+   * await browser.element('scrollable-div').scroll.to.right();
+   * await browser.element('target').scroll.into.view();
+   */
+  get scroll() {
+    const self = this;
+    return {
+      /**
+       * Scroll the element to specific positions.
+       */
+      to: {
+        /**
+         * Scroll the element to the top (scrollTop = 0).
+         * @returns {Promise<boolean>} True if successful
+         * @example
+         * await browser.element('scrollable-div').scroll.to.top();
+         */
+        top: async () => {
+          const browser = self.browser;
+          browser.message = messenger({ stack: browser.stack, action: 'scroll to top' });
+          try {
+            const locator = await browser._finder();
+            await browser.driver.executeScript('arguments[0].scrollTop = 0;', locator);
+            log.info('Scrolled element to top.');
+          } catch (err) {
+            browser.handleError(err, 'scrolling element to top');
+          } finally {
+            browser.stack = [];
+          }
+          return true;
+        },
+        /**
+         * Scroll the element to the bottom (scrollTop = scrollHeight).
+         * @returns {Promise<boolean>} True if successful
+         * @example
+         * await browser.element('scrollable-div').scroll.to.bottom();
+         */
+        bottom: async () => {
+          const browser = self.browser;
+          browser.message = messenger({ stack: browser.stack, action: 'scroll to bottom' });
+          try {
+            const locator = await browser._finder();
+            await browser.driver.executeScript('arguments[0].scrollTop = arguments[0].scrollHeight;', locator);
+            log.info('Scrolled element to bottom.');
+          } catch (err) {
+            browser.handleError(err, 'scrolling element to bottom');
+          } finally {
+            browser.stack = [];
+          }
+          return true;
+        },
+        /**
+         * Scroll the element to the left (scrollLeft = 0).
+         * @returns {Promise<boolean>} True if successful
+         * @example
+         * await browser.element('scrollable-div').scroll.to.left();
+         */
+        left: async () => {
+          const browser = self.browser;
+          browser.message = messenger({ stack: browser.stack, action: 'scroll to left' });
+          try {
+            const locator = await browser._finder();
+            await browser.driver.executeScript('arguments[0].scrollLeft = 0;', locator);
+            log.info('Scrolled element to left.');
+          } catch (err) {
+            browser.handleError(err, 'scrolling element to left');
+          } finally {
+            browser.stack = [];
+          }
+          return true;
+        },
+        /**
+         * Scroll the element to the right (scrollLeft = scrollWidth).
+         * @returns {Promise<boolean>} True if successful
+         * @example
+         * await browser.element('scrollable-div').scroll.to.right();
+         */
+        right: async () => {
+          const browser = self.browser;
+          browser.message = messenger({ stack: browser.stack, action: 'scroll to right' });
+          try {
+            const locator = await browser._finder();
+            await browser.driver.executeScript('arguments[0].scrollLeft = arguments[0].scrollWidth;', locator);
+            log.info('Scrolled element to right.');
+          } catch (err) {
+            browser.handleError(err, 'scrolling element to right');
+          } finally {
+            browser.stack = [];
+          }
+          return true;
+        },
+      },
+      /**
+       * Scroll an element into the center of the viewport.
+       *
+       * @returns {Promise<boolean>} True if successful
+       * @example
+       * await browser.element('target').scroll.into.view();
+       */
+      into: {
+        /**
+         * Scroll an element into the center of the viewport.
+         * @returns {Promise<boolean>} True if successful
+         * @example
+         * await browser.element('target').scroll.into.view();
+         */
+        view: async () => {
+          const browser = self.browser;
+          browser.message = messenger({ stack: browser.stack, action: 'scroll' });
+          try {
+            const locator = await browser._finder();
+            await browser.driver.executeScript(
+              'arguments[0].scrollIntoView({ behavior: "instant", block: "center", inline: "center" });',
+              locator
+            );
+          } catch (err) {
+            browser.handleError(err, 'scrolling into view');
+          } finally {
+            browser.stack = [];
+          }
+          return true;
+        },
+      },
+    };
+  }
+
+  /**
+   * Get the is accessor object.
+   *
+   * Provides visibility and state check methods.
+   * Only works in element context (when stack has elements).
+   *
+   * @type {Object}
+   * @returns {Object} Object containing is accessor methods
+   * @example
+   * await browser.element('button').is.visible();
+   * await browser.element('button').is.enabled();
+   * await browser.element('button').is.disabled();
+   * await browser.element('button').is.not.visible();
+   */
+  get is() {
+    const browser = this.browser;
+    return {
+      /**
+       * Checks whether the element is visible.
+       *
+       * @param {number} [t] - Optional timeout in milliseconds
+       * @returns {Promise<boolean>}
+       */
+      visible: async (t = null) => {
+        browser.message = messenger({ stack: browser.stack, action: 'isVisible' });
+        return await this._isVisible(t);
+      },
+
+      /**
+       * Checks whether the element is enabled.
+       *
+       * @param {number} [t] - Optional timeout in milliseconds
+       * @returns {Promise<boolean>}
+       */
+      enabled: async (t = null) => {
+        browser.message = messenger({ stack: browser.stack, action: 'isEnabled' });
+        return await this._isEnabled(t);
+      },
+
+      /**
+       * Checks whether the element is disabled.
+       *
+       * @param {number} [t] - Optional timeout in milliseconds
+       * @returns {Promise<boolean>}
+       */
+      disabled: async (t = null) => {
+        browser.message = messenger({ stack: browser.stack, action: 'isDisabled' });
+        return await this._isDisabled(t);
+      },
+
+      not: {
+        /**
+         * Checks whether the element is not visible.
+         *
+         * @param {number} [t] - Optional timeout in milliseconds
+         * @returns {Promise<boolean>}
+         */
+        visible: async (t = null) => {
+          browser.message = messenger({ stack: browser.stack, action: 'isNotVisible' });
+          return await this._isNotVisible(t);
+        },
+      },
+    };
+  }
+
+  /**
    * Hides all elements matching the current stack by setting opacity to 0.
-   * 
+   *
    * Useful for testing visibility changes or hiding elements during testing.
-   * 
+   *
    * @returns {Promise<boolean>} True if successful
    * @example
    * await browser.element('ad').hide();
@@ -196,7 +365,7 @@ export class VisibilityDelegate {
 
       for (const e of elements) {
         // Automatically handle context switching for each element
-        await this.#switchToElementContext(e.frame, async () => {
+        await this.#switchToElementContext(e.frameIndex, async () => {
           await browser.driver.executeScript('arguments[0].style.opacity="0";', e);
         });
       }
@@ -224,7 +393,7 @@ export class VisibilityDelegate {
     try {
       const elements = await browser.findAll();
       for (const e of elements) {
-        await this.#switchToElementContext(e.frame, async () => {
+        await this.#switchToElementContext(e.frameIndex, async () => {
           await browser.driver.executeScript('arguments[0].style.opacity="1";', e);
         });
       }
@@ -240,20 +409,20 @@ export class VisibilityDelegate {
    * Internal helper to switch to element context (frame).
    * 
    * @private
-   * @param {number} frame - Frame index to switch to
+   * @param {number} frameIndex - Frame index to switch to
    * @param {Function} callback - Callback function to execute in the frame context
    * @returns {Promise<void>}
    */
-  async #switchToElementContext(frame, callback) {
+  async #switchToElementContext(frameIndex, callback) {
     const browser = this.browser;
     await browser.driver.switchTo().defaultContent();
-    if (frame >= 0) {
+    if (frameIndex >= 0) {
       try {
-        await browser.driver.switchTo().frame(frame);
+        await browser.driver.switchTo().frame(frameIndex);
         await callback();
       } catch (err) {
         if (err.name !== 'NoSuchFrameError') throw err;
-        log.error(`Frame ${frame} no longer exists.`);
+        log.error(`Frame ${frameIndex} no longer exists.`);
       }
     } else {
       await callback();

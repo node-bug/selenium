@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JavaScript Alerts Test Fixture</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; line-height: 1.6; background-color: #f9f9f9; }
+        h1 { color: #333; }
+        .button-group { margin: 15px 0; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; font-size: 14px; }
+        #result { margin-top: 20px; padding: 10px; background-color: #e8f4f8; border: 1px solid #b8d4e0; border-radius: 4px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>JavaScript Alerts Test Fixture</h1>
+    
+    <div class="button-group">
+        <button onclick="showAlert()">Click for JS Alert</button>
+        <button onclick="showConfirm()">Click for JS Confirm</button>
+        <button onclick="showPrompt()">Click for JS Prompt</button>
+    </div>
+    
+    <div id="result"></div>
+
+    <script>
+        function showAlert() {
+            alert('I am a JS Alert');
+            document.getElementById('result').textContent = 'You successfully clicked an alert';
+        }
+
+        function showConfirm() {
+            if (confirm('I am a JS Confirm')) {
+                document.getElementById('result').textContent = 'You clicked: Ok';
+            } else {
+                document.getElementById('result').textContent = 'You clicked: Cancel';
+            }
+        }
+
+        function showPrompt() {
+            const input = prompt('I am a JS prompt', '');
+            if (input !== null) {
+                document.getElementById('result').textContent = 'You entered: ' + input;
+            } else {
+                document.getElementById('result').textContent = 'You entered: null';
+            }
+        }
+    </script>
+</body>
+</html>

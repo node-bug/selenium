@@ -10,7 +10,7 @@ The library uses a two-step operation model:
 
 Build the selector stack without executing actions. They return the `WebBrowser` instance for method chaining.
 
-**Examples**: `element()`, `button()`, `above`, `below`, `within`, `atIndex()`, `exact`, `hidden`
+**Examples**: `element()`, `button()`, `above`, `below`, `within`, `at.index()`, `exact`, `hidden`
 
 ```javascript
 await browser.element('submit').above.button('cancel').click()
@@ -22,7 +22,7 @@ await browser.element('submit').above.button('cancel').click()
 
 Execute the selector stack and perform actual actions. They return values or perform actions and clear the stack.
 
-**Examples**: `click()`, `write()`, `is.visible()`, `scroll()`, `upload()`, `get.text()`
+**Examples**: `click()`, `write()`, `is.visible()`, `scroll.to.top()`, `scroll.into.view()`, `upload()`, `get.text()`
 
 ```javascript
 await browser.button('submit').click()
@@ -98,6 +98,39 @@ await browser.textbox('Email').write('...') // Type specificity
 Available types include: `button`, `textbox`, `checkbox`, `switch`, `radio`, `dropdown`, `link`, `image`, `file`, and semantic elements like `dialog`, `heading`, `menu`, etc.
 
 See [Selectors Guide - Element Types](SELECTORS.md#element-types) for complete list.
+
+## Keyboard Modifiers
+
+Chain modifier keys (`ctrl`, `shift`, `alt`, `meta`) before actions to simulate keyboard combinations:
+
+```javascript
+// Clicks
+await browser.ctrl.click() // Ctrl+click
+await browser.button('Link').meta.click() // Cmd/Win+click
+await browser.element('item').shift.alt.click() // Shift+Alt+click
+
+// Keyboard presses
+await browser.ctrl.press('c') // Ctrl+C
+await browser.shift.press('Enter') // Shift+Enter
+await browser.alt.press('Tab') // Alt+Tab
+await browser.meta.press('w') // Cmd+W (Mac) or Win+W
+
+// Text input
+await browser.shift.type('abc') // Types 'ABC' (capital letters)
+await browser.ctrl.type('a') // Ctrl+A (select all)
+await browser.ctrl.shift.type('x') // Ctrl+Shift held while typing
+```
+
+**Available modifiers:**
+
+- `ctrl` / `control` - Control key
+- `shift` - Shift key
+- `alt` - Alt key
+- `meta` / `command` / `win` - Meta/Command/Windows key
+
+**Note:** Modifiers are reset after each action, so you must re-specify them for each use.
+
+See [INTERACTIONS.md - Keyboard Modifiers](INTERACTIONS.md#keyboard-modifiers) for comprehensive examples.
 
 ## Multiple References with or
 
@@ -257,7 +290,7 @@ This section helps AI systems understand WebBrowser's design for code generation
 **4. Operation Types (Strict)**
 
 - **Intermediate**: Return `browser` instance (chainable) - no execution
-  - Examples: `element()`, `button()`, `below`, `within`, `atIndex()`, `exact`
+  - Examples: `element()`, `button()`, `below`, `within`, `at.index()`, `exact`
 - **Terminal**: Execute action (return value) - clears stack
   - Examples: `click()`, `write()`, `is.visible()`, `should.be.visible()`, `get.text()`
 - Always end chains with terminal operation

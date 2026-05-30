@@ -11,6 +11,9 @@ import { CheckboxDelegate } from './app/command-delegates/checkbox-delegate.js';
 import { SelectDelegate } from './app/command-delegates/select-delegate.js';
 import { RadioDelegate } from './app/command-delegates/radio-delegate.js';
 import { SwitchDelegate } from './app/command-delegates/switch-delegate.js';
+import { SliderDelegate } from './app/command-delegates/slider-delegate.js';
+import { DragDropDelegate } from './app/command-delegates/drag-drop-delegate.js';
+import ELEMENT_DEFINITIONS from '@nodebug/browser-element-finder/element-definitions.json' with { type: 'json' };
 
 const selenium = config('selenium');
 
@@ -37,6 +40,8 @@ class WebBrowser extends Browser {
   #selectDelegate;
   #radioDelegate;
   #switchDelegate;
+  #sliderDelegate;
+  #dragDropDelegate;
 
   constructor() {
     super()
@@ -49,8 +54,10 @@ class WebBrowser extends Browser {
     this.#selectDelegate = new SelectDelegate(this);
     this.#radioDelegate = new RadioDelegate(this);
     this.#switchDelegate = new SwitchDelegate(this);
+    this.#sliderDelegate = new SliderDelegate(this);
+    this.#dragDropDelegate = new DragDropDelegate(this);
 
-    Object.keys(this.locatorStrategy.definitions).forEach(type => {
+    Object.keys(ELEMENT_DEFINITIONS).forEach(type => {
       this[type] = (data) => {
         return this.#typefixer(data, type);
       };
@@ -84,6 +91,8 @@ class WebBrowser extends Browser {
       if (!ignorable.some(msg => err.message.includes(msg))) {
         log.error(`Unrecognized error during session deletion: ${err.message}`);
       }
+      // Ensure driver is nullified even if close() fails
+      this.driver = null;
     }
 
     await super.new();
@@ -108,7 +117,7 @@ class WebBrowser extends Browser {
   /**
    * Centralized retry logic for finding elements
    */
-  async _finder(t = null, action = null) {
+  async _finder(t = null) {
     let locator;
     const stacks = this.getDescriptions();
     const timeout = t ?? (selenium.timeout * 1000);
@@ -117,9 +126,14 @@ class WebBrowser extends Browser {
     while (Date.now() < endTime) {
       for (const currentStack of stacks) {
         try {
-          locator = await this.locatorStrategy.find(currentStack, action);
+          locator = await this.locatorStrategy.find(currentStack);
           if (locator) return locator;
-        } catch {
+        } catch (err) {
+          // Re-throw ReferenceError immediately - it indicates a fundamental problem
+          // like "element not found" due to spatial constraints not being met
+          if (err instanceof ReferenceError) {
+            throw err;
+          }
           continue; // Try next stack in the OR condition
         }
       }
@@ -202,19 +216,6 @@ class WebBrowser extends Browser {
     this.stack = [];
     err.message = `Error while ${this.message}\n${err.message}`;
     throw err;
-  }
-
-  /**
-   * Scrolls an element into the viewport.
-   * 
-   * @param {boolean} [alignToTop=true] - If true, top of element aligns to top of viewport.
-   * @returns {Promise<boolean>} True if successful
-   * @example
-   * await browser.element('submit').scroll();
-   * await browser.element('footer').scroll(false); // Align to bottom
-   */
-  async scroll(alignToTop = true) {
-    return await this.#visibilityDelegate.scroll(alignToTop);
   }
 
   /**
@@ -418,13 +419,28 @@ class WebBrowser extends Browser {
   }
 
   /**
- * Internal helper to unify text/value retrieval logic.
- */
+   * Makes the WebBrowser instance "Thenable".
+   * If the browser is awaited while a selector stack is active, 
+   * it implicitly retrieves the text of the resolved element.
+   * 
+   * @param {Function} onFulfilled 
+   * @param {Function} onRejected 
+   * @returns {Promise<string|WebBrowser>}
+   */
+  then(onFulfilled, onRejected) {
+    if (this.stack.length > 0) {
+      return this.#retrieveElementText('Text').then(onFulfilled, onRejected);
+    }
+    return Promise.resolve(this).then(onFulfilled, onRejected);
+  }
+
+  /**
+   * Internal helper to unify text/value retrieval logic.
+   */
   async #retrieveElementText(valueType) {
     if (valueType === 'Text') this.message = messenger({ stack: this.stack, action: 'getText' });
     if (valueType === 'Value') this.message = messenger({ stack: this.stack, action: 'getValue' });
     try {
-      let ogStack = this.stack;
       const locator = await this._finder();
       const [textContent, valueAttr, tagName] = await Promise.all([
         locator.getAttribute('textContent'),
@@ -432,19 +448,10 @@ class WebBrowser extends Browser {
         locator.tagName
       ]);
 
-      if (tagName === 'select') {
-        this.stack = ogStack
-        const selectedOption = await this.#selectDelegate.getSelectedOption()
-        if (valueType === 'Text') return selectedOption.text
-        if (valueType === 'Value') return selectedOption.value
-      }
-
       let result = textContent;
-
-      if ((!result || result.trim() === '') && ['input', 'textarea'].includes(tagName)) {
+      if (['input', 'textarea'].includes(tagName)) {
         result = valueAttr;
       }
-
       log.info(`${valueType} is '${result}'`)
       return result?.trim() ?? '';
     } catch (err) {
@@ -467,6 +474,30 @@ class WebBrowser extends Browser {
       text: () => this.#retrieveElementText('Text'),
 
       value: () => this.#retrieveElementText('Value'),
+
+      options: async () => {
+        this.message = messenger({ stack: this.stack, action: 'getOptions' });
+        try {
+          return await this.#selectDelegate.getOptions();
+        } catch (err) {
+          this.handleError(err, 'getting options from dropdown');
+        } finally {
+          this.stack = [];
+        }
+      },
+
+      selected: {
+        options: async () => {
+          this.message = messenger({ stack: this.stack, action: 'getSelectedOptions' });
+          try {
+            return await this.#selectDelegate.getSelectedOptions();
+          } catch (err) {
+            this.handleError(err, 'getting selected options from dropdown');
+          } finally {
+            this.stack = [];
+          }
+        },
+      },
 
       attribute: async (name) => {
         this.message = messenger({ stack: this.stack, action: 'getAttribute', data: name });
@@ -511,155 +542,103 @@ class WebBrowser extends Browser {
    *        await browser.element('id').is.visible(5000)
    *        await browser.element('id').is.not.visible(5000)
    */
-  get is() {
+  get has() {
     return {
       /**
-       * Checks whether the element is visible.
+       * Checks that the element has a specific value.
        *
-       * @param {number} [t] - Optional timeout in milliseconds
+       * @param {string} expectedValue - The expected value to check for
        * @returns {Promise<boolean>}
        */
-      visible: async (t = null) => {
-        this.message = messenger({ stack: this.stack, action: 'isVisible' });
-        return await this.#visibilityDelegate._isVisible(t);
-      },
-
-      /**
-       * Checks whether the checkbox is checked.
-       *
-       * @returns {Promise<boolean>}
-       */
-      checked: async () => {
-        this.message = messenger({ stack: this.stack, action: 'isChecked' });
-        const result = await this.#checkboxDelegate._isChecked();
-        if (result) log.info(`Checkbox is checked`);
-        else log.warn(`Checkbox is not checked`);
+      value: async (expectedValue) => {
+        this.message = messenger({ stack: this.stack, action: 'hasValue', data: expectedValue });
+        const actualValue = await this.#retrieveElementText('Value');
+        const result = actualValue === expectedValue;
+        if (result) log.info(`Value '${actualValue}' has '${expectedValue}'`);
+        else log.warn(`Value '${actualValue}' does not have '${expectedValue}'`);
         return result;
       },
 
       /**
-       * Checks whether the radio is set.
+       * Checks that the element has specific text.
        *
+       * @param {string} expectedText - The expected text to check for
        * @returns {Promise<boolean>}
        */
-      set: async () => {
-        this.message = messenger({ stack: this.stack, action: 'isSet' });
-        const result = await this.#radioDelegate._isSet();
-        if (result) log.info(`Radiobutton is set`);
-        else log.warn(`Radiobutton is not set`);
+      text: async (expectedText) => {
+        this.message = messenger({ stack: this.stack, action: 'hasText', data: expectedText });
+        const actualText = await this.#retrieveElementText('Text');
+        const result = actualText === expectedText;
+        if (result) log.info(`Text '${actualText}' has '${expectedText}'`);
+        else log.warn(`Text '${actualText}' does not have '${expectedText}'`);
         return result;
       },
 
       /**
-       * Checks whether the switch is on.
+       * Checks that the dropdown has a specific option.
        *
+       * @param {string|number} optionValue - The option text, value, or index to check for
        * @returns {Promise<boolean>}
        */
-      on: async () => {
-        this.message = messenger({ stack: this.stack, action: 'isOn' });
-        const result = await this.#switchDelegate._isOn();
-        if (result) log.info(`Switch is on`);
-        else log.warn(`Switch is not on`);
+      option: async (optionValue) => {
+        this.message = messenger({ stack: this.stack, action: 'hasOption', data: optionValue });
+        this.#selectDelegate.option(optionValue);
+        const result = await this.#selectDelegate._hasOption();
+        if (result) log.info(`Dropdown has option '${optionValue}'`);
+        else log.warn(`Dropdown does not have option '${optionValue}'`);
         return result;
       },
+    }
+  }
 
-      /**
-       * Checks whether the switch is off.
-       *
-       * @returns {Promise<boolean>}
-       */
-      off: async () => {
-        this.message = messenger({ stack: this.stack, action: 'isOff' });
-        const result = !(await this.#switchDelegate._isOn());
-        if (result) log.info(`Switch is off`);
-        else log.warn(`Switch is not off`);
-        return result;
-      },
-
-      /**
-       * Checks whether the dropdown option is selected.
-       *
-       * @returns {Promise<boolean>}
-       */
-      selected: async () => {
-        this.message = messenger({ stack: this.stack, action: 'isSelected', data: this.#selectDelegate.optionValue });
-        const result = await this.#selectDelegate._isSelected();
-        if (result) log.info(`Option is selected`);
-        else log.warn(`Option is not selected`);
-        return result;
-      },
-
-      /**
-       * Checks whether the element is enabled.
-       *
-       * @param {number} [t] - Optional timeout in milliseconds
-       * @returns {Promise<boolean>}
-       */
-      enabled: async (t = null) => {
-        this.message = messenger({ stack: this.stack, action: 'isEnabled' });
-        return await this.#visibilityDelegate._isEnabled(t)
-      },
-
-      /**
-       * Checks whether the element is disabled.
-       *
-       * @param {number} [t] - Optional timeout in milliseconds
-       * @returns {Promise<boolean>}
-       */
-      disabled: async (t = null) => {
-        this.message = messenger({ stack: this.stack, action: 'isDisabled' });
-        return await this.#visibilityDelegate._isDisabled(t);
-      },
-
+  get does() {
+    return {
       not: {
-        /**
-         * Checks whether the element is not visible.
-         *
-         * @param {number} [t] - Optional timeout in milliseconds
-         * @returns {Promise<boolean>}
-         */
-        visible: async (t = null) => {
-          this.message = messenger({ stack: this.stack, action: 'isNotVisible' });
-          return await this.#visibilityDelegate._isNotVisible(t);
-        },
+        have: {
+          /**
+           * Checks that the element does not have a specific value.
+           *
+           * @param {string} unexpectedValue - The value that should not be present
+           * @returns {Promise<boolean>}
+           */
+          value: async (unexpectedValue) => {
+            this.message = messenger({ stack: this.stack, action: 'doesNotHaveValue', data: unexpectedValue });
+            const actualValue = await this.#retrieveElementText('Value');
+            const result = actualValue !== unexpectedValue;
+            if (result) log.info(`Value '${actualValue}' does not have '${unexpectedValue}'`);
+            else log.warn(`Value '${actualValue}' has '${unexpectedValue}'`);
+            return result;
+          },
 
-        /**
-       * Checks whether the checkbox is not checked.
-       *
-       * @returns {Promise<boolean>}
-       */
-        checked: async () => {
-          this.message = messenger({ stack: this.stack, action: 'isNotChecked' });
-          const result = !(await this.#checkboxDelegate._isChecked());
-          if (result) log.info(`Checkbox is not checked`);
-          else log.warn(`Checkbox is checked`);
-          return result;
-        },
+          /**
+           * Checks that the element does not have specific text.
+           *
+           * @param {string} unexpectedText - The text that should not be present
+           * @returns {Promise<boolean>}
+           */
+          text: async (unexpectedText) => {
+            this.message = messenger({ stack: this.stack, action: 'doesNotHaveText', data: unexpectedText });
+            const actualText = await this.#retrieveElementText('Text');
+            const result = actualText !== unexpectedText;
+            if (result) log.info(`Text '${actualText}' does not have '${unexpectedText}'`);
+            else log.warn(`Text '${actualText}' has '${unexpectedText}'`);
+            return result;
+          },
 
-        /**
-         * Checks whether the radio is not set.
-         *
-         * @returns {Promise<boolean>}
-         */
-        set: async () => {
-          this.message = messenger({ stack: this.stack, action: 'isNotSet' });
-          const result = !(await this.#radioDelegate._isSet());
-          if (result) log.info(`Radiobutton is not set`);
-          else log.warn(`Radiobutton is set`);
-          return result;
-        },
-
-        /**
-         * Checks whether the dropdown option is not selected.
-         *
-         * @returns {Promise<boolean>}
-         */
-        selected: async () => {
-          this.message = messenger({ stack: this.stack, action: 'isNotSelected', data: this.#selectDelegate.optionValue });
-          const result = !(await this.#selectDelegate._isSelected());
-          if (result) log.info(`Option is not selected`);
-          else log.warn(`Option is selected`);
-          return result;
+          /**
+           * Checks that the dropdown does not have a specific option.
+           *
+           * @param {string|number} optionValue - The option text, value, or index that should not be present
+           * @returns {Promise<boolean>}
+           */
+          option: async (optionValue) => {
+            this.message = messenger({ stack: this.stack, action: 'doesNotHaveOption', data: optionValue });
+            this.#selectDelegate.option(optionValue);
+            const result = !(await this.#selectDelegate._hasOption());
+            if (result) log.info(`Dropdown does not have option '${optionValue}'`);
+            else log.warn(`Dropdown has option '${optionValue}'`);
+            return result;
+          },
         },
       },
     };
@@ -686,9 +665,9 @@ class WebBrowser extends Browser {
           this.message = messenger({ stack: this.stack, action: 'shouldBeVisible' });
           const test = await this.#visibilityDelegate._isVisible(t);
           if (!test) {
-            const err = new Error('Element should be visible')
+            const err = new Error('Element should be visible');
             this.handleError(err, 'validating element to be visible');
-            throw err
+            throw err;
           }
         },
 
@@ -702,9 +681,9 @@ class WebBrowser extends Browser {
           const test = await this.#checkboxDelegate._isChecked();
           if (!test) {
             log.warn(`Checkbox is not checked`);
-            const err = new Error('Element should be checked')
+            const err = new Error('Element should be checked');
             this.handleError(err, 'validating element to be checked');
-            throw err
+            throw err;
           } else {
             log.info(`Checkbox is checked`);
           }
@@ -720,9 +699,9 @@ class WebBrowser extends Browser {
           const test = await this.#radioDelegate._isSet();
           if (!test) {
             log.warn(`Radiobutton is not set`);
-            const err = new Error('Radiobutton should be set')
+            const err = new Error('Radiobutton should be set');
             this.handleError(err, 'validating Radiobutton to be set');
-            throw err
+            throw err;
           } else {
             log.info(`Radiobutton is set`);
           }
@@ -738,11 +717,11 @@ class WebBrowser extends Browser {
           const test = await this.#switchDelegate._isOn();
           if (!test) {
             log.warn(`Switch is not on`);
-            const err = new Error('Switch should be on')
-            this.handleError(err, 'validating switch to be on');
-            throw err
+            const err = new Error('Switch should be ON');
+            this.handleError(err, 'validating switch to be ON');
+            throw err;
           } else {
-            log.info(`Switch is on`);
+            log.info(`Switch is ON`);
           }
         },
 
@@ -756,11 +735,11 @@ class WebBrowser extends Browser {
           const test = !(await this.#switchDelegate._isOn());
           if (!test) {
             log.warn(`Switch is not off`);
-            const err = new Error('Switch should be off')
-            this.handleError(err, 'validating switch to be off');
-            throw err
+            const err = new Error('Switch should be OFF');
+            this.handleError(err, 'validating switch to be OFF');
+            throw err;
           } else {
-            log.info(`Switch is off`);
+            log.info(`Switch is OFF`);
           }
         },
 
@@ -774,9 +753,9 @@ class WebBrowser extends Browser {
           const test = await this.#selectDelegate._isSelected();
           if (!test) {
             log.warn(`Option is not selected`);
-            const err = new Error('Option should be selected')
+            const err = new Error('Option should be selected');
             this.handleError(err, 'validating option to be selected');
-            throw err
+            throw err;
           } else {
             log.info(`Option is selected`);
           }
@@ -792,9 +771,9 @@ class WebBrowser extends Browser {
           this.message = messenger({ stack: this.stack, action: 'shouldBeEnabled' });
           const test = await this.#visibilityDelegate._isEnabled(t);
           if (!test) {
-            const err = new Error('Element should be enabled')
+            const err = new Error('Element should be enabled');
             this.handleError(err, 'validating element to be enabled');
-            throw err
+            throw err;
           }
         },
 
@@ -808,14 +787,131 @@ class WebBrowser extends Browser {
           this.message = messenger({ stack: this.stack, action: 'shouldBeDisabled' });
           const test = await this.#visibilityDelegate._isDisabled(t);
           if (!test) {
-            const err = new Error('Element should be disabled')
+            const err = new Error('Element should be disabled');
             this.handleError(err, 'validating element to be disabled');
-            throw err
+            throw err;
+          }
+        },
+      },
+
+      have: {
+        /**
+         * Asserts that the element has a specific value.
+         *
+         * @param {string} expectedValue - The expected value to match
+         * @returns {Promise<void>}
+         */
+        value: async (expectedValue) => {
+          this.message = messenger({ stack: this.stack, action: 'shouldHaveValue', data: expectedValue });
+          const actualValue = await this.#retrieveElementText('Value');
+          if (actualValue !== expectedValue) {
+            log.warn(`Value '${actualValue}' does not match expected '${expectedValue}'`);
+            const err = new Error(`Element value '${actualValue}' should be '${expectedValue}'`);
+            this.handleError(err, 'validating element value');
+            throw err;
+          } else {
+            log.info(`Value '${actualValue}' matches expected '${expectedValue}'`);
+          }
+        },
+
+        /**
+         * Asserts that the element has specific text.
+         *
+         * @param {string} expectedText - The expected text to match
+         * @returns {Promise<void>}
+         */
+        text: async (expectedText) => {
+          this.message = messenger({ stack: this.stack, action: 'shouldHaveText', data: expectedText });
+          const actualText = await this.#retrieveElementText('Text');
+          if (actualText !== expectedText) {
+            log.warn(`Text '${actualText}' does not match expected '${expectedText}'`);
+            const err = new Error(`Element text '${actualText}' should be '${expectedText}'`);
+            this.handleError(err, 'validating element text');
+            throw err;
+          } else {
+            log.info(`Text '${actualText}' matches expected '${expectedText}'`);
+          }
+        },
+
+        /**
+         * Asserts that the dropdown has a specific option.
+         *
+         * @param {string|number} optionValue - The option text, value, or index to check for
+         * @returns {Promise<void>}
+         */
+        option: async (optionValue) => {
+          this.message = messenger({ stack: this.stack, action: 'shouldHaveOption', data: optionValue });
+          const test = await this.#selectDelegate._hasOption(optionValue);
+          if (!test) {
+            log.warn(`Dropdown does not have option '${optionValue}'`);
+            const err = new Error(`Dropdown should have option '${optionValue}'`);
+            this.handleError(err, 'validating dropdown option');
+            throw err;
+          } else {
+            log.info(`Dropdown has option '${optionValue}'`);
           }
         },
       },
 
       not: {
+        have: {
+          /**
+           * Asserts that the element does not have a specific value.
+           *
+           * @param {string} unexpectedValue - The value that should not match
+           * @returns {Promise<void>}
+           */
+          value: async (unexpectedValue) => {
+            this.message = messenger({ stack: this.stack, action: 'shouldNotHaveValue', data: unexpectedValue });
+            const actualValue = await this.#retrieveElementText('Value');
+            if (actualValue === unexpectedValue) {
+              log.warn(`Value '${actualValue}' matches unexpected '${unexpectedValue}'`);
+              const err = new Error(`Element value '${actualValue}' should not be '${unexpectedValue}'`);
+              this.handleError(err, 'validating element value');
+              throw err;
+            } else {
+              log.info(`Value '${actualValue}' does not match unexpected '${unexpectedValue}'`);
+            }
+          },
+
+          /**
+           * Asserts that the element does not have specific text.
+           *
+           * @param {string} unexpectedText - The text that should not match
+           * @returns {Promise<void>}
+           */
+          text: async (unexpectedText) => {
+            this.message = messenger({ stack: this.stack, action: 'shouldNotHaveText', data: unexpectedText });
+            const actualText = await this.#retrieveElementText('Text');
+            if (actualText === unexpectedText) {
+              log.warn(`Text '${actualText}' matches unexpected '${unexpectedText}'`);
+              const err = new Error(`Element text '${actualText}' should not be '${unexpectedText}'`);
+              this.handleError(err, 'validating element text');
+              throw err;
+            } else {
+              log.info(`Text '${actualText}' does not match unexpected '${unexpectedText}'`);
+            }
+          },
+
+          /**
+           * Asserts that the dropdown does not have a specific option.
+           *
+           * @param {string|number} optionValue - The option text, value, or index to check for
+           * @returns {Promise<void>}
+           */
+          option: async (optionValue) => {
+            this.message = messenger({ stack: this.stack, action: 'shouldNotHaveOption', data: optionValue });
+            const test = await this.#selectDelegate._hasOption(optionValue);
+            if (test) {
+              log.warn(`Dropdown has option '${optionValue}'`);
+              const err = new Error(`Dropdown should not have option '${optionValue}'`);
+              this.handleError(err, 'validating dropdown option');
+              throw err;
+            } else {
+              log.info(`Dropdown does not have option '${optionValue}'`);
+            }
+          },
+        },
         be: {
           /**
            * Asserts that the element is not visible within the given timeout.
@@ -827,9 +923,9 @@ class WebBrowser extends Browser {
             this.message = messenger({ stack: this.stack, action: 'shouldNotBeVisible' });
             const test = await this.#visibilityDelegate._isNotVisible(t);
             if (!test) {
-              const err = new Error('Element should not be visible')
+              const err = new Error('Element should not be visible');
               this.handleError(err, 'validating element to not be visible');
-              throw err
+              throw err;
             }
           },
 
@@ -843,9 +939,9 @@ class WebBrowser extends Browser {
             const test = !(await this.#checkboxDelegate._isChecked());
             if (!test) {
               log.warn(`Checkbox is checked`);
-              const err = new Error('Element should not be checked')
+              const err = new Error('Element should not be checked');
               this.handleError(err, 'validating element to not be checked');
-              throw err
+              throw err;
             } else {
               log.info(`Checkbox is not checked`);
             }
@@ -861,9 +957,9 @@ class WebBrowser extends Browser {
             const test = !(await this.#radioDelegate._isSet());
             if (!test) {
               log.warn(`Radiobutton is set`);
-              const err = new Error('Radiobutton should not be set')
+              const err = new Error('Radiobutton should not be set');
               this.handleError(err, 'validating Radiobutton to not be set');
-              throw err
+              throw err;
             } else {
               log.info(`Radiobutton is not set`);
             }
@@ -879,11 +975,47 @@ class WebBrowser extends Browser {
             const test = !(await this.#selectDelegate._isSelected());
             if (!test) {
               log.warn(`Option is selected`);
-              const err = new Error('Option should not be selected')
+              const err = new Error('Option should not be selected');
               this.handleError(err, 'validating option to not be selected');
-              throw err
+              throw err;
             } else {
               log.info(`Option is not selected`);
+            }
+          },
+
+          /**
+           * Asserts that the switch is not on.
+           *
+           * @returns {Promise<void>}
+           */
+          on: async () => {
+            this.message = messenger({ stack: this.stack, action: 'shouldNotBeOn' });
+            const test = !(await this.#switchDelegate._isOn());
+            if (!test) {
+              log.warn(`Switch is on`);
+              const err = new Error('Switch should not be ON');
+              this.handleError(err, 'validating switch to not be ON');
+              throw err;
+            } else {
+              log.info(`Switch is not ON`);
+            }
+          },
+
+          /**
+           * Asserts that the switch is not off.
+           *
+           * @returns {Promise<void>}
+           */
+          off: async () => {
+            this.message = messenger({ stack: this.stack, action: 'shouldNotBeOff' });
+            const test = await this.#switchDelegate._isOn();
+            if (!test) {
+              log.warn(`Switch is off`);
+              const err = new Error('Switch should not be OFF');
+              this.handleError(err, 'validating switch to not be OFF');
+              throw err;
+            } else {
+              log.info(`Switch is not OFF`);
             }
           },
         },
@@ -920,20 +1052,6 @@ class WebBrowser extends Browser {
   }
 
   /**
-   * Sets a radio button.
-   * 
-   * Clicks the radio button if it's not already set. Falls back to JavaScript
-   * click if Selenium click fails.
-   * 
-   * @returns {Promise<boolean>} True if successful
-   * @example
-   * await browser.radio('option-a').set();
-   */
-  async set() {
-    return await this.#radioDelegate.set();
-  }
-
-  /**
    * Turns a switch element on.
    * 
    * Clicks the switch if it's not already on. Falls back to JavaScript
@@ -959,6 +1077,18 @@ class WebBrowser extends Browser {
    */
   async off() {
     return await this.#switchDelegate.off();
+  }
+
+  /**
+   * Sets the slider to the specified value.
+   *
+   * @param {string|number} value - The value to set on the slider
+   * @returns {Promise<boolean>} True if successful
+   * @example
+   * await browser.slider('Input Slider Control').slide.to.value(75);
+   */
+  get slide() {
+    return this.#sliderDelegate.slide;
   }
 
   /**
@@ -1021,6 +1151,237 @@ class WebBrowser extends Browser {
   }
 
   /**
+   * Get the scroll accessor object for element-level scrolling.
+   *
+   * Provides methods to scroll elements to specific positions.
+   * When called without element context (empty stack), delegates to Browser class
+   * for window-level scrolling.
+   *
+   * @type {Object}
+   * @returns {Object} Object containing scroll accessor methods
+   * @example
+   * // Element scrolling
+   * await browser.element('scrollable-div').scroll.to.top();
+   * await browser.element('scrollable-div').scroll.to.bottom();
+   * await browser.element('scrollable-div').scroll.to.left();
+   * await browser.element('scrollable-div').scroll.to.right();
+   * await browser.element('target').scroll.into.view();
+   *
+   * // Window scrolling (when no element context)
+   * await browser.scroll.to.top();
+   * await browser.scroll.to.bottom();
+   */
+  get scroll() {
+    // If stack has elements, use element-level scrolling
+    if (this.stack && this.stack.length > 0) {
+      return this.#visibilityDelegate.scroll;
+    }
+    // Otherwise delegate to parent Browser class for window-level scrolling
+    return super.scroll;
+  }
+
+  /**
+   * Get the is accessor object for visibility and state checks.
+   *
+   * Provides visibility and state check methods.
+   * Only works in element context (when stack has elements).
+   *
+   * @type {Object}
+   * @returns {Object} Object containing is accessor methods
+   * @example
+   * await browser.element('button').is.visible();
+   * await browser.element('button').is.enabled();
+   * await browser.element('button').is.disabled();
+   * await browser.element('button').is.not.visible();
+   */
+  get is() {
+    const browser = this;
+    const selectDelegate = this.#selectDelegate;
+    const checkboxDelegate = this.#checkboxDelegate;
+    const radioDelegate = this.#radioDelegate;
+    const switchDelegate = this.#switchDelegate;
+    const visibilityDelegate = this.#visibilityDelegate;
+
+    return {
+      /**
+       * Checks whether the element is visible.
+       *
+       * @param {number} [t] - Optional timeout in milliseconds
+       * @returns {Promise<boolean>}
+       */
+      visible: async (t = null) => {
+        browser.message = messenger({ stack: browser.stack, action: 'isVisible' });
+        return await visibilityDelegate._isVisible(t);
+      },
+
+      /**
+       * Checks whether the element is enabled.
+       *
+       * @param {number} [t] - Optional timeout in milliseconds
+       * @returns {Promise<boolean>}
+       */
+      enabled: async (t = null) => {
+        browser.message = messenger({ stack: browser.stack, action: 'isEnabled' });
+        return await visibilityDelegate._isEnabled(t);
+      },
+
+      /**
+       * Checks whether the element is disabled.
+       *
+       * @param {number} [t] - Optional timeout in milliseconds
+       * @returns {Promise<boolean>}
+       */
+      disabled: async (t = null) => {
+        browser.message = messenger({ stack: browser.stack, action: 'isDisabled' });
+        return await visibilityDelegate._isDisabled(t);
+      },
+
+      /**
+       * Checks whether the checkbox is checked.
+       *
+       * @returns {Promise<boolean>}
+       */
+      checked: async () => {
+        browser.message = messenger({ stack: browser.stack, action: 'isChecked' });
+        const result = await checkboxDelegate._isChecked();
+        if (result) log.info(`Checkbox is checked`);
+        else log.warn(`Checkbox is not checked`);
+        return result;
+      },
+
+      /**
+       * Checks whether the radio button is set.
+       *
+       * @returns {Promise<boolean>}
+       */
+      set: async () => {
+        browser.message = messenger({ stack: browser.stack, action: 'isSet' });
+        const result = await radioDelegate._isSet();
+        if (result) log.info(`Radiobutton is set`);
+        else log.warn(`Radiobutton is not set`);
+        return result;
+      },
+
+      /**
+       * Checks whether the switch is on.
+       *
+       * @returns {Promise<boolean>}
+       */
+      on: async () => {
+        browser.message = messenger({ stack: browser.stack, action: 'isOn' });
+        const result = await switchDelegate._isOn();
+        if (result) log.info(`Switch is on`);
+        else log.warn(`Switch is not on`);
+        return result;
+      },
+
+      /**
+       * Checks whether the switch is off.
+       *
+       * @returns {Promise<boolean>}
+       */
+      off: async () => {
+        browser.message = messenger({ stack: browser.stack, action: 'isOff' });
+        const result = await switchDelegate._isOn();
+        if (result) log.warn(`Switch is on`);
+        else log.info(`Switch is off`);
+        return !result;
+      },
+
+      /**
+       * Checks whether the dropdown option is selected.
+       *
+       * @returns {Promise<boolean>}
+       */
+      selected: async () => {
+        browser.message = messenger({ stack: browser.stack, action: 'isSelected', data: selectDelegate.optionValue });
+        const result = await selectDelegate._isSelected();
+        if (result) log.info(`Option '${selectDelegate.optionValue}' is selected`);
+        else log.warn(`Option '${selectDelegate.optionValue}' is not selected`);
+        return result;
+      },
+
+      not: {
+        /**
+         * Checks whether the element is not visible.
+         *
+         * @param {number} [t] - Optional timeout in milliseconds
+         * @returns {Promise<boolean>}
+         */
+        visible: async (t = null) => {
+          browser.message = messenger({ stack: browser.stack, action: 'isNotVisible' });
+          return await visibilityDelegate._isNotVisible(t);
+        },
+
+        /**
+         * Checks whether the checkbox is not checked.
+         *
+         * @returns {Promise<boolean>}
+         */
+        checked: async () => {
+          browser.message = messenger({ stack: browser.stack, action: 'isNotChecked' });
+          const result = await checkboxDelegate._isChecked();
+          if (result) log.warn(`Checkbox is checked`);
+          else log.info(`Checkbox is not checked`);
+          return !result;
+        },
+
+        /**
+         * Checks whether the radio button is not set.
+         *
+         * @returns {Promise<boolean>}
+         */
+        set: async () => {
+          browser.message = messenger({ stack: browser.stack, action: 'isNotSet' });
+          const result = await radioDelegate._isSet();
+          if (result) log.warn(`Radiobutton is set`);
+          else log.info(`Radiobutton is not set`);
+          return !result;
+        },
+
+        /**
+         * Checks whether the switch is not on.
+         *
+         * @returns {Promise<boolean>}
+         */
+        on: async () => {
+          browser.message = messenger({ stack: browser.stack, action: 'isNotOn' });
+          const result = await switchDelegate._isOn();
+          if (result) log.warn(`Switch is on`);
+          else log.info(`Switch is not on`);
+          return !result;
+        },
+
+        /**
+         * Checks whether the switch is not off.
+         *
+         * @returns {Promise<boolean>}
+         */
+        off: async () => {
+          browser.message = messenger({ stack: browser.stack, action: 'isNotOff' });
+          const result = await switchDelegate._isOn();
+          if (result) log.info(`Switch is on`);
+          else log.warn(`Switch is off`);
+          return result;
+        },
+
+        /**
+         * Checks whether the dropdown option is not selected.
+         *
+         * @returns {Promise<boolean>}
+         */
+        selected: async () => {
+          browser.message = messenger({ stack: browser.stack, action: 'isNotSelected', data: selectDelegate.optionValue });
+          const result = await selectDelegate._isSelected();
+          if (result) log.warn(`Option '${selectDelegate.optionValue}' is selected`);
+          else log.info(`Option '${selectDelegate.optionValue}' is not selected`);
+          return !result;
+        },
+      },
+    };
+  }
+
+  /**
    * Uploads a file to a file input element.
    * 
    * @param {string} filePath - Absolute path to the file
@@ -1046,7 +1407,16 @@ class WebBrowser extends Browser {
   // STACK BUILDERS
   #typefixer(data, type) {
     this.#element(data);
-    this.stack[this.stack.length - 1].type = type;
+    const item = this.stack[this.stack.length - 1];
+    item.type = type;
+
+    // If data is a positive integer, treat it as a 1-based index
+    // and clear the id so it matches any element of that type
+    if (typeof data === 'number' && Number.isInteger(data) && data > 0) {
+      item.index = data;
+      item.id = '';
+    }
+
     return this;
   }
 
@@ -1064,90 +1434,56 @@ class WebBrowser extends Browser {
   // --- Spatial / Relative Positioners ---
 
   /**
-   * Targets an element above the currently referenced element.
-   * 
-   * @returns {this} Returns the WebBrowser instance for chaining
-   * @example
-   * browser.element('target').above.element('other').click();
+   * Checks if the top-of-stack item is a bare { exactly: true } flag.
+   * @private
    */
-  get above() {
-    this.stack.push({ type: 'location', located: 'above' });
-    return this;
+  #isFlag(obj) {
+    return obj && typeof obj === 'object' && obj.exactly === true && !('type' in obj) && !('hidden' in obj);
   }
 
   /**
-   * Targets an element below the currently referenced element.
-   * 
-   * @returns {this} Returns the WebBrowser instance for chaining
-   * @example
-   * browser.element('target').below.element('other').click();
+   * Pushes a location descriptor onto the stack.
+   * If the previous item on the stack is a bare { exactly: true } flag,
+   * it is consumed and merged into the location descriptor.
+   * @private
    */
-  get below() {
-    this.stack.push({ type: 'location', located: 'below' });
-    return this;
+  #pushLocation(located) {
+    const prev = this.stack[this.stack.length - 1];
+    const location = { type: 'location', located };
+
+    if (this.#isFlag(prev)) {
+      this.stack.pop();
+      location.exactly = true;
+    }
+
+    this.stack.push(location);
   }
 
-  /**
-   * Targets an element to the left of the currently referenced element.
-   * 
-   * @returns {this} Returns the WebBrowser instance for chaining
-   * @example
-   * browser.element('target').toLeftOf.element('other').click();
-   */
-  get toLeftOf() {
-    this.stack.push({ type: 'location', located: 'toLeftOf' });
-    return this;
-  }
+  /** @returns {this} */
+  get above() { this.#pushLocation('above'); return this; }
+
+  /** @returns {this} */
+  get below() { this.#pushLocation('below'); return this; }
+
+  /** @returns {this} */
+  get toLeftOf() { this.#pushLocation('toLeftOf'); return this; }
+
+  /** @returns {this} */
+  get toRightOf() { this.#pushLocation('toRightOf'); return this; }
+
+  /** @returns {this} */
+  get within() { this.#pushLocation('within'); return this; }
+
+  /** @returns {this} */
+  get near() { this.#pushLocation('near'); return this; }
 
   /**
-   * Targets an element to the right of the currently referenced element.
-   * 
-   * @returns {this} Returns the WebBrowser instance for chaining
-   * @example
-   * browser.element('target').toRightOf.element('other').click();
+   * Forces strict alignment for the next spatial location in the stack.
+   * @returns {this}
    */
-  get toRightOf() {
-    this.stack.push({ type: 'location', located: 'toRightOf' });
-    return this;
-  }
-
-  /**
-   * Targets an element located inside another element.
-   * 
-   * @returns {this} Returns the WebBrowser instance for chaining
-   * @example
-   * browser.element('menu').within.element('item').click();
-   */
-  get within() {
-    this.stack.push({ type: 'location', located: 'within' });
-    return this;
-  }
-
-  /**
-   * Targets an element based on proximity.
-   * 
-   * @returns {this} Returns the WebBrowser instance for chaining
-   * @example
-   * browser.element('target').near.element('other').click();
-   */
-  get near() {
-    this.stack.push({ type: 'location', located: 'near' });
-    return this;
-  }
+  get exactly() { this.stack.push({ exactly: true }); return this; }
 
   // --- Logic & Filter Modifiers ---
-
-  /**
-   * Forces a strict text match for the next element in the stack.
-   * 
-   * @returns {this} Returns the WebBrowser instance for chaining
-   * @example
-   * browser.element('text').exactly.toLeftOf.element('other').click();
-   */
-  get exactly() {
-    this.stack.push({ exactly: true });
-    return this;
-  }
 
   /**
    * Combines multiple search criteria using logical OR.
@@ -1164,17 +1500,25 @@ class WebBrowser extends Browser {
   /**
    * Gets a specific occurrence from a list of matching elements (1-based index).
    * 
-   * @param {number} index - 1-based index of element to get
-   * @returns {this} Returns the WebBrowser instance for chaining
-   * @throws {TypeError} If index is not a number
+   * @returns {{index: function(number): WebBrowser}} Object with index method for chaining
    * @example
-   * browser.element('item').atIndex(2).click(); // Selects 2nd matching element
+   * browser.element('item').at.index(2).click(); // Selects 2nd matching element
    */
-  atIndex(index) {
-    if (typeof index !== 'number') throw new TypeError('index must be a number');
-    const last = this.stack[this.stack.length - 1];
-    if (last) last.index = index;
-    return this;
+  get at() {
+    return {
+      index: (index) => {
+        // Only positive integers are valid indices; everything else defaults to 1 (first element)
+        if (typeof index !== 'number' || !Number.isInteger(index) || index <= 0 || Number.isNaN(index)) {
+          index = 1;
+        }
+        const last = this.stack[this.stack.length - 1];
+        if (last) {
+          last.index = index;
+          last.id = '';
+        }
+        return this;
+      }
+    };
   }
 
   /**
@@ -1203,24 +1547,17 @@ class WebBrowser extends Browser {
       // 1. Find source element
       this.message = messenger({ stack: dragStack, action: 'drag' });
       const dragLocator = await this.locatorStrategy.find(dragStack);
+      // Scroll the source element into view
+      await this.driver.executeScript('arguments[0].scrollIntoView(true);', dragLocator);
 
       // 2. Find target element
       this.message = messenger({ stack: dropStack, action: 'drop' });
       const dropLocator = await this.locatorStrategy.find(dropStack);
+      // Scroll the target element into view
+      await this.driver.executeScript('arguments[0].scrollIntoView(true);', dropLocator);
 
-      // 3. Execute precise Action sequence
-      const actions = this.driver.actions({ async: true });
-
-      await actions
-        .move({ origin: dragLocator, x: 5, y: 5 }) // Small offset to avoid center-point deadzones
-        .press()
-        .pause(500) // Brief pause to trigger the 'dragstart' event
-        .move({ origin: dragLocator, x: 20, y: 20 }) // "Nudge" to confirm drag state
-        .pause(200)
-        .move({ origin: dropLocator })
-        .pause(500) // Wait for target to acknowledge the hover
-        .release()
-        .perform();
+      // 3. Use DragDropDelegate which handles HTML5 drag events automatically
+      await this.#dragDropDelegate.perform(dragLocator, dropLocator);
 
       log.info(`Successfully dragged ${dragStack[0].id} onto ${dropStack[0].id}`);
     } catch (err) {

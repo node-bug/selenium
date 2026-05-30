@@ -1,4 +1,5 @@
 import { log } from '@nodebug/logger';
+import ELEMENT_DEFINITIONS from '@nodebug/browser-element-finder/element-definitions.json' with { type: 'json' };
 
 // 1. Define action templates using a Lookup Map
 const ACTION_MAP = {
@@ -20,6 +21,8 @@ const ACTION_MAP = {
   press: (a) => `Pressing key '${a.data}' in `,
   type: (a) => `Typing '${a.data}' into `,
   select: (a) => `Selecting '${a.data}' from `,
+  set: (a) => `Setting '${a.data}' to `,
+  slide: (a) => `Sliding to value ${a.data} `,
   waitVisibility: () => 'Waiting for ',
   waitInvisibility: () => 'Waiting for ',
   check: () => 'Checking ',
@@ -27,8 +30,8 @@ const ACTION_MAP = {
   on: () => 'Setting ',
   off: () => 'Setting ',
   screenshot: () => 'Capturing screenshot of ',
-  getText: () => 'Getting text of selected option from ',
-  getValue: () => 'Getting value of selected option from ',
+  getText: () => 'Getting text of ',
+  getValue: () => 'Getting value of ',
   getAttribute: (a) => `Getting attribute '${a.data}' of `,
   hide: () => 'Hiding all matching ',
   unhide: () => 'Unhiding all matching ',
@@ -57,15 +60,24 @@ const ACTION_MAP = {
   isNotSelected: (a) => `Validating if option '${a.data}' in `,
   shouldBeSelected: (a) => `Validating that option '${a.data}' in `,
   shouldNotBeSelected: (a) => `Validating that option '${a.data}' in `,
+  hasValue: () => 'Validating if ', 
+  hasText: () => 'Validating if ',
+  doesNotHaveValue: () => 'Validating if ',
+  doesNotHaveText: () => 'Validating if ',
+  shouldHaveValue: () => 'Validating that ',
+  shouldHaveText: () => 'Validating that ',
+  shouldNotHaveValue: () => 'Validating that ',
+  shouldNotHaveText: () => 'Validating that ',
+  hasOption: () => `Validating if `,
+  doesNotHaveOption: () => `Validating if `,
+  shouldHaveOption: () => `Validating that `,
+  shouldNotHaveOption: () => `Validating that `,
+  getOptions: () => 'Getting options from ',
+  getSelectedOptions: () => 'Getting selected options from ',
 };
 
 // 2. Define valid element types
-const ELEMENT_TYPES = new Set([
-  'link', 'navigation', 'heading', 'button', 'checkbox',
-  'radio', 'slider', 'dropdown', 'textbox', 'file', 'list',
-  'listitem', 'menu', 'menuitem', 'toolbar', 'dialog',
-  'row', 'column', 'image', 'element', 'switch'
-]);
+const ELEMENT_TYPES = new Set(Object.keys(ELEMENT_DEFINITIONS));
 
 /**
  * Builds a descriptive log message based on action and element stack
@@ -80,8 +92,10 @@ export default function messenger(a) {
     if (ELEMENT_TYPES.has(obj.type)) {
       const exact = obj.exact ? 'exact ' : '';
       const hidden = obj.hidden ? 'hidden ' : '';
-      const index = obj.index ? `of index '${obj.index}' ` : '';
-      return `${exact}${hidden}${obj.type} '${obj.id}' ${index}`;
+      const atIndex = obj.index ? `at index '${obj.index}' ` : '';
+      // When id is empty or numeric, skip quoting the id
+      const idPart = obj.id ? (/^\d+$/.test(obj.id) ? `at index '${obj.id}' ` : `'${obj.id}' `) : '';
+      return `${exact}${hidden}${obj.type} ${idPart}${atIndex}`;
     }
 
     if (obj.type === 'location') {
@@ -127,8 +141,17 @@ export default function messenger(a) {
       }
       return '';
     },
-    on: ' to on',
-    off: ' to off',
+    slide: (a) => { return ` to value ${a.data}` },
+    hasOption: (a) => ` has option '${a.data}'`,
+    doesNotHaveOption: (a) => ` does not have option '${a.data}'`,
+    shouldHaveOption: (a) => ` has option '${a.data}'`,
+    shouldNotHaveOption: (a) => ` does not have option '${a.data}'`,
+    isSelected: ` is selected`,
+    isNotSelected: ` is not selected`,
+    shouldBeSelected: ` should be selected`,
+    shouldNotBeSelected: ` should not be selected`,
+    on: ' to ON',
+    off: ' to OFF',
     isVisible: ' is visible',
     isNotVisible: ' is not visible',
     shouldBeVisible: ' is visible',
@@ -149,10 +172,14 @@ export default function messenger(a) {
     isOff: ' is OFF',
     shouldBeOn: ' is ON',
     shouldBeOff: ' is OFF',
-    isSelected: ` is selected`,
-    isNotSelected: ` is not selected`,
-    shouldBeSelected: ` is selected`,
-    shouldNotBeSelected: ` is not selected`,
+    hasValue: ' has value',
+    hasText: ' has text',
+    doesNotHaveValue: ' does not have value',
+    doesNotHaveText: ' does not have text',
+    shouldHaveValue: ' should have value',
+    shouldHaveText: ' should have text',
+    shouldNotHaveValue: ' should not have value',
+    shouldNotHaveText: ' should not have text',
   };
 
   if (suffixes[a.action]) {
@@ -163,17 +190,3 @@ export default function messenger(a) {
   log.info(message);
   return message;
 }
-
-/**
- * The "if-else-if" chain is a classic anti-pattern for this type of logic. It is slow to read, hard to maintain, and prone to errors.
-
-To improve this for ESM, we should use a Lookup Map for the actions and Array methods (map, filter, join) for the stack processing. This makes the code declarative rather than procedural.
-    * The Lookup Map allows us to easily add new actions without modifying existing code, and the Array methods make it clear how we are transforming the stack into a message.
-    * The use of template literals and descriptive variable names also enhances readability.
-    * Overall, this refactored version is more maintainable, extensible, and easier to understand at a glance.
-    * This approach also eliminates the need for multiple "if-else" statements, reducing the likelihood of bugs and improving performance by avoiding unnecessary condition checks.
-    * By centralizing the action templates and using a consistent method for processing the stack, we can ensure that the code is both efficient and easy to extend in the future.
-    * In summary, the refactored code is more efficient, easier to read, and maintainable compared to the original "if-else-if" chain, making it a better choice for handling complex logic in an ESM environment.
-    * This refactored version is more efficient, easier to read, and maintainable compared to the original "if-else-if" chain, making it a better choice for handling complex logic in an ESM environment.
-    
-**/

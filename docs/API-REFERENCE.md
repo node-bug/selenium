@@ -6,6 +6,7 @@ Complete method reference for WebBrowser. See [Core Concepts](CONCEPTS.md) for u
 
 - [Browser Control](#browser-control) - Session management
 - [Element Selection](#element-selection) - Finding elements
+- [Element Search](#element-search) - find() and findAll() methods
 - [Element Interaction](#element-interaction) - Clicking, typing, etc.
 - [Dropdown Operations](#dropdown-operations) - Select/dropdown handling
 - [Element State](#element-state) - Visibility, disabled, etc.
@@ -13,6 +14,78 @@ Complete method reference for WebBrowser. See [Core Concepts](CONCEPTS.md) for u
 - [Tab Management](#tab-management) - Multi-tab operations
 - [Alert Handling](#alert-handling) - JavaScript alerts/prompts
 - [Data Retrieval](#data-retrieval) - Getting element properties
+
+---
+
+## Element Search
+
+### find()
+
+Finds a single element matching the current selector stack.
+
+```javascript
+const element = await browser.button('Submit').find()
+```
+
+**Returns**: `Promise<WebElement>` - The Selenium WebElement
+
+**Behavior**:
+
+- Returns first matching element
+- Throws error if no element found within timeout
+- Clears selector stack after execution
+
+**Example**:
+
+```javascript
+// Find and store reference
+const submitBtn = await browser.button('Submit').find()
+
+// Use with multiple spatial conditions
+const element = await browser
+  .button('Save')
+  .below.element('Form Title')
+  .within.dialog('Confirm')
+  .find()
+```
+
+### findAll()
+
+Finds all elements matching the current selector stack.
+
+```javascript
+const elements = await browser.element('item').findAll()
+```
+
+**Parameters**:
+
+- `t` (number, optional): Custom timeout in milliseconds
+
+**Returns**: `Promise<Array<WebElement>>` - Array of matching WebElements
+
+**Behavior**:
+
+- Returns all matching elements
+- Throws error if no elements found within timeout
+- Clears selector stack after execution
+- Supports OR conditions for multiple selectors
+
+**Examples**:
+
+```javascript
+// Get all items
+const items = await browser.element('item').findAll()
+console.log(`Found ${items.length} items`)
+
+// Get all links
+const links = await browser.link('nav-link').findAll()
+
+// Custom timeout (5 seconds)
+const results = await browser.button('result').findAll(5000)
+
+// OR condition - find buttons with either text
+const buttons = await browser.button('Save').or.button('Submit').findAll()
+```
 
 ---
 
@@ -41,7 +114,6 @@ The following methods are fully supported and tested in WebBrowser:
 
 - `check()` - Check a checkbox
 - `uncheck()` - Uncheck a checkbox
-- `set()` - Set/select a radio button
 - `on()` - Turn on a switch
 - `off()` - Turn off a switch
 - `option(value).select()` - Select dropdown option
@@ -50,7 +122,18 @@ The following methods are fully supported and tested in WebBrowser:
 
 - `hide()` - Hide element via opacity
 - `unhide()` - Restore visibility
-- `scroll([alignToTop])` - Scroll element into view
+- `scroll.to.top()` - Scroll element to top (scrollTop = 0)
+- `scroll.to.bottom()` - Scroll element to bottom (scrollTop = scrollHeight)
+- `scroll.to.left()` - Scroll element to left (scrollLeft = 0)
+- `scroll.to.right()` - Scroll element to right (scrollLeft = scrollWidth)
+- `scroll.into.view()` - Scroll element into center of viewport
+
+### Window Scrolling
+
+- `scroll.to.top()` - Scroll window to top (left: 0, top: 0)
+- `scroll.to.bottom()` - Scroll window to bottom (left: 0, top: document.body.scrollHeight)
+- `scroll.to.left()` - Scroll window to left (left: 0, top: 0)
+- `scroll.to.right()` - Scroll window to right (left: document.body.scrollWidth, top: 0)
 
 ### Modifiers
 
@@ -207,8 +290,8 @@ All return `WebBrowser` for chaining:
 - `checkbox(selector)` - Checkbox
 - `switch(selector)` - Switch
 - `radio(selector)` - Radio button
-- `slider(selector)` - Slider
 - `dropdown(selector)` - Dropdown
+- `slider(selector)` - Slider control
 - `textbox(selector)` - Text input
 - `file(selector)` - File input
 - `list(selector)` - List
@@ -222,10 +305,17 @@ All return `WebBrowser` for chaining:
 - `image(selector)` - Image
 - `element(selector)` - Generic element
 
+**selector** accepts:
+
+- `string` — text or attribute value to match against
+- `number` — 1-based index to select the Nth matching element (no text filtering)
+
 ```javascript
-await browser.button('Submit').click()
-await browser.textbox('Email').write('user@example.com')
-await browser.checkbox('Remember Me').check()
+await browser.button('Submit').click() // By text
+await browser.textbox('Email').write('user@example.com') // By text
+await browser.row(2).click() // 2nd row (no text filter)
+await browser.column(1).click() // 1st column
+await browser.button(3).click() // 3rd button on page
 ```
 
 ### find()
@@ -525,12 +615,12 @@ await browser.checkbox('Subscribe').check()
 
 **Returns**: `Promise<boolean>`
 
-### set()
+### click()
 
-Set a radio button.
+Click a radio button.
 
 ```javascript
-await browser.radio('Male').set()
+await browser.radio('Male').click()
 ```
 
 **Returns**: `Promise<boolean>`
@@ -549,9 +639,13 @@ await browser.checkbox('Newsletter').uncheck()
 
 Turn a switch element on.
 
+Supports three element types: native checkboxes, ARIA switches (`role="switch"`), and label-wrapped checkboxes.
+
 ```javascript
 await browser.switch('Dark Mode').on()
 ```
+
+**Behavior**: Idempotent — skips if already on. Falls back to JavaScript click if Selenium click fails. Verifies final state.
 
 **Returns**: `Promise<boolean>`
 
@@ -559,11 +653,46 @@ await browser.switch('Dark Mode').on()
 
 Turn a switch element off.
 
+Supports three element types: native checkboxes, ARIA switches (`role="switch"`), and label-wrapped checkboxes.
+
 ```javascript
 await browser.switch('Dark Mode').off()
 ```
 
+**Behavior**: Idempotent — skips if already off. Falls back to JavaScript click if Selenium click fails. Verifies final state.
+
 **Returns**: `Promise<boolean>`
+
+## Slider Operations
+
+Handle `<input type="range">` slider controls. Use `slider()` to select the slider element, then chain the methods below.
+
+### slide.to.value(value)
+
+Set the slider to a specific value.
+
+```javascript
+await browser.slider('Input Slider Control').slide.to.value(75)
+```
+
+**Parameters**:
+
+- `value` (string|number): The value to set on the slider
+
+**Returns**: `Promise<boolean>`
+
+### get.value()
+
+Get the current value of the slider.
+
+```javascript
+const value = await browser.slider('Input Slider Control').get.value()
+console.log(value) // e.g., '75'
+```
+
+**Returns**: `Promise<string>` - The current slider value
+
+**Throws**: Error if slider not found.
 
 ### drag()
 
@@ -603,7 +732,7 @@ Handle `<select>` elements and custom combobox widgets. Use `dropdown()` to sele
 
 ### option(value)
 
-Specify an option to select. Accepts text, value, or a numeric index (0-based).
+Specify an option to select. Accepts text, value, or a numeric index (1-based).
 
 ```javascript
 // By text (partial match, case-insensitive)
@@ -612,9 +741,9 @@ await browser.dropdown('Country').option('United States').select()
 // By value
 await browser.dropdown('Country').option('US').select()
 
-// By index (0-based)
-await browser.dropdown('Country').option(0).select() // First option
-await browser.dropdown('Country').option(2).select() // Third option
+// By index (1-based)
+await browser.dropdown('Country').option(1).select() // First option
+await browser.dropdown('Country').option(3).select() // Third option
 ```
 
 **Parameters**:
@@ -629,7 +758,7 @@ Select the previously specified option. Supports both native `<select>` elements
 
 ```javascript
 await browser.dropdown('Country').option('United States').select()
-await browser.dropdown('Country').option(0).select()
+await browser.dropdown('Country').option(1).select() // First option (1-based)
 ```
 
 **Returns**: `Promise<boolean>`
@@ -654,7 +783,7 @@ console.log(text) // e.g., 'United States'
 Get the value of the currently selected option.
 
 ```javascript
-const value = await browser.dropdown('Country').get.v()
+const value = await browser.dropdown('Country').get.value()
 console.log(value) // e.g., 'us'
 ```
 
@@ -681,8 +810,8 @@ if (isSelected) {
 // Check by value
 const isSelected = await browser.dropdown('Country').option('US').is.selected()
 
-// Check by index
-const isSelected = await browser.dropdown('Country').option(0).is.selected()
+// Check by index (1-based)
+const isSelected = await browser.dropdown('Country').option(1).is.selected()
 ```
 
 **Returns**: `Promise<boolean>` - `true` if the option is selected, `false` otherwise
@@ -735,8 +864,8 @@ await browser.dropdown('Country').option('United States').should.be.selected()
 // Assert by value
 await browser.dropdown('Country').option('US').should.be.selected()
 
-// Assert by index
-await browser.dropdown('Country').option(0).should.be.selected()
+// Assert by index (1-based)
+await browser.dropdown('Country').option(1).should.be.selected()
 ```
 
 **Throws**: Error if the specified option is not selected.
@@ -756,6 +885,126 @@ await browser.dropdown('Country').option('CA').should.not.be.selected()
 ```
 
 **Throws**: Error if the specified option IS selected.
+
+### get.selected.options()
+
+Get the currently selected option(s) from a dropdown as an array of objects with `text`, `value`, and `index` properties. Works with both native `<select>` elements and custom combobox widgets.
+
+```javascript
+const selected = await browser.dropdown('Country').get.selected.options()
+console.log(selected)
+// Output: [{ text: 'United States', value: 'us', index: 0 }]
+```
+
+For multi-select dropdowns, returns all selected options:
+
+```javascript
+const selected = await browser.dropdown('Tags').get.selected.options()
+console.log(selected)
+// Output: [
+//   { text: 'JavaScript', value: 'js', index: 0 },
+//   { text: 'Python', value: 'py', index: 2 }
+// ]
+```
+
+**Returns**: `Promise<Array<{text: string, value: string, index: number}>>` - Array of selected option objects
+
+**Throws**: Error if dropdown not found.
+
+### get.options()
+
+Get all options from a dropdown as an array of objects with `text` and `value` properties. Works with both native `<select>` elements and custom combobox widgets.
+
+```javascript
+const options = await browser.dropdown('Country').get.options()
+console.log(options)
+// Output: [
+//   { text: 'United States', value: 'us' },
+//   { text: 'Canada', value: 'ca' },
+//   { text: 'Mexico', value: 'mx' }
+// ]
+```
+
+**Returns**: `Promise<Array<{text: string, value: string}>>` - Array of option objects
+
+**Throws**: Error if dropdown not found.
+
+### has.option(value)
+
+**Returns `true`/`false` for conditional logic** - Does not throw errors.
+
+Check if a dropdown has a specific option. Accepts text, value, or index. Use this **only in if conditions** for branching logic.
+
+```javascript
+// Check by text
+const hasOption = await browser.dropdown('Country').has.option('United States')
+if (hasOption) {
+  console.log('United States is available')
+}
+
+// Check by value
+const hasOption = await browser.dropdown('Country').has.option('US')
+```
+
+**Parameters**:
+
+- `value` (string|number): Option text, value, or index to check for
+
+**Returns**: `Promise<boolean>` - `true` if the option exists, `false` otherwise
+
+**QA Best Practice**: For test validations, use `should.have.option()` or `should.not.have.option()` instead.
+
+### does.not.have.option(value)
+
+**Assertion that throws an error and stops test execution on failure.**
+
+Assert that a dropdown does NOT have a specific option. Accepts text, value, or index.
+
+```javascript
+// Assert option doesn't exist
+await browser.dropdown('Country').does.not.have.option('NonExistent')
+```
+
+**Parameters**:
+
+- `value` (string|number): Option text, value, or index to check for
+
+**Throws**: Error if the option exists - **Test execution stops**
+
+### should.have.option(value)
+
+**Assertion that throws an error and stops test execution on failure.**
+
+Assert that a dropdown has a specific option. Accepts text, value, or index.
+
+```javascript
+// Assert option exists
+await browser.dropdown('Country').should.have.option('United States')
+await browser.dropdown('Country').should.have.option('US')
+```
+
+**Parameters**:
+
+- `value` (string|number): Option text, value, or index to check for
+
+**Throws**: Error if the option does not exist - **Test execution stops**
+
+### should.not.have.option(value)
+
+**Assertion that throws an error and stops test execution on failure.**
+
+Assert that a dropdown does NOT have a specific option. Accepts text, value, or index.
+
+```javascript
+// Assert option doesn't exist
+await browser.dropdown('Country').should.not.have.option('NonExistent')
+```
+
+**Parameters**:
+
+- `value` (string|number): Option text, value, or index to check for
+
+**Throws**: Error if the option exists - **Test execution stops**
 
 ---
 
@@ -924,29 +1173,29 @@ await browser.checkbox('Subscribe').should.not.be.checked()
 
 **Throws**: Error if checkbox is checked - **Test execution stops**
 
-### isOn()
+### is.on()
 
-**Assertion that throws an error and stops test execution on failure.**
+**Returns a boolean indicating whether the switch is currently on.**
 
-Check if a switch is currently on.
-
-```javascript
-const on = await browser.switch('Dark Mode').isOn()
-```
-
-**Throws**: Error if switch is off - **Test execution stops**
-
-### isOff()
-
-**Assertion that throws an error and stops test execution on failure.**
-
-Check if a switch is currently off.
+Check if a switch is currently on. Supports native checkboxes, ARIA switches (`role="switch"`), and label-wrapped checkboxes.
 
 ```javascript
-const off = await browser.switch('Dark Mode').isOff()
+const on = await browser.switch('Dark Mode').is.on()
 ```
 
-**Throws**: Error if switch is on - **Test execution stops**
+**Returns**: `Promise<boolean>`
+
+### is.off()
+
+**Returns a boolean indicating whether the switch is currently off.**
+
+Check if a switch is currently off. Supports native checkboxes, ARIA switches (`role="switch"`), and label-wrapped checkboxes.
+
+```javascript
+const off = await browser.switch('Dark Mode').is.off()
+```
+
+**Returns**: `Promise<boolean>`
 
 ### is.set()
 
@@ -996,18 +1245,178 @@ await browser.radio('Female').should.not.be.set()
 
 **Throws**: Error if radio button is set - **Test execution stops**
 
-### scroll([alignToTop])
+### has.value(expectedValue)
 
-Scroll element into view.
+**Returns `true`/`false` for conditional logic** - Does not throw errors.
+
+Check if an element has a specific value. Use this **only in if conditions** for branching logic. This method returns a boolean value and is intended for runtime decision-making, not for QA test assertions.
 
 ```javascript
-await browser.element('Submit').scroll() // Align to top
-await browser.element('Footer').scroll(false) // Align to bottom
+const hasValue = await browser.textbox('Email').has.value('user@example.com')
+if (hasValue) {
+  await browser.button('Submit').click()
+}
 ```
 
 **Parameters**:
 
-- `alignToTop` (boolean, optional): Default true
+- `expectedValue` (string): The expected value to check for
+
+**Returns**: `Promise<boolean>` - `true` if element has the value, `false` otherwise
+
+**QA Best Practice**: For test validations that validate whether an element has a specific value, use `should.have.value()` or `should.not.have.value()` instead.
+
+### does.not.have.value(unexpectedValue)
+
+**Returns `true`/`false` for conditional logic** - Does not throw errors.
+
+Check if an element does NOT have a specific value. Use this **only in if conditions** for branching logic. This method returns a boolean value and is intended for runtime decision-making, not for QA test assertions.
+
+```javascript
+const notHaveValue = await browser
+  .textbox('Username')
+  .does.not.have.value('admin')
+if (notHaveValue) {
+  await browser.button('Submit').click()
+}
+```
+
+**Parameters**:
+
+- `unexpectedValue` (string): The value that should not be present
+
+**Returns**: `Promise<boolean>` - `true` if element does not have the value, `false` otherwise
+
+**QA Best Practice**: For test validations that validate whether an element does not have a specific value, use `should.not.have.value()` instead.
+
+### should.have.value(expectedValue)
+
+**Assertion that throws an error and stops test execution on failure.**
+
+Validate that an element has a specific value. Use this for QA test validations and verifications.
+
+```javascript
+await browser.textbox('Email').should.have.value('user@example.com')
+await browser.slider('Range').should.have.value('75')
+```
+
+**Parameters**:
+
+- `expectedValue` (string): The expected value to match
+
+**Throws**: Error if element value does not match - **Test execution stops**
+
+**QA Best Practice**: Use this method to assert and validate that an element has the expected value in your test cases.
+
+### should.not.have.value(unexpectedValue)
+
+**Assertion that throws an error and stops test execution on failure.**
+
+Validate that an element does NOT have a specific value. Use this for QA test validations and verifications.
+
+```javascript
+await browser.textbox('Username').should.not.have.value('admin')
+```
+
+**Parameters**:
+
+- `unexpectedValue` (string): The value that should not be present
+
+**Throws**: Error if element value matches unexpected value - **Test execution stops**
+
+**QA Best Practice**: Use this method to assert and validate that an element does not have an unexpected value in your test cases.
+
+### scroll.into.view()
+
+Scroll element into the center of the viewport.
+
+```javascript
+await browser.element('target').scroll.into.view()
+```
+
+**Returns**: `Promise<boolean>`
+
+### scroll.to.top()
+
+Scroll element to the top (scrollTop = 0).
+
+```javascript
+await browser.element('scrollable-div').scroll.to.top()
+```
+
+**Returns**: `Promise<boolean>`
+
+### scroll.to.bottom()
+
+Scroll element to the bottom (scrollTop = scrollHeight).
+
+```javascript
+await browser.element('scrollable-div').scroll.to.bottom()
+```
+
+**Returns**: `Promise<boolean>`
+
+### scroll.to.left()
+
+Scroll element to the left (scrollLeft = 0).
+
+```javascript
+await browser.element('scrollable-div').scroll.to.left()
+```
+
+**Returns**: `Promise<boolean>`
+
+### scroll.to.right()
+
+Scroll element to the right (scrollLeft = scrollWidth).
+
+```javascript
+await browser.element('scrollable-div').scroll.to.right()
+```
+
+**Returns**: `Promise<boolean>`
+
+### Window Scrolling
+
+Scroll the browser window to specific positions.
+
+#### scroll.to.top()
+
+Scroll the browser window to the top (left: 0, top: 0).
+
+```javascript
+await browser.scroll.to.top()
+```
+
+**Returns**: `Promise<boolean>`
+
+#### scroll.to.bottom()
+
+Scroll the browser window to the bottom (left: 0, top: document.body.scrollHeight).
+
+```javascript
+await browser.scroll.to.bottom()
+```
+
+**Returns**: `Promise<boolean>`
+
+#### scroll.to.left()
+
+Scroll the browser window to the leftmost position (left: 0, top: 0).
+
+```javascript
+await browser.scroll.to.left()
+```
+
+**Returns**: `Promise<boolean>`
+
+#### scroll.to.right()
+
+Scroll the browser window to the rightmost position (left: document.body.scrollWidth, top: 0).
+
+```javascript
+await browser.scroll.to.right()
+```
 
 **Returns**: `Promise<boolean>`
 
@@ -1261,6 +1670,54 @@ if (present) {
 
 **Returns**: `Promise<boolean>`
 
+### alert().timeout
+
+Get the configured timeout value (in milliseconds) for alert operations. Uses the `selenium.timeout` config value (default: 10 seconds).
+
+```javascript
+const timeout = browser.alert().timeout // Returns milliseconds
+```
+
+**Returns**: `number` (milliseconds)
+
+### alert().is.not.visible()
+
+Check if an alert is **not** present or does not match expected text.
+
+```javascript
+const notVisible = await browser.alert().is.not.visible()
+if (notVisible) {
+  console.log('No alert present')
+}
+```
+
+**Returns**: `Promise<boolean>`
+
+### alert().should.be.visible()
+
+Assert that an alert is present and matches expected text. Throws an error if the alert is not visible.
+
+```javascript
+// Will throw if alert is not present
+await browser.alert().should.be.visible()
+await browser.alert('Expected Text').should.be.visible()
+```
+
+**Throws**: `Error` if alert is not visible
+
+### alert().should.not.be.visible()
+
+Assert that an alert is **not** present. Throws an error if an alert is visible.
+
+```javascript
+// Will throw if alert is present
+await browser.alert().should.not.be.visible()
+```
+
+**Throws**: `Error` if alert is visible
+
+---
+
 ### alert().accept()
 
 Accept alert.
@@ -1341,13 +1798,17 @@ const classes = await browser.button('Submit').get.attribute('class')
 
 ### get.screenshot()
 
-Capture element screenshot.
+Capture a screenshot — of a specific element if one is selected, otherwise of the full page.
 
 ```javascript
-const screenshot = await browser.element('chart').get.screenshot()
+// Full page screenshot (no element selected)
+const pageShot = await browser.get.screenshot()
+
+// Element screenshot (element selected)
+const elementShot = await browser.element('chart').get.screenshot()
 ```
 
-**Returns**: `Promise<Buffer>`
+**Returns**: `Promise<string>` — Base64-encoded image data URL.
 
 ### get.size()
 
@@ -1386,14 +1847,16 @@ const os = await browser.get.os()
 
 These are intermediate operations for refining element selection:
 
-### atIndex(index)
+### at.index(index)
 
-Get specific element occurrence (0-based).
+Get specific element occurrence (1-based). Use this when you need to target a specific match among multiple elements with the same text.
 
 ```javascript
-await browser.element('Item').atIndex(0).click()
-await browser.textbox('Email').atIndex(2).write('...')
+await browser.element('Item').at.index(1).click() // 1st matching element
+await browser.textbox('Email').at.index(2).write('..') // 2nd matching textbox
 ```
+
+> **Tip:** You can also pass a number directly to the element type selector instead of chaining `.at.index()`. For example, `browser.row(2)` is equivalent to `browser.row('').at.index(2)`.
 
 ### exact
 
