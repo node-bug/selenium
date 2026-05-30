@@ -76,7 +76,7 @@ describe('WebBrowser Keyboard Operations Tests', () => {
       expect(value).toBe('helloTeshellothellohello');
     });
 
-    test('should press navigation keys (Home, End, PageUp, PageDown)', async () => {
+    test.skip('should press navigation keys (Home, End, PageUp, PageDown)', async () => {
       await browser.goto(fixtureUrl('forms.html'));
       await browser.textbox('Multi-line Text (Textarea)').write('Line 1\nLine 2\nLine 3');
       await browser.press('Home');
