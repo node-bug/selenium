@@ -1444,7 +1444,7 @@ await browser.element('Ad').unhide()
 
 ## Window Management
 
-See [Window Operations Guide](docs/window-management.md) for patterns.
+See [Advanced Guide - Window Management](ADVANCED.md#window-management) for patterns.
 
 ### window([selector])
 
@@ -1558,7 +1558,7 @@ const errors = await browser.window().get.consoleErrors()
 
 ## Tab Management
 
-See [Tab Operations Guide](docs/tab-management.md) for patterns.
+See [Advanced Guide - Tab Management](ADVANCED.md#tab-management) for patterns.
 
 ### tab([selector])
 
@@ -1640,7 +1640,7 @@ const title = await browser.tab().get.title()
 
 ## Alert Handling
 
-See [Alerts Guide](docs/alerts.md) for detailed patterns.
+See [Advanced Guide - Alert Handling](ADVANCED.md#alert-handling) for detailed patterns.
 
 ### alert([text])
 

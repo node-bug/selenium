@@ -25,12 +25,6 @@ describe('Browser Control Integration Tests', () => {
     expect(success).toBe(true);
   });
 
-  test('should set browser window size using setSize()', async () => {
-    const size = { width: 1024, height: 768 };
-    const success = await browser.setSize(size);
-    expect(success).toBe(true);
-  });
-
   test('should sleep for a specified duration', async () => {
     const start = Date.now();
     await browser.sleep(500);
@@ -90,19 +84,101 @@ describe('Browser Control Integration Tests', () => {
     expect(typeof size.height).toBe('number');
   });
 
+  // setSize Tests
+  test('should set browser window size with valid dimensions', async () => {
+    const size = { width: 1280, height: 720 };
+    const success = await browser.setSize(size);
+    expect(success).toBe(true);
+
+    // Verify the size was actually applied
+    const actualSize = await browser.get.size();
+    expect(actualSize.width).toBeGreaterThanOrEqual(1280);
+    expect(actualSize.height).toBeGreaterThanOrEqual(720);
+  });
+
+  test('should set browser window size to different dimensions', async () => {
+    const size = { width: 800, height: 600 };
+    const success = await browser.setSize(size);
+    expect(success).toBe(true);
+
+    const actualSize = await browser.get.size();
+    expect(actualSize.width).toBeGreaterThanOrEqual(800);
+    expect(actualSize.height).toBeGreaterThanOrEqual(600);
+  });
+
+  test('should handle setSize with null dimensions (not configured)', async () => {
+    // When width/height are null, should return false and use driver defaults
+    const result = await browser.setSize({ width: null, height: null });
+    expect(result).toBe(false);
+  });
+
+  test('should handle setSize with undefined dimensions (not configured)', async () => {
+    const result = await browser.setSize({ width: undefined, height: undefined });
+    expect(result).toBe(false);
+  });
+
+  test('should handle setSize with NaN dimensions (not configured)', async () => {
+    const result = await browser.setSize({ width: NaN, height: NaN });
+    expect(result).toBe(false);
+  });
+
+  test('should handle setSize with invalid string dimensions', async () => {
+    const result = await browser.setSize({ width: '1024', height: '768' });
+    expect(result).toBe(false);
+  });
+
+  test('should handle setSize with negative dimensions', async () => {
+    const result = await browser.setSize({ width: -100, height: 768 });
+    expect(result).toBe(false);
+  });
+
+  test('should handle setSize with zero dimensions', async () => {
+    const result = await browser.setSize({ width: 0, height: 0 });
+    expect(result).toBe(false);
+  });
+
+  test('should handle setSize with missing width property', async () => {
+    const result = await browser.setSize({ height: 768 });
+    expect(result).toBe(false);
+  });
+
+  test('should handle setSize with missing height property', async () => {
+    const result = await browser.setSize({ width: 1024 });
+    expect(result).toBe(false);
+  });
+
+  test('should handle setSize with empty object', async () => {
+    const result = await browser.setSize({});
+    expect(result).toBe(false);
+  });
+
+  // getSize Tests
+  test('should get browser window size', async () => {
+    // Set a known size first
+    await browser.setSize({ width: 1024, height: 768 });
+
+    const size = await browser.get.size();
+    expect(size).toHaveProperty('width');
+    expect(size).toHaveProperty('height');
+    expect(typeof size.width).toBe('number');
+    expect(typeof size.height).toBe('number');
+    expect(size.width).toBeGreaterThan(0);
+    expect(size.height).toBeGreaterThan(0);
+  });
+
+  test('should get size returns consistent values', async () => {
+    const size1 = await browser.get.size();
+    const size2 = await browser.get.size();
+
+    expect(size1.width).toBe(size2.width);
+    expect(size1.height).toBe(size2.height);
+  });
+
   // Error Handling Tests
-  test('should handle setSize with invalid input', async () => {
-    // Test with null
-    const resultNull = await browser.setSize(null);
-    expect(resultNull).toBe(false);
-
-    // Test with invalid object
-    const resultInvalid = await browser.setSize({ width: '1024', height: '768' });
-    expect(resultInvalid).toBe(false);
-
-    // Test with NaN
-    const resultNaN = await browser.setSize({ width: NaN, height: 768 });
-    expect(resultNaN).toBe(false);
+  test('should handle goto with invalid URL', async () => {
+    await expect(browser.goto(null)).rejects.toThrow('Invalid URL provided');
+    await expect(browser.goto('')).rejects.toThrow('Invalid URL provided');
+    await expect(browser.goto(123)).rejects.toThrow('Invalid URL provided');
   });
 
   test('should handle goto with invalid URL', async () => {

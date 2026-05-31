@@ -64,7 +64,7 @@ Default timeout in seconds for element operations.
 { "timeout": 10 }
 ```
 
-**Default**: `30`
+**Default**: `10`
 
 ### height / width
 
