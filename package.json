@@ -1,6 +1,6 @@
 {
   "name": "@nodebug/selenium",
-  "version": "5.2.1",
+  "version": "5.2.2",
   "lockfileVersion": 1,
   "requires": true,
   "author": {
@@ -29,7 +29,10 @@
     "automation",
     "page",
     "object",
-    "webdriver"
+    "webdriver",
+    "plugins",
+    "extensible",
+    "plugin-system"
   ],
   "license": "MPL-2.0",
   "repository": {

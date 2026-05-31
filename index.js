@@ -13,6 +13,7 @@ import { RadioDelegate } from './app/command-delegates/radio-delegate.js';
 import { SwitchDelegate } from './app/command-delegates/switch-delegate.js';
 import { SliderDelegate } from './app/command-delegates/slider-delegate.js';
 import { DragDropDelegate } from './app/command-delegates/drag-drop-delegate.js';
+import { PluginManager } from './app/plugin-manager.js';
 import ELEMENT_DEFINITIONS from '@nodebug/browser-element-finder/element-definitions.json' with { type: 'json' };
 
 const selenium = config('selenium');
@@ -62,6 +63,42 @@ class WebBrowser extends Browser {
         return this.#typefixer(data, type);
       };
     });
+
+    // Initialize plugin manager
+    this._pluginManager = new PluginManager(this);
+  }
+
+  /**
+   * Register a plugin to extend browser functionality at runtime
+   * @param {Object|Function} plugin - Plugin object or factory function
+   * @param {Object} options - Plugin options
+   * @returns {this} Browser instance for chaining
+   * @example
+   * // Object plugin
+   * browser.use({
+   *   name: 'my-plugin',
+   *   hooks: { beforeClick: (data) => data },
+   *   extend: (browser) => ({ customMethod: () => {} })
+   * });
+   * 
+   * // Factory function plugin
+   * browser.use((browser, options) => ({
+   *   name: 'dynamic-plugin',
+   *   extend: () => ({ dynamicMethod: () => {} })
+   * }));
+   */
+  use(plugin, options = {}) {
+    this._pluginManager.register(plugin, options);
+    this._pluginManager.applyExtensions(this);
+    return this;
+  }
+
+  /**
+   * Get the plugin manager
+   * @returns {PluginManager} Plugin manager instance
+   */
+  get plugins() {
+    return this._pluginManager;
   }
 
   get message() { return this.#message; }
