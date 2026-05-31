@@ -229,49 +229,61 @@ class Browser {
    * @param {Object} size - Window size object with width and height
    * @param {number} size.width - Width in pixels
    * @param {number} size.height - Height in pixels
-   * @returns {Promise<boolean>} True if successful, false if size is invalid
+   * @returns {Promise<boolean>} True if successful, false if size is not provided
    * @throws {Error} If the WebDriver cannot apply the new window dimensions
    * @example
    * await browser.setSize({ width: 1280, height: 800 });
    */
   async setSize(size) {
-    const isValidSize = size &&
-      typeof size === 'object' &&
-      typeof size.width === 'number' &&
-      !Number.isNaN(size.width) &&
+    // Check if dimensions are intentionally not set (null/undefined/NaN)
+    const isNotConfigured = !size ||
+      size.width == null ||
+      size.height == null ||
+      Number.isNaN(size.width) ||
+      Number.isNaN(size.height);
+
+    if (isNotConfigured) {
+      log.debug('No browser dimensions configured. Using driver defaults.')
+      return false
+    }
+
+    // Check if dimensions are valid numbers
+    const hasValidDimensions = typeof size.width === 'number' &&
       typeof size.height === 'number' &&
-      !Number.isNaN(size.height);
+      size.width > 0 &&
+      size.height > 0;
+
+    // If dimensions are present but invalid (wrong type, negative), warn the user
+    if (!hasValidDimensions) {
+      log.warn(`Invalid size provided (${JSON.stringify(size)}). Browser will use default size.`)
+      return false
+    }
 
     try {
-      if (isValidSize) {
-        await this.driver.manage().window().setRect(size)
-        await this.driver.switchTo().defaultContent()
+      await this.driver.manage().window().setRect(size)
+      await this.driver.switchTo().defaultContent()
 
-        const deltaWidth = await this.driver.executeScript(
-          'return window.outerWidth - window.innerWidth'
-        )
-        const deltaHeight = await this.driver.executeScript(
-          'return window.outerHeight - window.innerHeight'
-        )
+      const deltaWidth = await this.driver.executeScript(
+        'return window.outerWidth - window.innerWidth'
+      )
+      const deltaHeight = await this.driver.executeScript(
+        'return window.outerHeight - window.innerHeight'
+      )
 
-        const lSize = { ...size }
-        lSize.width += deltaWidth
-        lSize.height += deltaHeight
-        lSize.x = 0
-        lSize.y = 0
+      const lSize = { ...size }
+      lSize.width += deltaWidth
+      lSize.height += deltaHeight
+      lSize.x = 0
+      lSize.y = 0
 
-        await this.driver.manage().window().setRect(lSize)
-        log.info(`Resizing the browser to (${JSON.stringify(size)}).`)
+      await this.driver.manage().window().setRect(lSize)
+      log.info(`Resizing the browser to (${size.width}x${size.height}).`)
 
-        return true
-      } else {
-        log.info(`Invalid size provided (${JSON.stringify(size)}). Browser will not be resized.`)
-      }
+      return true
     } catch (err) {
       log.error(`Error setting browser size: ${err.message}`)
       throw err
     }
-    return false
   }
 
   /**

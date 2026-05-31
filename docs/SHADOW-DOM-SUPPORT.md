@@ -1068,7 +1068,7 @@ describe('Shadow DOM - Performance', () => {
 
 ### Test Implementation File
 
-Create `tests/integration/6. shadow-dom.test.js` with comprehensive coverage.
+Create `tests/integration/shadow-dom.test.js` with comprehensive coverage.
 
 ---
 
@@ -1121,13 +1121,13 @@ New methods and properties added to `LocatorStrategy`:
 
 ## Summary of Changes by File
 
-| File                                      | Changes                                      | Scope               |
-| ----------------------------------------- | -------------------------------------------- | ------------------- |
-| `app/elements/locator-strategy.js`        | Add 5 new methods, update 3 existing methods | Core implementation |
-| `app/elements/element-types.js`           | Add 1 new method for JS-based matching       | Supporting          |
-| `tests/integration/6. shadow-dom.test.js` | Replace placeholder with comprehensive tests | Testing             |
-| `docs/SHADOW-DOM-SUPPORT.md`              | This document                                | Documentation       |
-| `docs/GETTING-STARTED.md`                 | Add shadow DOM usage examples                | Documentation       |
+| File                                   | Changes                                      | Scope               |
+| -------------------------------------- | -------------------------------------------- | ------------------- |
+| `app/elements/locator-strategy.js`     | Add 5 new methods, update 3 existing methods | Core implementation |
+| `app/elements/element-types.js`        | Add 1 new method for JS-based matching       | Supporting          |
+| `tests/integration/shadow-dom.test.js` | Replace placeholder with comprehensive tests | Testing             |
+| `docs/SHADOW-DOM-SUPPORT.md`           | This document                                | Documentation       |
+| `docs/GETTING-STARTED.md`              | Add shadow DOM usage examples                | Documentation       |
 
 ---
 
