@@ -2,6 +2,8 @@
 
 Advanced patterns for handling multiple windows, tabs, and JavaScript alerts.
 
+**For AI Agents**: Multi-window/tab patterns are complex. For implementation guidance, see [ENGINEERING.md#debugging-guide-for-agents](ENGINEERING.md#debugging-guide-for-agents).
+
 ## Quick Reference
 
 ```javascript

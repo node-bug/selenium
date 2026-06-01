@@ -2,6 +2,8 @@
 
 Learn WebBrowser automation by building real-world examples. Complete setup to productive tests in 15 minutes.
 
+**For AI Agents**: This is a good starting point for understanding patterns. For development guidance, see [ENGINEERING.md](ENGINEERING.md#architecture-for-agents).
+
 ## Installation
 
 ```bash

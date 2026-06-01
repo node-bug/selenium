@@ -1,5 +1,7 @@
 # Element Finding Logic - Complete Rewrite
 
+**For AI Agents**: This document explains the complete element finding system. When adding new element types or selectors, refer to this document and [ENGINEERING.md](ENGINEERING.md#module-decision-trees) for integration guidance.
+
 ## Overview
 
 The element finding system has been completely rewritten to support **all possible cases** of element selection, spatial filtering, and fallback matching. The rewrite maintains full backward compatibility while adding comprehensive error handling, better documentation, and configurable behavior.

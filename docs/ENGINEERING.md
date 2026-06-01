@@ -1,20 +1,65 @@
-# Engineering Reference
+# Engineering Reference & AI Agent Guidance
 
-Complete technical reference for developing, maintaining, and extending the WebBrowser (selenium) repository.
+Complete technical reference for developing, maintaining, and extending the WebBrowser (selenium) repository. **This document is designed as a guidance resource for AI agents and developers working on repository improvements.**
+
+## Quick Links for AI Agents
+
+- **[Architecture for Agents](#architecture-for-agents)** - Start here to understand system design
+- **[Module Decision Trees](#module-decision-trees)** - Where to make changes
+- **[AI Development Workflow](#ai-development-workflow)** - Step-by-step guidance for agents
+- **[Common Patterns & Anti-Patterns](#common-patterns--anti-patterns)** - Do's and don'ts
+- **[Integration Points](#integration-points)** - Where to hook new features
 
 ## Table of Contents
 
-- [Architecture Overview](#architecture-overview)
+- [Architecture for Agents](#architecture-for-agents)
 - [Core Patterns](#core-patterns)
 - [Module Structure](#module-structure)
 - [Selector Stack Architecture](#selector-stack-architecture)
 - [Delegate Pattern](#delegate-pattern)
 - [Spatial Selection System](#spatial-selection-system)
 - [Element Finding Pipeline](#element-finding-pipeline)
+- [Module Decision Trees](#module-decision-trees)
+- [AI Development Workflow](#ai-development-workflow)
+- [Common Patterns & Anti-Patterns](#common-patterns--anti-patterns)
+- [Integration Points](#integration-points)
 - [Testing Strategy](#testing-strategy)
-- [Development Guidelines](#development-guidelines)
-- [Extending the Library](#extending-the-library)
+- [Debugging Guide for Agents](#debugging-guide-for-agents)
 - [Common Pitfalls](#common-pitfalls)
+
+---
+
+## Architecture for Agents
+
+### What is WebBrowser?
+
+WebBrowser is a **fluent browser automation library** that converts user-like actions into Selenium WebDriver commands. The core mission: **make test code as readable as natural English**.
+
+### Why This Architecture?
+
+```
+User writes:  await browser.button('Submit').below.element('Form').click()
+System does:
+  1. Build a selector stack describing: "button labeled 'Submit', positioned below something labeled 'Form'"
+  2. Inject ElementFinder into browser
+  3. Locate the element using semantic + spatial logic
+  4. Execute the click via Selenium WebDriver
+  5. Clear the stack
+```
+
+### Key Insight for Agents
+
+Every user action flows through this pipeline:
+
+```
+Fluent API Method → Selector Stack → LocatorStrategy → Delegates → WebDriver
+```
+
+Understanding this flow is essential for:
+
+- Adding new features (hook into correct layer)
+- Debugging failures (trace through pipeline)
+- Performance optimization (reduce stack operations)
 
 ---
 
@@ -346,6 +391,258 @@ async _finder(t = null) {
 
 ---
 
+## Module Decision Trees
+
+**For AI Agents: Use these decision trees to determine where to implement changes.**
+
+### "I want to add a new action (e.g., `screenshot()`, `hover()`)"
+
+```
+Is it a mouse action?
+  → Yes: Use ClickDelegate (app/command-delegates/click-delegate.js)
+  → No:
+    Is it text/keyboard input?
+      → Yes: Use InputDelegate (app/command-delegates/input-delegate.js)
+      → No:
+        Is it visibility/scrolling?
+          → Yes: Use VisibilityDelegate
+          → No:
+            Is it form-specific (checkbox/radio/select/switch/slider)?
+              → Yes: Use appropriate delegate (CheckboxDelegate, etc.)
+              → No:
+                Is it drag/drop?
+                  → Yes: Use DragDropDelegate
+                  → No: Create new delegate or extend existing
+```
+
+### "I want to add a new element type (e.g., `tag()`, `heading()`)"
+
+```
+Check @nodebug/browser-element-finder package:
+  1. Is the type already defined there?
+     → Yes: Already available via dynamic property
+     → No: Add to element-definitions.json in that package
+  2. Add XPath/selector logic in element-definitions
+  3. Test with existing tests (no WebBrowser changes needed)
+```
+
+### "I want to add a new spatial relationship (e.g., `diagonal()`, `aligned()`)"
+
+```
+1. Create filter function in app/elements/spatial-filters.js
+2. Add to validLocations array in app/elements/spatial-selection.js
+3. Add getter in app/browser/index.js:
+   get newRelation() { this.#pushLocation('newRelation'); return this; }
+4. Add tests in tests/integration/spatial-selectors.test.js
+```
+
+### "I want to add a new configuration option"
+
+```
+1. Add to .config/selenium.json schema
+2. Update @nodebug/config package
+3. Document in docs/CONFIGURATION.md
+4. Access via: import config from '@nodebug/config'
+```
+
+---
+
+## AI Development Workflow
+
+**Step-by-step guide for AI agents implementing features or fixes.**
+
+### 1. Understand the Request
+
+Ask yourself:
+
+- [ ] What user-facing behavior should change?
+- [ ] Which layer needs modification (API, stack, locator, delegate, WebDriver)?
+- [ ] What's the impact scope (single file, multiple files, external packages)?
+- [ ] Are there existing tests to reference?
+
+### 2. Locate Relevant Code
+
+```bash
+# Element selection → app/browser/index.js
+# Stack building → app/elements/selector-stack-builder.js
+# Element finding → app/elements/locator-strategy.js
+# Spatial logic → app/elements/spatial-selection.js
+# Specific actions → app/command-delegates/[action]-delegate.js
+```
+
+### 3. Trace the Flow
+
+For any user call like `await browser.button('Submit').click()`:
+
+1. **Constructor**: Set up delegates in WebBrowser constructor
+2. **Intermediate**: `button('Submit')` → calls `#typefixer()` → pushes to stack
+3. **Terminal**: `click()` → calls `#visibilityDelegate.click()` → clears stack
+4. **Verify**: Check that stack is empty after terminal operation
+
+### 4. Write Tests First
+
+```javascript
+// tests/integration/my-feature.test.js
+describe('My Feature', () => {
+  let browser
+
+  beforeAll(async () => {
+    browser = new WebBrowser()
+    await browser.start()
+    await browser.goto(`file://${process.cwd()}/tests/fixtures/my-feature.html`)
+  })
+
+  afterAll(async () => {
+    await browser.close()
+  })
+
+  test('should do X when Y happens', async () => {
+    await browser.button('Action').myNewFeature()
+    expect(await browser.element('Result').is.visible()).toBe(true)
+  })
+})
+```
+
+### 5. Implement Feature
+
+- Follow existing delegate patterns
+- Use error handling from BaseDelegate
+- Clear the stack in finally block
+- Return appropriate value (boolean, string, WebElement[], etc.)
+
+### 6. Test Coverage
+
+- Unit tests for stack building
+- Integration tests with real browser
+- Cross-browser validation (Chrome, Firefox, Safari)
+- Edge case handling (hidden elements, dynamic content, etc.)
+
+---
+
+## Common Patterns & Anti-Patterns
+
+### ✅ DO: Follow Delegate Pattern
+
+```javascript
+// In delegate
+async newAction() {
+  return await this.withErrorHandling(async () => {
+    const element = await this.findElement()
+    await element.perform()
+    return true
+  }, 'performing new action')
+}
+```
+
+### ❌ DON'T: Direct WebDriver Calls
+
+```javascript
+// WRONG
+const elements = await this.driver.findElements(By.css('button'))
+
+// RIGHT
+const elements = await this.browser._finder()
+```
+
+### ✅ DO: Use Stack Cleanly
+
+```javascript
+// WRONG - Stack not cleared
+async badMethod() {
+  const element = await this._finder()
+  return element
+}
+
+// RIGHT - Stack cleared in finally
+async goodMethod() {
+  this.message = messenger({ stack: this.stack, action: 'myAction' })
+  try {
+    const locator = await this._finder()
+    // Do something
+    return result
+  } finally {
+    this.stack = []
+  }
+}
+```
+
+### ✅ DO: Use Meaningful Error Messages
+
+```javascript
+// WRONG
+throw new Error('Element not found')
+
+// RIGHT
+this.handleError(err, 'clicking Submit button below Form')
+```
+
+### ❌ DON'T: Block on Selector Stack
+
+```javascript
+// WRONG - Creates multiple stacks
+await browser.button('Save').click()
+browser.button('Cancel').click() // Separate operation
+
+// RIGHT - Each operation independent
+await browser.button('Save').click()
+await browser.button('Cancel').click()
+```
+
+---
+
+## Integration Points
+
+**Hook your new features into these integration points.**
+
+### 1. ElementFinder Integration
+
+When adding new element types or search strategies:
+
+```javascript
+// Add to @nodebug/browser-element-finder
+// File: element-definitions.json
+{
+  "myElementType": {
+    "xpaths": ["//my-element"],
+    "searchAttributes": ["data-my-attr"]
+  }
+}
+```
+
+### 2. Configuration Integration
+
+New config options flow through @nodebug/config:
+
+```javascript
+// Access in code
+const myOption = config('selenium').myOption
+```
+
+### 3. Logging Integration
+
+Use @nodebug/logger for all output:
+
+```javascript
+import { log } from '@nodebug/logger'
+log.info('Operation completed')
+log.error('Operation failed', error)
+```
+
+### 4. Capability Integration
+
+Browser capabilities defined in `app/capabilities/`:
+
+```javascript
+// app/capabilities/my-browser.js
+export function getCapabilities(config) {
+  return {
+    // capability options
+  }
+}
+```
+
+---
+
 ## Testing Strategy
 
 ### Test Structure
@@ -561,6 +858,116 @@ async pageUp(count = 1) {
   }
   return true;
 }
+```
+
+---
+
+## Debugging Guide for Agents
+
+**Systematic approach to fixing issues in the repository.**
+
+### Test Failure Diagnosis
+
+**When a test fails, follow this tree:**
+
+```
+Test fails with "Element not found"
+├─ Is element actually in DOM?
+│  ├─ No → Add to fixture or fix test data
+│  └─ Yes → Continue
+├─ Is element hidden?
+│  ├─ Yes → Add .hidden modifier or fix visibility
+│  └─ No → Continue
+├─ Is text matching correct?
+│  ├─ No → Use .exact modifier or fix text
+│  └─ Yes → Continue
+├─ Is spatial filter correct?
+│  ├─ No → Check bounding box with findAll()
+│  └─ Yes → Continue
+└─ Enable debug logging and check cross-frame search
+
+Test fails with "Timeout"
+├─ Is element dynamic (loaded via AJAX)?
+│  ├─ Yes → Wait for visibility with should.be.visible(t)
+│  └─ No → Continue
+├─ Is element behind modal/overlay?
+│  ├─ Yes → Close modal first
+│  └─ No → Continue
+└─ Increase timeout in config or test-specific timeout
+
+Test fails with "Stale element"
+├─ Did page reload/navigate?
+│  ├─ Yes → Re-query element after navigation
+│  └─ No → Continue
+├─ Was element removed from DOM?
+│  ├─ Yes → Wait for new element to appear
+│  └─ No → Continue
+└─ Check for dynamic content updates
+
+Test fails with "Permission denied" or "Cross-origin"
+├─ Is using file:// protocol?
+│  ├─ Yes → That's expected; use local HTML fixtures
+│  └─ No → Continue
+├─ Is cross-origin frame?
+│  ├─ Yes → Check app/browser/browser-target.js for frame handling
+│  └─ No → Check capabilities security settings
+```
+
+### Stack Inspection
+
+```javascript
+// In any method, inspect stack before/after
+console.log('Stack before:', JSON.stringify(browser.stack, null, 2))
+
+// Check stack structure
+const lastItem = browser.stack[browser.stack.length - 1]
+console.log('Last item type:', lastItem.type)
+console.log('Last item data:', lastItem.id)
+```
+
+### Element Finding Debugging
+
+```javascript
+// Find all candidates (useful for debugging)
+const allMatches = await browser.button('Submit').findAll()
+console.log(`Found ${allMatches.length} matching elements`)
+
+// Check bounding box (useful for spatial issues)
+const element = await browser.button('Submit').find()
+console.log('Bounding box:', await element.getBoundingBox())
+
+// Check if hidden
+const isVis = await browser.button('Submit').is.visible()
+console.log('Is visible:', isVis)
+```
+
+### Cross-Frame Debugging
+
+```javascript
+// Enable debug logging in config
+{ "debug": true }
+
+// Check frame count
+const frames = await browser.driver.findElements(By.css('iframe'))
+console.log(`Found ${frames.length} frames`)
+
+// Verify ElementFinder injection
+const injected = await browser.driver.executeScript(
+  'return typeof window.ElementFinder'
+)
+console.log('ElementFinder injected:', injected)
+```
+
+### Performance Debugging
+
+```javascript
+// Measure element finding time
+console.time('Finding element')
+const element = await browser.button('Submit').find()
+console.timeEnd('Finding element')
+
+// Check if multiple frames are searched unnecessarily
+// Look for frame switching logs in debug mode
 ```
 
 ---

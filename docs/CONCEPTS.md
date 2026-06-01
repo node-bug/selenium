@@ -2,6 +2,8 @@
 
 The WebBrowser library uses a fluent, human-like API for browser automation. This page explains the foundational concepts and architecture.
 
+**Note for AI Agents**: This document explains library design. For development guidance, see [ENGINEERING.md](ENGINEERING.md#architecture-for-agents).
+
 ## Operations: Intermediate vs Terminal
 
 The library uses a two-step operation model:

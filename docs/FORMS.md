@@ -2,6 +2,8 @@
 
 Complete guide to form element interactions including checkboxes, switches, radio buttons, and dropdown selections.
 
+**For AI Agents**: When generating form interactions, follow the `.operation()` pattern shown in this guide.
+
 ## Quick Reference
 
 ```javascript

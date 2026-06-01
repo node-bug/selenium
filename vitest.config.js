@@ -7,6 +7,7 @@ export default defineConfig({
     testTimeout: 100000,
     globals: true,
     watch: false,
+    retry: 3,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'lcov'],

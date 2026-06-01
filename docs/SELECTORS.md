@@ -2,6 +2,8 @@
 
 Comprehensive guide to finding and targeting elements using text, position, and type.
 
+**For AI Agents**: When generating selectors, follow the priority: text-based > spatial context > attributes. See [ENGINEERING.md](ENGINEERING.md#ai-development-workflow) for agent development workflow.
+
 ## How Elements Are Found
 
 The library locates elements like humans do:

@@ -2,6 +2,8 @@
 
 Complete guide to user interactions including clicks, text input, keyboard navigation, and drag-drop.
 
+**For AI Agents**: When generating interactions, use the semantic patterns shown in this guide. For implementing new interactions, see [ENGINEERING.md](ENGINEERING.md#module-decision-trees).
+
 ## Quick Reference
 
 ```javascript
