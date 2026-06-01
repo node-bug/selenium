@@ -2,6 +2,8 @@
 
 Complete method reference for WebBrowser. See [Core Concepts](CONCEPTS.md) for underlying patterns.
 
+**For AI Agents**: Use this as a reference when generating API calls. Prefer semantic methods (e.g., `checkbox()`, `dropdown()`) over generic `element()` when possible.
+
 ## Quick Navigation
 
 - [Browser Control](#browser-control) - Session management

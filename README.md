@@ -28,7 +28,7 @@ await browser
   .write('user@example.com')
 ```
 
-**Quick Links**: [Installation](#installation) | [Quick Start](#quick-start) | [Docs](docs/README.md) | [Examples](#examples) | [API Reference](docs/API-REFERENCE.md)
+**Quick Links**: [Installation](#installation) | [Quick Start](#quick-start) | [Docs](docs/README.md) | [Examples](#examples) | [API Reference](docs/API-REFERENCE.md) | [For AI Agents](#-for-ai-agents)
 
 ## 🎯 Key Features
 
@@ -317,6 +317,66 @@ await browser.textbox('Name').within.dialog('User Settings').write('John')
 
 - **[API Reference](docs/API-REFERENCE.md)** - Complete method signatures
 - **[Configuration](docs/CONFIGURATION.md)** - Browser setup options
+
+## 🤖 For AI Agents
+
+This library is **designed to be AI-agent friendly**. AI agents can understand and generate WebBrowser code more naturally than raw Selenium WebDriver.
+
+### Why AI-Friendly?
+
+- **Readable syntax** - Code reads like user instructions: "click Submit button", "type email below Personal Info"
+- **Explicit semantics** - Element types (`button()`, `textbox()`) are explicit, not hidden in CSS selectors
+- **Clear spatial relationships** - Positioning is natural: `below`, `toRightOf`, `within` instead of coordinate math
+- **Two distinct operation modes** - Intermediate operations (build selector) vs Terminal operations (execute) are obvious
+- **Consistent patterns** - Similar syntax across all element types and interactions
+
+### Agent Development Resources
+
+For AI agents implementing features or fixes:
+
+1. **[ENGINEERING.md](docs/ENGINEERING.md)** - AI agent guidance document with:
+   - Module decision trees (where to implement changes)
+   - AI development workflow (step-by-step guide)
+   - Common patterns & anti-patterns
+   - Integration points
+   - Debugging guide for agents
+
+2. **[.github/agents/qa.agent.md](.github/agents/qa.agent.md)** - QA automation agent specification with:
+   - Test writing patterns
+   - Debugging failing tests
+   - Refactoring strategies
+   - Element finding strategies
+
+### Example: AI-Generated Test
+
+User instruction: "Login with email and password"
+
+AI generates:
+
+```javascript
+await browser.textbox('Email').write('user@example.com')
+await browser.textbox('Password').below.textbox('Email').write('secret')
+await browser.button('Login').click()
+await browser.heading('Dashboard').should.be.visible()
+```
+
+Why this works for AI:
+- Natural language maps to method calls
+- Spatial context (`below`) is obvious
+- State checks (`should.be.visible()`) are explicit assertions
+- No CSS selector parsing needed
+
+### Contributing Improvements
+
+AI agents can help with:
+
+- Adding new element types: Edit `@nodebug/browser-element-finder` element definitions
+- New spatial relationships: Add to `app/elements/spatial-filters.js`
+- New delegates for actions: Create in `app/command-delegates/`
+- Test coverage: Add tests in `tests/integration/`
+- Documentation improvements: Update docs with agent-friendly explanations
+
+See [ENGINEERING.md](docs/ENGINEERING.md#module-decision-trees) for detailed guidance on where to implement changes.
 
 ## Examples
 

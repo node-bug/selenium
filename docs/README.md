@@ -271,13 +271,36 @@ This documentation is designed to be AI-friendly:
 - **Explicit element types** - 20+ semantic types (button, textbox, etc.)
 - **Spatial relationships** - Position logic is obvious
 
-**For agents: When generating code:**
+### Agents Writing Tests
 
-1. Prefer semantic types: `button()`, `textbox()` over `element()`
+**When generating test code:**
+
+1. Prefer semantic types: `button()`, `textbox()` over generic `element()`
 2. Use visible text as primary selector
 3. Add spatial context when needed: `.within.dialog()`, `.below.element()`
 4. Use `should.*` for test assertions, `is.*` for conditionals
 5. Follow fluent pattern: intermediate operations chain to terminal operation
+
+See **[QA Agent Spec](../.github/agents/qa.agent.md)** for detailed test automation guidance.
+
+### Agents Improving the Repository
+
+**When implementing features or fixes:**
+
+1. Read **[ENGINEERING.md](ENGINEERING.md#architecture-for-agents)** first (designed for agents)
+2. Use **Module Decision Trees** to locate where to make changes
+3. Follow **AI Development Workflow** step-by-step
+4. Review **Common Patterns & Anti-Patterns**
+5. Check **Integration Points** for where to hook new features
+6. Use **Debugging Guide for Agents** when troubleshooting
+
+**Key guides in ENGINEERING.md:**
+
+- [Architecture for Agents](ENGINEERING.md#architecture-for-agents) - System overview
+- [Module Decision Trees](ENGINEERING.md#module-decision-trees) - Where to implement changes
+- [AI Development Workflow](ENGINEERING.md#ai-development-workflow) - Implementation steps
+- [Integration Points](ENGINEERING.md#integration-points) - How to hook new features
+- [Debugging Guide](ENGINEERING.md#debugging-guide-for-agents) - Troubleshooting approach
 
 ---
 

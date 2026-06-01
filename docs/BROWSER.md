@@ -2,6 +2,8 @@
 
 Complete guide to browser lifecycle, navigation, window management, and configuration.
 
+**For AI Agents**: When managing browser lifecycle, always use try-finally to ensure `await browser.close()` is called.
+
 ## Quick Reference
 
 ```javascript
