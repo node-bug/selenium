@@ -1,10 +1,8 @@
 import { readFileSync } from 'fs';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { createRequire } from 'module';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const elementDefinitionsPath = join(__dirname, '../../../node_modules/@nodebug/browser-element-finder/src/element-definitions.json');
+const require = createRequire(import.meta.url);
+const elementDefinitionsPath = require.resolve('@nodebug/browser-element-finder/element-definitions.json');
 
 function getElementDefinitions() {
   return JSON.parse(readFileSync(elementDefinitionsPath, 'utf8'));
