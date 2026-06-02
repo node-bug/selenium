@@ -2,14 +2,12 @@ import config from '@nodebug/config';
 import { log } from '@nodebug/logger';
 import { relativeSearch } from './spatial-selection.js';
 import { readFile } from 'fs/promises';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { createRequire } from 'module';
 import ELEMENT_DEFINITIONS from '@nodebug/browser-element-finder/element-definitions.json' with { type: 'json' };
 
 // Load ElementFinder script from @nodebug/browser-element-finder package
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const elementFinderPath = join(__dirname, '../../node_modules/@nodebug/browser-element-finder/index.js');
+const require = createRequire(import.meta.url);
+const elementFinderPath = require.resolve('@nodebug/browser-element-finder');
 
 const selenium = config('selenium');
 
