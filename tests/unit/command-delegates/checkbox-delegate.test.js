@@ -38,6 +38,7 @@ describe('CheckboxDelegate (ESM)', () => {
 
   const createLocatorMock = (overrides = {}) => ({
     isSelected: vi.fn(),
+    getAttribute: vi.fn(),
     click: vi.fn(),
     ...overrides,
   });
@@ -68,6 +69,7 @@ describe('CheckboxDelegate (ESM)', () => {
   // ---------------- CHECK ----------------
   describe('check()', () => {
     test('should check a checkbox if it is currently unchecked', async () => {
+      mockLocator.getAttribute.mockResolvedValue(null); // No role attribute (native)
       mockLocator.isSelected
         .mockResolvedValueOnce(false) // Initial state
         .mockResolvedValueOnce(true);  // Verification state
@@ -80,6 +82,7 @@ describe('CheckboxDelegate (ESM)', () => {
     });
 
     test('should skip clicking if checkbox is already in target state', async () => {
+      mockLocator.getAttribute.mockResolvedValue(null); // No role attribute (native)
       mockLocator.isSelected.mockResolvedValue(true); // Already checked
 
       await delegate.check();
@@ -90,6 +93,7 @@ describe('CheckboxDelegate (ESM)', () => {
     });
 
     test('should use JS click fallback if standard click fails', async () => {
+      mockLocator.getAttribute.mockResolvedValue(null); // No role attribute (native)
       mockLocator.isSelected
         .mockResolvedValueOnce(false)
         .mockResolvedValueOnce(true);
@@ -105,6 +109,7 @@ describe('CheckboxDelegate (ESM)', () => {
     });
 
     test('should throw error if state does not change after click', async () => {
+      mockLocator.getAttribute.mockResolvedValue(null); // No role attribute (native)
       mockLocator.isSelected.mockResolvedValue(false); // Stays false despite click
 
       await delegate.check();
@@ -128,6 +133,7 @@ describe('CheckboxDelegate (ESM)', () => {
   // ---------------- UNCHECK ----------------
   describe('uncheck()', () => {
     test('should uncheck a checkbox if it is currently checked', async () => {
+      mockLocator.getAttribute.mockResolvedValue(null); // No role attribute (native)
       mockLocator.isSelected
         .mockResolvedValueOnce(true)
         .mockResolvedValueOnce(false);
@@ -139,6 +145,7 @@ describe('CheckboxDelegate (ESM)', () => {
     });
 
     test('should skip clicking if checkbox is already in target state', async () => {
+      mockLocator.getAttribute.mockResolvedValue(null); // No role attribute (native)
       mockLocator.isSelected.mockResolvedValue(false); // Already unchecked
 
       await delegate.uncheck();
@@ -159,7 +166,8 @@ describe('CheckboxDelegate (ESM)', () => {
 
   // ---------------- _IS CHECKED ----------------
   describe('_isChecked()', () => {
-    test('should return true if selected', async () => {
+    test('should return true if native checkbox is checked', async () => {
+      mockLocator.getAttribute.mockResolvedValue(null); // No role attribute (native)
       mockLocator.isSelected.mockResolvedValue(true);
 
       const result = await delegate._isChecked();
@@ -168,8 +176,37 @@ describe('CheckboxDelegate (ESM)', () => {
       expect(mockBrowser.stack).toEqual([]);
     });
 
-    test('should return false if not selected', async () => {
+    test('should return false if native checkbox is not checked', async () => {
+      mockLocator.getAttribute.mockResolvedValue(null); // No role attribute (native)
       mockLocator.isSelected.mockResolvedValue(false);
+
+      const result = await delegate._isChecked();
+
+      expect(result).toBe(false);
+      expect(mockBrowser.stack).toEqual([]);
+    });
+
+    test('should return true if ARIA checkbox is checked', async () => {
+      mockLocator.getAttribute
+        .mockImplementation((attr) => {
+          if (attr === 'role') return Promise.resolve('checkbox');
+          if (attr === 'aria-checked') return Promise.resolve('true');
+          return Promise.resolve(null);
+        });
+
+      const result = await delegate._isChecked();
+
+      expect(result).toBe(true);
+      expect(mockBrowser.stack).toEqual([]);
+    });
+
+    test('should return false if ARIA checkbox is not checked', async () => {
+      mockLocator.getAttribute
+        .mockImplementation((attr) => {
+          if (attr === 'role') return Promise.resolve('checkbox');
+          if (attr === 'aria-checked') return Promise.resolve('false');
+          return Promise.resolve(null);
+        });
 
       const result = await delegate._isChecked();
 
