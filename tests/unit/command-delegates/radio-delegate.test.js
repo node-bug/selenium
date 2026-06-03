@@ -37,6 +37,7 @@ describe('RadioDelegate (ESM)', () => {
 
   const createLocatorMock = (overrides = {}) => ({
     isSelected: vi.fn(),
+    getAttribute: vi.fn(),
     click: vi.fn(),
     ...overrides,
   });
@@ -66,7 +67,8 @@ describe('RadioDelegate (ESM)', () => {
 
   // ---------------- _IS SET ----------------
   describe('_isSet()', () => {
-    test('should return true if radio button is set', async () => {
+    test('should return true if native radio button is set', async () => {
+      mockLocator.getAttribute.mockResolvedValue(null); // No role attribute (native)
       mockLocator.isSelected.mockResolvedValue(true);
 
       const result = await delegate._isSet();
@@ -75,8 +77,37 @@ describe('RadioDelegate (ESM)', () => {
       expect(mockBrowser.stack).toEqual([]);
     });
 
-    test('should return false if radio button is not set', async () => {
+    test('should return false if native radio button is not set', async () => {
+      mockLocator.getAttribute.mockResolvedValue(null); // No role attribute (native)
       mockLocator.isSelected.mockResolvedValue(false);
+
+      const result = await delegate._isSet();
+
+      expect(result).toBe(false);
+      expect(mockBrowser.stack).toEqual([]);
+    });
+
+    test('should return true if ARIA radio button is set', async () => {
+      mockLocator.getAttribute
+        .mockImplementation((attr) => {
+          if (attr === 'role') return Promise.resolve('radio');
+          if (attr === 'aria-checked') return Promise.resolve('true');
+          return Promise.resolve(null);
+        });
+
+      const result = await delegate._isSet();
+
+      expect(result).toBe(true);
+      expect(mockBrowser.stack).toEqual([]);
+    });
+
+    test('should return false if ARIA radio button is not set', async () => {
+      mockLocator.getAttribute
+        .mockImplementation((attr) => {
+          if (attr === 'role') return Promise.resolve('radio');
+          if (attr === 'aria-checked') return Promise.resolve('false');
+          return Promise.resolve(null);
+        });
 
       const result = await delegate._isSet();
 
