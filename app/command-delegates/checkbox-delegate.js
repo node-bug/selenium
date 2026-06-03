@@ -36,7 +36,7 @@ export class CheckboxDelegate extends BaseDelegate {
 
     try {
       const locator = await browser._finder();
-      const isChecked = await locator.isSelected();
+      const isChecked = await this._checkCheckboxState(locator);
       const needsChange = (targetState === 'check' && !isChecked) ||
         (targetState === 'uncheck' && isChecked);
 
@@ -51,7 +51,7 @@ export class CheckboxDelegate extends BaseDelegate {
         }
 
         // Final verification
-        const finalState = await locator.isSelected();
+        const finalState = await this._checkCheckboxState(locator);
         if (finalState === isChecked) {
           throw new Error(`Failed to ${targetState} checkbox. State did not change.`);
         }
@@ -97,6 +97,8 @@ export class CheckboxDelegate extends BaseDelegate {
   /**
    * Internal helper to check if checkbox is checked.
    * 
+   * Handles both native checkboxes and ARIA checkboxes (role="checkbox").
+   * 
    * @private
    * @returns {Promise<boolean>} True if checkbox is checked
    */
@@ -105,12 +107,35 @@ export class CheckboxDelegate extends BaseDelegate {
     let result = false;
     try {
       const locator = await browser._finder();
-      result = await locator.isSelected();
+      result = await this._checkCheckboxState(locator);
     } catch (err) {
       browser.handleError(err, 'validating checkbox state');
     } finally {
       browser.stack = [];
     }
     return result;
+  }
+
+  /**
+   * Internal helper to check checkbox state given a locator.
+   * 
+   * @private
+   * @param {Object} locator - The WebElement to check
+   * @returns {Promise<boolean>} True if checkbox is checked
+   */
+  async _checkCheckboxState(locator) {
+    if (!locator) {
+      throw new Error('Could not resolve checkbox element');
+    }
+
+    // Handle role='checkbox' - check aria-checked attribute
+    const role = await locator.getAttribute('role');
+    if (role === 'checkbox') {
+      const ariaChecked = await locator.getAttribute('aria-checked');
+      return ariaChecked === 'true';
+    }
+
+    // Default: use isSelected() for native checkboxes
+    return await locator.isSelected();
   }
 }
