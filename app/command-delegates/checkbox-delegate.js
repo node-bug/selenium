@@ -49,6 +49,7 @@ export class CheckboxDelegate extends BaseDelegate {
           log.debug('Standard click failed, attempting JS click for checkbox');
           await browser.driver.executeScript('arguments[0].click();', locator);
         }
+        await new Promise(resolve => setTimeout(resolve, 200));
 
         // Final verification
         const finalState = await this._checkCheckboxState(locator);
