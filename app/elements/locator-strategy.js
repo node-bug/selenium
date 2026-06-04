@@ -1005,10 +1005,13 @@ export class LocatorStrategy {
           // Spatial filter: current item is location, target is next item
           const target = data[--i];
 
-          // For 'within', pass the reference element (not matches array) to find child elements
-          const refElement = currentElement;
+          // For spatial filters with multiple reference elements (common in multi-element pages),
+          // we need to pass all reference element matches to relativeSearch so it can check
+          // against any of them (similar to findAll behavior)
+          const referenceMatches = Array.isArray(currentElement) ? currentElement : [currentElement];
 
-          const results = await this.relativeSearch(target, item, refElement);
+          const results = await this.relativeSearch(target, item, referenceMatches.length === 1 ? referenceMatches[0] : referenceMatches);
+          
           currentElement = results[target.index ? target.index - 1 : 0];
           
           if (!currentElement) {
@@ -1019,12 +1022,26 @@ export class LocatorStrategy {
         } else {
           // Regular element: apply spatial filter (even if no spatial constraint)
           const results = await this.relativeSearch(item);
-          currentElement = results[item.index ? item.index - 1 : 0];
+          
+          // Check if the next element (in reverse, i.e., previous in forward order) is a location
+          // If so, keep all matches to pass to the location filter, not just the first
+          // BUT: Only do this for element types that are reference elements (like element(), not row/column)
+          // Row/column spatial relationships need careful handling, so use first match only
+          const nextIsLocation = (i - 1 >= 0) && data[i - 1]?.type === 'location';
+          const isSpatialReference = nextIsLocation && !['row', 'column', 'table'].includes(item.type);
+          
+          if (isSpatialReference) {
+            // Keep all matches for the location filter to use as reference elements
+            currentElement = results;
+          } else {
+            // Extract single element for non-location usage
+            currentElement = results[item.index ? item.index - 1 : 0];
+          }
           
           // Track the id for error messages in subsequent location items
           lastElementId = item.id;
           
-          if (!currentElement) {
+          if (!currentElement || (Array.isArray(currentElement) && currentElement.length === 0)) {
             throw new ReferenceError(`Matching element for '${item.id}' was not found.`);
           }
         }

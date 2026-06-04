@@ -1,6 +1,6 @@
 {
   "name": "@nodebug/selenium",
-  "version": "5.2.6",
+  "version": "5.2.7",
   "lockfileVersion": 1,
   "requires": true,
   "author": {
@@ -11,7 +11,7 @@
     "url": "https://github.com/node-bug/selenium/issues"
   },
   "dependencies": {
-    "@nodebug/browser-element-finder": "^1.1.6",
+    "@nodebug/browser-element-finder": "^1.1.8",
     "@nodebug/config": "^2.1.4",
     "@nodebug/logger": "^1.1.5",
     "selenium-webdriver": "4.43.0"
