@@ -1520,6 +1520,18 @@ class WebBrowser extends Browser {
    */
   get exactly() { this.stack.push({ exactly: true }); return this; }
 
+  /**
+   * Combines multiple spatial filters (e.g., below AND toRightOf).
+   * Allows chaining multiple spatial constraints.
+   * 
+   * @returns {this} Returns the WebBrowser instance for chaining
+   * @example
+   * browser.radio().exactly.below.element('Agree').and.exactly.toRightOf.element('Travel broadens the mind').findAll();
+   */
+  get and() {
+    return this;
+  }
+
   // --- Logic & Filter Modifiers ---
 
   /**

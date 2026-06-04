@@ -32,6 +32,7 @@ export function createSpatialFilter(referenceRect, relationConfig, config = {}) 
     /**
      * above: Candidate's bottom edge is above reference's top edge.
      * If exactly: candidate must be horizontally aligned (within buffer).
+     * Considers edges and centers aligned.
      */
     above: (candidate) => {
       if (!candidate.boundingBox) return false;
@@ -43,12 +44,14 @@ export function createSpatialFilter(referenceRect, relationConfig, config = {}) 
       
       const leftEdgeAligned = Math.abs(r.left - e.left) <= alignmentBuffer;
       const rightEdgeAligned = Math.abs(r.right - e.right) <= alignmentBuffer;
-      return leftEdgeAligned || rightEdgeAligned;
+      const centerAligned = Math.abs((r.left + r.right) / 2 - (e.left + e.right) / 2) <= alignmentBuffer;
+      return leftEdgeAligned || rightEdgeAligned || centerAligned;
     },
 
     /**
      * below: Candidate's top edge is below reference's bottom edge.
      * If exactly: candidate must be horizontally aligned (within buffer).
+     * Considers edges and centers aligned.
      */
     below: (candidate) => {
       if (!candidate.boundingBox) return false;
@@ -60,12 +63,14 @@ export function createSpatialFilter(referenceRect, relationConfig, config = {}) 
       
       const leftEdgeAligned = Math.abs(r.left - e.left) <= alignmentBuffer;
       const rightEdgeAligned = Math.abs(r.right - e.right) <= alignmentBuffer;
-      return leftEdgeAligned || rightEdgeAligned;
+      const centerAligned = Math.abs((r.left + r.right) / 2 - (e.left + e.right) / 2) <= alignmentBuffer;
+      return leftEdgeAligned || rightEdgeAligned || centerAligned;
     },
 
     /**
      * toLeftOf: Candidate's right edge is left of reference's left edge.
      * If exactly: candidate must be vertically aligned (within buffer).
+     * Considers edges and centers aligned.
      */
     toLeftOf: (candidate) => {
       if (!candidate.boundingBox) return false;
@@ -77,12 +82,14 @@ export function createSpatialFilter(referenceRect, relationConfig, config = {}) 
       
       const topEdgeAligned = Math.abs(r.top - e.top) <= alignmentBuffer;
       const bottomEdgeAligned = Math.abs(r.bottom - e.bottom) <= alignmentBuffer;
-      return topEdgeAligned || bottomEdgeAligned;
+      const centerAligned = Math.abs((r.top + r.bottom) / 2 - (e.top + e.bottom) / 2) <= alignmentBuffer;
+      return topEdgeAligned || bottomEdgeAligned || centerAligned;
     },
 
     /**
      * toRightOf: Candidate's left edge is right of reference's right edge.
      * If exactly: candidate must be vertically aligned (within buffer).
+     * Considers edges and centers aligned.
      */
     toRightOf: (candidate) => {
       if (!candidate.boundingBox) return false;
@@ -94,7 +101,8 @@ export function createSpatialFilter(referenceRect, relationConfig, config = {}) 
       
       const topEdgeAligned = Math.abs(r.top - e.top) <= alignmentBuffer;
       const bottomEdgeAligned = Math.abs(r.bottom - e.bottom) <= alignmentBuffer;
-      return topEdgeAligned || bottomEdgeAligned;
+      const centerAligned = Math.abs((r.top + r.bottom) / 2 - (e.top + e.bottom) / 2) <= alignmentBuffer;
+      return topEdgeAligned || bottomEdgeAligned || centerAligned;
     },
 
     /**

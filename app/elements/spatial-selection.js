@@ -15,16 +15,16 @@ import { createSpatialFilter } from './spatial-filters.js';
  * **Supported Spatial Relationships:**
  *
  * - `above`: Candidate's bottom edge is above reference's top edge
- *   - If `exactly`: Candidate must be horizontally aligned (within 5px)
+ *   - If `exactly`: Candidate must be horizontally aligned (left/right edges or centers within 5px)
  *
  * - `below`: Candidate's top edge is below reference's bottom edge
- *   - If `exactly`: Candidate must be horizontally aligned (within 5px)
+ *   - If `exactly`: Candidate must be horizontally aligned (left/right edges or centers within 5px)
  *
  * - `toLeftOf`: Candidate's right edge is left of reference's left edge
- *   - If `exactly`: Candidate must be vertically aligned (within 5px)
+ *   - If `exactly`: Candidate must be vertically aligned (top/bottom edges or centers within 5px)
  *
  * - `toRightOf`: Candidate's left edge is right of reference's right edge
- *   - If `exactly`: Candidate must be vertically aligned (within 5px)
+ *   - If `exactly`: Candidate must be vertically aligned (top/bottom edges or centers within 5px)
  *
  * - `within`: Candidate's midpoint lies inside reference's bounding box
  *   - Supports array of references (candidate must be in at least one)
@@ -60,25 +60,39 @@ export async function relativeSearch(item, rel, relativeElement) {
   // Start with item matches, but don't mutate the original
   let matches = item.matches || [];
 
-  // Special case: 'within' with array of references
-  // Check if candidate is within ANY of the reference elements
-  // When relativeElement is an array, we filter existing matches rather than finding child elements
-  if (rel.located === 'within' && Array.isArray(relativeElement)) {
+  // Special case: array of references
+  // For any location type, check if candidate is in the relationship with ANY of the reference elements
+  if (Array.isArray(relativeElement)) {
     const refs = relativeElement;
-    return matches.filter(candidate => {
-      if (!candidate.boundingBox) return false;
+    const seenPositions = new Set();
+    const uniqueMatches = [];
+    
+    for (const candidate of matches) {
+      if (!candidate.boundingBox) continue;
       
-      return refs.some(ref => {
+      // Check if this candidate matches ANY reference element
+      const matchesAny = refs.some(ref => {
         if (!ref.boundingBox) return false;
         
-        const c = candidate.boundingBox;
-        const r = ref.boundingBox;
-        
-        // Check if candidate's midpoint is inside reference's bounding box
-        return r.left <= c.midx && r.right >= c.midx &&
-               r.top <= c.midy && r.bottom >= c.midy;
+        // Create a filter for this specific reference and relationship type
+        const filterFn = createSpatialFilter(ref.boundingBox, rel);
+        return filterFn(candidate);
       });
-    });
+      
+      if (matchesAny) {
+        // Deduplicate by position - use rounded coordinates as key
+        // Round to nearest 2 pixels to merge elements at very close positions (e.g., x=701 and x=702)
+        const bbox = candidate.boundingBox;
+        const posKey = `${Math.round(bbox.top / 2) * 2},${Math.round(bbox.left / 2) * 2},${Math.round(bbox.bottom / 2) * 2},${Math.round(bbox.right / 2) * 2}`;
+        
+        if (!seenPositions.has(posKey)) {
+          seenPositions.add(posKey);
+          uniqueMatches.push(candidate);
+        }
+      }
+    }
+    
+    return uniqueMatches;
   }
 
   // Single reference element case

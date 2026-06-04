@@ -1918,11 +1918,49 @@ await browser.button('Save').or.button('Apply').click()
 
 ### exactly
 
-Precise positioning (vs approximate).
+Precise positioning (vs approximate). When used before spatial keywords (`above`, `below`, `toLeftOf`, `toRightOf`), requires alignment within a tolerance:
+
+- For vertical positioning (`above`/`below`): Elements must be horizontally aligned (left/right edges or centers within 5px)
+- For horizontal positioning (`toLeftOf`/`toRightOf`): Elements must be vertically aligned (top/bottom edges or centers within 5px)
 
 ```javascript
 await browser.textbox('Name').exactly.below.element('Label').write('...')
 ```
+
+Can be chained with `.and` to apply multiple spatial constraints:
+
+```javascript
+// Find elements that are BOTH below 'Agree' AND to the right of 'Travel'
+await browser
+  .radio()
+  .exactly.below.element('Agree')
+  .and.exactly.toRightOf.element('Travel broadens the mind')
+  .click()
+```
+
+### and
+
+Chains multiple spatial constraints. All constraints must be satisfied for a match.
+
+Enables expressions like:
+
+```javascript
+// Find button that is below Label1 AND to the right of Label2
+await browser
+  .button('Submit')
+  .exactly.below.element('Label1')
+  .and.exactly.toRightOf.element('Label2')
+  .click()
+
+// Find radios that are below 'Section' AND within 'Form' dialog
+await browser
+  .radio()
+  .below.element('Section')
+  .and.within.dialog('Form')
+  .findAll()
+```
+
+The `.and` keyword is a no-op that improves readability when combining spatial filters.
 
 ---
 

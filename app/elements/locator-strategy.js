@@ -1097,71 +1097,116 @@ export class LocatorStrategy {
       }
     }
 
-    let elements = [];
-    let currentContextElement = null;
-    let currentMatches = [];
-    let lastContextId = null;
-
-    // 2. Traverse the stack from bottom to top (Reverse)
-    for (let i = data.length - 1; i >= 0; i--) {
-      const item = data[i];
-      const isLocation = item.type === 'location';
-
-      try {
-        let target;
-        if (isLocation) {
-          // Spatial location: current is the filter, next is the target element
-          target = data[--i];
-
-          // For 'within', pass all matches for multi-reference filtering
-          const refElement = item.located === 'within' ? currentMatches : currentContextElement;
-          elements = await this.relativeSearch(target, item, refElement);
-        } else {
-          // Regular element: apply any spatial filter (or pass through if none)
-          elements = await this.relativeSearch(item);
-          // Track the id of the context element for error messages
-          lastContextId = item.id;
-        }
-
-        // Set context for next level: use first match as reference point
-        currentContextElement = elements[0];
-        currentMatches = elements;
-
-        if (elements.length === 0) {
-          if (isLocation) {
-            // For location items, report the target element's id with the context element's id
-            const relation = item.located || 'within';
-            throw new ReferenceError(
-              `Matching element for '${target.id}' ${relation} '${lastContextId}' was not found.`
-            );
-          }
-          throw new ReferenceError(
-            `Matching element for '${item.id}' was not found.`
-          );
-        }
-      } catch (err) {
-        if (err instanceof ReferenceError) {
-          throw err;
-        }
-        throw new Error(`Stack resolution failed at index ${i}: ${err.message}`, { cause: err });
+    // Find the primary (first) non-location element
+    let primaryElementIndex = -1;
+    for (let i = 0; i < data.length; i++) {
+      if (data[i].type !== 'location') {
+        primaryElementIndex = i;
+        break;
       }
     }
 
+    if (primaryElementIndex === -1) {
+      throw new Error('No element type found in stack');
+    }
+
+    // Start with the primary element's matches
+    let candidates = data[primaryElementIndex].matches || [];
+    let lastContextId = data[primaryElementIndex].id;
+
+    // 2. Process spatial filters that come AFTER the primary element
+    // These filters should be applied sequentially to refine the candidate set
+    let i = primaryElementIndex + 1;
+    while (i < data.length) {
+      const item = data[i];
+
+      if (item.type === 'location') {
+        // This is a spatial filter
+        const locationFilter = item;
+        const referenceElement = data[i + 1];
+
+        if (!referenceElement) {
+          throw new Error(`Spatial filter '${locationFilter.located}' has no reference element`);
+        }
+
+        // Skip the reference element in the next iteration
+        i += 2;
+
+        // Apply this spatial filter to the current candidates
+        const refMatches = referenceElement.matches;
+        if (!refMatches || refMatches.length === 0) {
+          throw new ReferenceError(`Reference element '${referenceElement.id}' for '${locationFilter.located}' not found`);
+        }
+
+        // Filter the candidates using this spatial relationship
+        candidates = await this.relativeSearch({ matches: candidates }, locationFilter, refMatches);
+
+        if (candidates.length === 0) {
+          throw new ReferenceError(
+            `No elements found matching '${lastContextId}' ${locationFilter.located} '${referenceElement.id}'`
+          );
+        }
+      } else {
+        i++;
+      }
+    }
+
+    // 3. Process spatial filters that come BEFORE the primary element (backward chain)
+    // These are reference elements for the primary element selector
+    if (primaryElementIndex > 0) {
+      // There are elements before the primary element
+      // Process them from the end backward
+      let refCandidates = candidates;
+      
+      for (let i = primaryElementIndex - 1; i >= 0; i--) {
+        const item = data[i];
+
+        if (item.type === 'location') {
+          // This is a spatial filter
+          const locationFilter = item;
+          const referenceElement = data[i - 1];
+
+          if (!referenceElement) {
+            throw new Error(`Spatial filter '${locationFilter.located}' has no reference element`);
+          }
+
+          // Skip the reference element in the next iteration
+          i--;
+
+          // Apply this spatial filter
+          const refMatches = referenceElement.matches;
+          if (!refMatches || refMatches.length === 0) {
+            throw new ReferenceError(`Reference element for '${locationFilter.located}' not found`);
+          }
+
+          // Filter the candidates using this spatial relationship
+          refCandidates = await this.relativeSearch({ matches: refCandidates }, locationFilter, refMatches);
+
+          if (refCandidates.length === 0) {
+            const relation = locationFilter.located || 'within';
+            throw new ReferenceError(`No elements found matching '${lastContextId}' ${relation} reference`);
+          }
+        }
+      }
+
+      candidates = refCandidates;
+    }
+
     // Highlight all elements with debug outline
-    if (this.debug && elements.length > 0) {
+    if (this.debug && candidates.length > 0) {
       try {
         await this.driver.executeScript(`
           Array.from(arguments).forEach(el => {
             el.style.outline = '4px solid red';
             el.style.outlineOffset = '2px';
           });
-        `, ...elements);
+        `, ...candidates);
       } catch (err) {
         console.warn('Failed to highlight elements:', err.message);
       }
     }
 
-    // 3. Return the final collection of elements
-    return elements;
+    // 4. Return the final collection of elements
+    return candidates;
   }
 }

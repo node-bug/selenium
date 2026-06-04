@@ -323,12 +323,12 @@ describe('WebBrowser Spatial Selectors Tests', () => {
     // Negative tests for exactly keyword - element is in position but not exactly aligned
     test('should throw error when element is above but not exactly above (horizontal misalignment)', async () => {
       await browser.goto(fileUrl);
-      // Top Edge is above Center Element (both at top area)
-      // But Top Edge is NOT exactly above Center Element (Top Edge is at top: 10px, Center Element is at top: 50%)
+      // Top Left Corner is at left: 10px, Top Right Corner is at right: 10px
+      // They are NOT horizontally aligned (far apart on the horizontal axis)
       await expect(
         browser
-          .element('Top Edge')
-          .exactly.above.element('Center Element')
+          .element('Top Left Corner')
+          .exactly.above.element('Top Right Corner')
           .should.be.visible()
       ).rejects.toThrow();
     });
