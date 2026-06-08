@@ -139,4 +139,3 @@ Fix spatial filter comparisons first — this is the most impactful bug
 Fix tagName Promise issues — affects input, select, and locator strategy
 Standardize error handling between delegates (switch vs checkbox pattern mismatch)
 Add unit tests for spatial filtering edge cases
-Remove duplicate throws in assertion methods

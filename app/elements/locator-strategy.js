@@ -5,9 +5,9 @@ import { readFile } from 'fs/promises';
 import { createRequire } from 'module';
 import ELEMENT_DEFINITIONS from '@nodebug/browser-element-finder/element-definitions.json' with { type: 'json' };
 
-// Load ElementFinder script from @nodebug/browser-element-finder package
+// Load ElementFinder browser bundle from @nodebug/browser-element-finder package
 const require = createRequire(import.meta.url);
-const elementFinderPath = require.resolve('@nodebug/browser-element-finder');
+const elementFinderPath = require.resolve('@nodebug/browser-element-finder/min');
 
 const selenium = config('selenium');
 
