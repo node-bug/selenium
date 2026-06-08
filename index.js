@@ -550,19 +550,43 @@ class WebBrowser extends Browser {
 
       screenshot: async () => {
         let dataUrl = null;
-        if (this.stack.length > 0) {
-          try {
-            this.message = messenger({ stack: this.stack, action: 'screenshot' });
-            const locator = await this._finder();
-            dataUrl = await locator.takeScreenshot(true);
-          } catch (err) {
-            log.error(`Failed to capture element screenshot: ${err.message}`);
-          }
+        let pauseState = null;
+
+        // Pause animations before taking screenshot to ensure consistent results
+        try {
+          await this.locatorStrategy._injectElementFinder();
+          pauseState = await this.driver.executeScript('return window.ElementFinder.pauseAnimations()');
+        } catch (err) {
+          log.warn(`Could not pause animations for screenshot: ${err.message}`);
         }
 
-        if (!dataUrl) {
-          log.info('Capturing screenshot of the full page');
-          dataUrl = await this.driver.takeScreenshot();
+        try {
+          if (this.stack.length > 0) {
+            try {
+              this.message = messenger({ stack: this.stack, action: 'screenshot' });
+              const locator = await this._finder();
+              dataUrl = await locator.takeScreenshot(true);
+            } catch (err) {
+              log.error(`Failed to capture element screenshot: ${err.message}`);
+            }
+          }
+
+          if (!dataUrl) {
+            log.info('Capturing screenshot of the full page');
+            dataUrl = await this.driver.takeScreenshot();
+          }
+        } finally {
+          // Resume animations after taking screenshot
+          if (pauseState) {
+            try {
+              await this.driver.executeScript(
+                'window.ElementFinder.resumeAnimations(arguments[0])',
+                pauseState,
+              );
+            } catch (err) {
+              log.warn(`Could not resume animations after screenshot: ${err.message}`);
+            }
+          }
         }
 
         this.stack = [];

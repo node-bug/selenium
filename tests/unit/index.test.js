@@ -235,6 +235,7 @@ describe('WebBrowser', () => {
         browser.locatorStrategy = {
             find: vi.fn(),
             findAll: vi.fn(),
+            _injectElementFinder: vi.fn().mockResolvedValue(undefined),
         };
     });
 
@@ -499,6 +500,10 @@ describe('WebBrowser', () => {
 
         browser._finder = vi.fn().mockResolvedValue(locator);
         browser.stack = [{ id: 1 }];
+        browser.driver = {
+            executeScript: vi.fn().mockResolvedValue({ originalStyles: new Map(), pausedCount: 0 }),
+            takeScreenshot: vi.fn().mockResolvedValue('page-img'),
+        };
 
         const result = await browser.get.screenshot();
 
@@ -507,6 +512,7 @@ describe('WebBrowser', () => {
     test('get.screenshot() falls back to driver screenshot', async () => {
         browser._finder = vi.fn().mockRejectedValue(new Error('fail'));
         browser.driver = {
+            executeScript: vi.fn().mockResolvedValue({ originalStyles: new Map(), pausedCount: 0 }),
             takeScreenshot: vi.fn().mockResolvedValue('page-img'),
         };
 

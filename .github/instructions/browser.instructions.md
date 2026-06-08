@@ -172,21 +172,21 @@ const html = await browser.getPageSource()
 
 ### Waiting
 
-#### `wait(timeMs)`
+#### `sleep(timeMs)`
 
-Wait/sleep for specified milliseconds.
+Sleep for specified milliseconds.
 
 ```javascript
-await browser.wait(2000) // Wait 2 seconds
+await browser.sleep(2000) // Sleep 2 seconds
 ```
 
 **Parameters**:
 
-- `timeMs` (number): Milliseconds to wait
+- `timeMs` (number): Milliseconds to sleep
 
 **Returns**: `Promise<void>`  
-**When to use**: Wait between actions, allow animations to complete  
-**Note**: Prefer waiting for elements over fixed waits
+**When to use**: Pause between actions, allow animations to complete  
+**Note**: Prefer waiting for elements over fixed sleeps
 
 ---
 
