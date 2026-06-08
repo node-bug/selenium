@@ -522,6 +522,54 @@ describe('WebBrowser', () => {
 
         expect(result).toBe('page-img');
     });
+    test('get.screenshot() succeeds when pauseAnimations fails', async () => {
+        browser._finder = vi.fn().mockRejectedValue(new Error('no element'));
+        browser.driver = {
+            executeScript: vi.fn().mockRejectedValue(new Error('ElementFinder not available')),
+            takeScreenshot: vi.fn().mockResolvedValue('page-img'),
+        };
+
+        const result = await browser.get.screenshot();
+
+        expect(result).toBe('page-img');
+    });
+    test('get.screenshot() succeeds when resumeAnimations fails', async () => {
+        const executeScriptMock = vi.fn()
+            .mockResolvedValueOnce({ originalStyles: new Map(), pausedCount: 0 }) // pause
+            .mockRejectedValueOnce(new Error('resume failed')); // resume
+
+        browser._finder = vi.fn().mockRejectedValue(new Error('no element'));
+        browser.driver = {
+            executeScript: executeScriptMock,
+            takeScreenshot: vi.fn().mockResolvedValue('page-img'),
+        };
+
+        const result = await browser.get.screenshot();
+
+        expect(result).toBe('page-img');
+    });
+    test('get.screenshot() calls pause and resume animations', async () => {
+        const locator = {
+            takeScreenshot: vi.fn().mockResolvedValue('element-img'),
+        };
+
+        const executeScriptMock = vi.fn()
+            .mockResolvedValueOnce({ originalStyles: new Map(), pausedCount: 2 }) // pause
+            .mockResolvedValueOnce(undefined); // resume
+
+        browser._finder = vi.fn().mockResolvedValue(locator);
+        browser.stack = [{ id: 1 }];
+        browser.driver = {
+            executeScript: executeScriptMock,
+            takeScreenshot: vi.fn().mockResolvedValue('page-img'),
+        };
+
+        await browser.get.screenshot();
+
+        expect(executeScriptMock).toHaveBeenCalledTimes(2);
+        expect(executeScriptMock).toHaveBeenNthCalledWith(1, 'return window.ElementFinder.pauseAnimations()');
+        expect(executeScriptMock).toHaveBeenNthCalledWith(2, 'window.ElementFinder.resumeAnimations(arguments[0])', { originalStyles: new Map(), pausedCount: 2 });
+    });
     test('upload() handles error via handleError', async () => {
         const error = new Error('fail');
 

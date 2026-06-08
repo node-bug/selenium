@@ -1802,6 +1802,8 @@ const classes = await browser.button('Submit').get.attribute('class')
 
 Capture a screenshot — of a specific element if one is selected, otherwise of the full page.
 
+Animations and transitions are automatically paused before capture and resumed afterward to ensure consistent, flicker-free screenshots. This behavior gracefully degrades if animation control is unavailable.
+
 ```javascript
 // Full page screenshot (no element selected)
 const pageShot = await browser.get.screenshot()
