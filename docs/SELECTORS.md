@@ -193,35 +193,44 @@ await browser.element('Info').near.textbox('Email').hover()
 
 ### Combining Spatial References
 
-Chain multiple references for precise targeting:
+Chain multiple references for precise targeting using `.and`:
 
 ```javascript
 // Below Section AND to the right of Label
 await browser
   .button('Delete')
   .below.element('Section')
-  .toRightOf.element('Label')
+  .and.toRightOf.element('Label')
   .click()
 
 // Within dialog AND above submit button
 await browser
   .textbox('Email')
   .within.dialog('Form')
-  .above.button('Submit')
+  .and.above.button('Submit')
   .write('user@example.com')
 ```
 
+**Note**: When chaining spatial references, all constraints must be satisfied for a match. Use `.and` for readability—it's equivalent to consecutive spatial constraints.
+
 ### Precision with exactly
 
-Use `exactly` for precise positioning (not approximate):
+Use `exactly` for precise positioning (not approximate). When used with spatial keywords, it enforces alignment constraints:
+
+- **For vertical positioning** (`above`/`below`): Elements must be horizontally aligned
+  - Considers left edges, right edges, or centers within 5px tolerance
+- **For horizontal positioning** (`toLeftOf`/`toRightOf`): Elements must be vertically aligned
+  - Considers top edges, bottom edges, or centers within 5px tolerance
 
 ```javascript
-// Approximate positioning (within range)
+// Approximate positioning (finds elements in general area)
 await browser.textbox('Name').below.element('Label').write('John')
 
-// Precise positioning (exact alignment)
+// Precise positioning (requires alignment)
 await browser.textbox('Name').exactly.below.element('Label').write('John')
 ```
+
+**Alignment flexibility**: The alignment check accepts edge-based OR center-based alignment, making it work with elements of different sizes or when elements are center-aligned rather than edge-aligned.
 
 ### Real-World Examples
 
@@ -535,6 +544,8 @@ await browser.button('Primary').or.button('Submit').click()
 
 ### Chaining Multiple Spatial References
 
+Apply multiple spatial constraints simultaneously. Elements must match ALL constraints:
+
 ```javascript
 // Find element that is:
 // - Below a heading
@@ -543,10 +554,19 @@ await browser.button('Primary').or.button('Submit').click()
 await browser
   .button('Save')
   .below.heading('Settings')
-  .toRightOf.text('Permissions')
-  .within.dialog('Configuration')
+  .and.toRightOf.text('Permissions')
+  .and.within.dialog('Configuration')
   .click()
+
+// With exact alignment:
+await browser
+  .radio()
+  .exactly.below.element('Question')
+  .and.exactly.toRightOf.element('Option A')
+  .findAll()
 ```
+
+**How multiple constraints work**: Each spatial constraint is applied in sequence to refine the result set. For `findAll()`, all matching candidates that satisfy ALL constraints are returned. For `find()` or action methods, the first match is selected.
 
 ### Conditional Selection
 

@@ -134,3 +134,8 @@ This document tracks proposed features to enhance end-user behavior support in t
 8. **Media Control** - Niche use cases
 9. **Accessibility Features** - Specialized testing scenarios
 10. **Context Menu Actions** - Rarely needed in automated tests
+
+Fix spatial filter comparisons first — this is the most impactful bug
+Fix tagName Promise issues — affects input, select, and locator strategy
+Standardize error handling between delegates (switch vs checkbox pattern mismatch)
+Add unit tests for spatial filtering edge cases

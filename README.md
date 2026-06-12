@@ -163,7 +163,33 @@ await browser.button('Save').within.dialog('Settings').click()
 await browser.dialog('Settings').should.not.be.visible()
 ```
 
-### Example 5: Multiple Tabs
+### Example 5: Multiple Spatial Constraints
+
+```javascript
+// Find element that is both below one element AND to the right of another
+await browser
+  .radio('Option')
+  .exactly.below.element('Question')
+  .and.exactly.toRightOf.element('Column Header')
+  .click()
+
+// Find all buttons in a specific region
+const buttons = await browser
+  .button()
+  .below.heading('Actions')
+  .and.within.dialog('Toolbar')
+  .findAll()
+
+// Complex chaining: below section, to the right of label, inside dialog
+await browser
+  .textbox('Email')
+  .below.element('Form Section')
+  .and.toRightOf.element('Label')
+  .and.within.dialog('Settings')
+  .write('user@example.com')
+```
+
+### Example 6: Multiple Tabs
 
 ```javascript
 // Open new tab

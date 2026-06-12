@@ -1,6 +1,6 @@
 {
   "name": "@nodebug/selenium",
-  "version": "5.2.6",
+  "version": "5.2.7",
   "lockfileVersion": 1,
   "requires": true,
   "author": {
@@ -11,7 +11,7 @@
     "url": "https://github.com/node-bug/selenium/issues"
   },
   "dependencies": {
-    "@nodebug/browser-element-finder": "^1.1.6",
+    "@nodebug/browser-element-finder": "^1.2.0",
     "@nodebug/config": "^2.1.4",
     "@nodebug/logger": "^1.1.5",
     "selenium-webdriver": "4.43.0"
@@ -42,7 +42,12 @@
   "type": "module",
   "main": "index.js",
   "exports": {
-    ".": "./index.js"
+    ".": "./index.js",
+    "./browser-element-finder": "@nodebug/browser-element-finder",
+    "./browser-element-finder/browser": "@nodebug/browser-element-finder/browser",
+    "./browser-element-finder/min": "@nodebug/browser-element-finder/min",
+    "./browser-element-finder/element-definitions.json": "@nodebug/browser-element-finder/element-definitions.json",
+    "./browser-element-finder/searchable-attributes.json": "@nodebug/browser-element-finder/searchable-attributes.json"
   },
   "engines": {
     "node": ">=24"

@@ -71,9 +71,32 @@ await browser.button('Submit').toRightOf.button('Cancel').click()
 
 // "Find the save button inside the dialog"
 await browser.button('Save').within.dialog('Settings').click()
+
+// Multiple spatial constraints with .and
+// "Find radio below Question AND to the right of Column"
+await browser
+  .radio()
+  .below.element('Question')
+  .and.toRightOf.element('Column')
+  .click()
 ```
 
-See [Selectors Guide - Spatial References](SELECTORS.md#spatial-references) for all positioning options.
+**Spatial Keywords:**
+
+- `above` / `below` - Vertical positioning
+- `toLeftOf` / `toRightOf` - Horizontal positioning
+- `within` - Element containment
+- `near` - Proximity-based selection
+- `.and` - Chain multiple spatial constraints
+
+**Alignment Behavior:**
+
+- **Approximate (default)**: Elements in general direction
+- **Precise** (`exactly`): Elements must be aligned
+  - Vertical alignment: Left/right edge or center alignment (±5px tolerance)
+  - Horizontal alignment: Top/bottom edge or center alignment (±5px tolerance)
+
+See [Selectors Guide - Spatial References](SELECTORS.md#spatial-references) and [Advanced - Multi-Spatial Filtering](ADVANCED.md#multi-spatial-filtering) for detailed usage.
 
 ## Exact vs Partial Matching
 

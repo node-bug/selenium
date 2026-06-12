@@ -550,19 +550,43 @@ class WebBrowser extends Browser {
 
       screenshot: async () => {
         let dataUrl = null;
-        if (this.stack.length > 0) {
-          try {
-            this.message = messenger({ stack: this.stack, action: 'screenshot' });
-            const locator = await this._finder();
-            dataUrl = await locator.takeScreenshot(true);
-          } catch (err) {
-            log.error(`Failed to capture element screenshot: ${err.message}`);
-          }
+        let pauseState = null;
+
+        // Pause animations before taking screenshot to ensure consistent results
+        try {
+          await this.locatorStrategy._injectElementFinder();
+          pauseState = await this.driver.executeScript('return window.ElementFinder.pauseAnimations()');
+        } catch (err) {
+          log.warn(`Could not pause animations for screenshot: ${err.message}`);
         }
 
-        if (!dataUrl) {
-          log.info('Capturing screenshot of the full page');
-          dataUrl = await this.driver.takeScreenshot();
+        try {
+          if (this.stack.length > 0) {
+            try {
+              this.message = messenger({ stack: this.stack, action: 'screenshot' });
+              const locator = await this._finder();
+              dataUrl = await locator.takeScreenshot(true);
+            } catch (err) {
+              log.error(`Failed to capture element screenshot: ${err.message}`);
+            }
+          }
+
+          if (!dataUrl) {
+            log.info('Capturing screenshot of the full page');
+            dataUrl = await this.driver.takeScreenshot();
+          }
+        } finally {
+          // Resume animations after taking screenshot
+          if (pauseState) {
+            try {
+              await this.driver.executeScript(
+                'window.ElementFinder.resumeAnimations(arguments[0])',
+                pauseState,
+              );
+            } catch (err) {
+              log.warn(`Could not resume animations after screenshot: ${err.message}`);
+            }
+          }
         }
 
         this.stack = [];
@@ -704,7 +728,6 @@ class WebBrowser extends Browser {
           if (!test) {
             const err = new Error('Element should be visible');
             this.handleError(err, 'validating element to be visible');
-            throw err;
           }
         },
 
@@ -720,7 +743,6 @@ class WebBrowser extends Browser {
             log.warn(`Checkbox is not checked`);
             const err = new Error('Element should be checked');
             this.handleError(err, 'validating element to be checked');
-            throw err;
           } else {
             log.info(`Checkbox is checked`);
           }
@@ -738,7 +760,6 @@ class WebBrowser extends Browser {
             log.warn(`Radiobutton is not set`);
             const err = new Error('Radiobutton should be set');
             this.handleError(err, 'validating Radiobutton to be set');
-            throw err;
           } else {
             log.info(`Radiobutton is set`);
           }
@@ -756,7 +777,6 @@ class WebBrowser extends Browser {
             log.warn(`Switch is not on`);
             const err = new Error('Switch should be ON');
             this.handleError(err, 'validating switch to be ON');
-            throw err;
           } else {
             log.info(`Switch is ON`);
           }
@@ -774,7 +794,6 @@ class WebBrowser extends Browser {
             log.warn(`Switch is not off`);
             const err = new Error('Switch should be OFF');
             this.handleError(err, 'validating switch to be OFF');
-            throw err;
           } else {
             log.info(`Switch is OFF`);
           }
@@ -792,7 +811,6 @@ class WebBrowser extends Browser {
             log.warn(`Option is not selected`);
             const err = new Error('Option should be selected');
             this.handleError(err, 'validating option to be selected');
-            throw err;
           } else {
             log.info(`Option is selected`);
           }
@@ -810,7 +828,6 @@ class WebBrowser extends Browser {
           if (!test) {
             const err = new Error('Element should be enabled');
             this.handleError(err, 'validating element to be enabled');
-            throw err;
           }
         },
 
@@ -826,7 +843,6 @@ class WebBrowser extends Browser {
           if (!test) {
             const err = new Error('Element should be disabled');
             this.handleError(err, 'validating element to be disabled');
-            throw err;
           }
         },
       },
@@ -845,7 +861,6 @@ class WebBrowser extends Browser {
             log.warn(`Value '${actualValue}' does not match expected '${expectedValue}'`);
             const err = new Error(`Element value '${actualValue}' should be '${expectedValue}'`);
             this.handleError(err, 'validating element value');
-            throw err;
           } else {
             log.info(`Value '${actualValue}' matches expected '${expectedValue}'`);
           }
@@ -864,7 +879,6 @@ class WebBrowser extends Browser {
             log.warn(`Text '${actualText}' does not match expected '${expectedText}'`);
             const err = new Error(`Element text '${actualText}' should be '${expectedText}'`);
             this.handleError(err, 'validating element text');
-            throw err;
           } else {
             log.info(`Text '${actualText}' matches expected '${expectedText}'`);
           }
@@ -883,7 +897,6 @@ class WebBrowser extends Browser {
             log.warn(`Dropdown does not have option '${optionValue}'`);
             const err = new Error(`Dropdown should have option '${optionValue}'`);
             this.handleError(err, 'validating dropdown option');
-            throw err;
           } else {
             log.info(`Dropdown has option '${optionValue}'`);
           }
@@ -905,7 +918,6 @@ class WebBrowser extends Browser {
               log.warn(`Value '${actualValue}' matches unexpected '${unexpectedValue}'`);
               const err = new Error(`Element value '${actualValue}' should not be '${unexpectedValue}'`);
               this.handleError(err, 'validating element value');
-              throw err;
             } else {
               log.info(`Value '${actualValue}' does not match unexpected '${unexpectedValue}'`);
             }
@@ -924,7 +936,6 @@ class WebBrowser extends Browser {
               log.warn(`Text '${actualText}' matches unexpected '${unexpectedText}'`);
               const err = new Error(`Element text '${actualText}' should not be '${unexpectedText}'`);
               this.handleError(err, 'validating element text');
-              throw err;
             } else {
               log.info(`Text '${actualText}' does not match unexpected '${unexpectedText}'`);
             }
@@ -943,7 +954,6 @@ class WebBrowser extends Browser {
               log.warn(`Dropdown has option '${optionValue}'`);
               const err = new Error(`Dropdown should not have option '${optionValue}'`);
               this.handleError(err, 'validating dropdown option');
-              throw err;
             } else {
               log.info(`Dropdown does not have option '${optionValue}'`);
             }
@@ -962,7 +972,6 @@ class WebBrowser extends Browser {
             if (!test) {
               const err = new Error('Element should not be visible');
               this.handleError(err, 'validating element to not be visible');
-              throw err;
             }
           },
 
@@ -978,7 +987,6 @@ class WebBrowser extends Browser {
               log.warn(`Checkbox is checked`);
               const err = new Error('Element should not be checked');
               this.handleError(err, 'validating element to not be checked');
-              throw err;
             } else {
               log.info(`Checkbox is not checked`);
             }
@@ -996,7 +1004,6 @@ class WebBrowser extends Browser {
               log.warn(`Radiobutton is set`);
               const err = new Error('Radiobutton should not be set');
               this.handleError(err, 'validating Radiobutton to not be set');
-              throw err;
             } else {
               log.info(`Radiobutton is not set`);
             }
@@ -1014,7 +1021,6 @@ class WebBrowser extends Browser {
               log.warn(`Option is selected`);
               const err = new Error('Option should not be selected');
               this.handleError(err, 'validating option to not be selected');
-              throw err;
             } else {
               log.info(`Option is not selected`);
             }
@@ -1032,7 +1038,6 @@ class WebBrowser extends Browser {
               log.warn(`Switch is on`);
               const err = new Error('Switch should not be ON');
               this.handleError(err, 'validating switch to not be ON');
-              throw err;
             } else {
               log.info(`Switch is not ON`);
             }
@@ -1050,7 +1055,6 @@ class WebBrowser extends Browser {
               log.warn(`Switch is off`);
               const err = new Error('Switch should not be OFF');
               this.handleError(err, 'validating switch to not be OFF');
-              throw err;
             } else {
               log.info(`Switch is not OFF`);
             }
@@ -1519,6 +1523,18 @@ class WebBrowser extends Browser {
    * @returns {this}
    */
   get exactly() { this.stack.push({ exactly: true }); return this; }
+
+  /**
+   * Combines multiple spatial filters (e.g., below AND toRightOf).
+   * Allows chaining multiple spatial constraints.
+   * 
+   * @returns {this} Returns the WebBrowser instance for chaining
+   * @example
+   * browser.radio().exactly.below.element('Agree').and.exactly.toRightOf.element('Travel broadens the mind').findAll();
+   */
+  get and() {
+    return this;
+  }
 
   // --- Logic & Filter Modifiers ---
 

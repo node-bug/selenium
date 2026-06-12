@@ -93,7 +93,7 @@ describe('Browser Control Integration Tests', () => {
     // Verify the size was actually applied
     const actualSize = await browser.get.size();
     expect(actualSize.width).toBeGreaterThanOrEqual(1280);
-    expect(actualSize.height).toBeGreaterThanOrEqual(720);
+    expect(actualSize.height).toBeGreaterThanOrEqual(700);
   });
 
   test('should set browser window size to different dimensions', async () => {

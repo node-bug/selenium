@@ -24,6 +24,104 @@ if (await browser.alert().is.visible()) {
 }
 ```
 
+## Multi-Spatial Filtering
+
+Apply multiple spatial constraints to find elements at exact intersections. Use `.and` to chain constraints.
+
+### Basic Multi-Spatial Filtering
+
+```javascript
+// Find element below 'Label' AND to the right of 'Column'
+await browser
+  .button()
+  .below.element('Label')
+  .and.toRightOf.element('Column')
+  .click()
+```
+
+### Precise Alignment with exactly
+
+```javascript
+// Require EXACT alignment (not approximate)
+// Element must be horizontally aligned when using below/above
+// Element must be vertically aligned when using toLeftOf/toRightOf
+
+const radios = await browser
+  .radio()
+  .exactly.below.element('Question')
+  .and.exactly.toRightOf.element('Option A')
+  .findAll()
+```
+
+### How It Works
+
+1. **Primary element**: The first selector (e.g., `browser.radio()`)
+2. **First constraint**: Elements that match the first spatial relation (e.g., `below.element('X')`)
+3. **Subsequent constraints**: Further narrow results by applying additional spatial relations
+4. **Result**: Elements satisfying ALL constraints
+
+**Example flow**:
+
+```javascript
+browser
+  .radio() // Start: all radio buttons on page
+  .below.element('Section') // Keep: radios below 'Section'
+  .and.toRightOf.element('Label') // Keep: those also to the right of 'Label'
+  .and.within.dialog('Form') // Keep: those also inside 'Form' dialog
+  .findAll() // Result: only radios matching all 3 constraints
+```
+
+### Alignment Behavior with exactly
+
+When using `exactly` before spatial keywords:
+
+- **Vertical positioning** (`above`/`below`):
+  - Elements must be horizontally aligned
+  - Accepts left-edge, right-edge, or center alignment within 5px tolerance
+  - Useful for column-aligned elements
+
+- **Horizontal positioning** (`toLeftOf`/`toRightOf`):
+  - Elements must be vertically aligned
+  - Accepts top-edge, bottom-edge, or center alignment within 5px tolerance
+  - Useful for row-aligned elements
+
+### Advanced Patterns
+
+**Finding intersections**:
+
+```javascript
+// Real-world: Google Forms - find radio option at specific row/column
+const selectedRadio = await browser
+  .radio()
+  .exactly.below.element('Do you enjoy travel?')
+  .and.exactly.toRightOf.element('Strongly Agree')
+  .find()
+```
+
+**Complex combinations**:
+
+```javascript
+// Mix different spatial types
+const element = await browser
+  .button()
+  .below.element('Section A') // Approximate vertical
+  .and.exactly.toRightOf.element('Position B') // Exact horizontal
+  .and.within.dialog('Settings') // Containment
+  .find()
+```
+
+**findAll() with constraints**:
+
+```javascript
+// Get all matching elements
+const items = await browser
+  .element('item')
+  .within.list('Filtered Results')
+  .and.below.heading('Recent')
+  .and.toRightOf.element('Status')
+  .findAll()
+```
+
 ## Tab Management
 
 Tabs are multiple documents within the same window, sharing context and cookies.
