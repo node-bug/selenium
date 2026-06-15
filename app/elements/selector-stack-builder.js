@@ -77,12 +77,12 @@ export class SelectorStackBuilder {
    *
    * The resulting member object contains:
    * - `type`: always `'element'` (matches any XPath node).
-   * - `id`: the stringified identifier used for text/attribute matching.
+   * - `id`: the stringified identifier used for text/attribute matching, or `undefined` when no identifier is provided.
    * - `exact` / `hidden`: resolved flag values.
    * - `matches`: an empty array, later populated by {@link LocatorStrategy#resolveElements}.
-   * - `index`: set to `false` to indicate default (first) index selection.
+   * - `index`: `false` when no index was requested, otherwise the 1-based index selection.
    *
-   * @param {*} data - The element identifier (text, attribute value, etc.). Will be coerced to a string.
+   * @param {*} data - The element identifier (text, attribute value, or 1-based index). Will be coerced to a string.
    * @returns {WebBrowser} The parent WebBrowser instance to switch back to action mode.
    */
   element(data) {
@@ -104,7 +104,6 @@ export class SelectorStackBuilder {
       matches: [],
       index: false
     };
-    if (value === undefined) member.index = 1;
 
     this.stack.push(member);
     return this.parent;

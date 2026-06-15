@@ -168,16 +168,6 @@ describe('ClickDelegate (ESM)', () => {
     });
   });
 
-  // ---------------- LONG PRESS ----------------
-  describe('longPress()', () => {
-    test('works', async () => {
-      await clickDelegate.longPress();
-
-      expect(actionsMock.press).toHaveBeenCalled();
-      expect(actionsMock.release).toHaveBeenCalled();
-    });
-  });
-
   // ---------------- MULTIPLE CLICK ----------------
   describe('multipleClick()', () => {
     test('default 2 clicks', async () => {
@@ -213,16 +203,6 @@ describe('ClickDelegate (ESM)', () => {
       await expect(
         clickDelegate._clicker(mockElement, 200, 200)
       ).rejects.toThrow('Click out of bounds');
-    });
-
-    test('fallback to JS click', async () => {
-      mockElement.click.mockRejectedValue({
-        name: 'ElementNotInteractableError',
-      });
-
-      await clickDelegate._clicker(mockElement);
-
-      expect(mockDriver.executeScript).toHaveBeenCalled();
     });
 
     test('throws other errors', async () => {

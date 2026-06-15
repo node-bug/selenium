@@ -404,21 +404,6 @@ await browser.element('text').tripleClick()
 
 **Returns**: `Promise<boolean>`
 
-### longPress([duration])
-
-Long press (hold) an element.
-
-```javascript
-await browser.element('button').longPress() // Default 1000ms
-await browser.element('button').longPress(2000) // 2 seconds
-```
-
-**Parameters**:
-
-- `duration` (number, optional): Milliseconds (default: 1000)
-
-**Returns**: `Promise<boolean>`
-
 ### multipleClick(times)
 
 Click an element multiple times.

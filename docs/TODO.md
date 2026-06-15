@@ -12,7 +12,6 @@ This document tracks proposed features to enhance end-user behavior support in t
 - [ ] `browser.swipe(direction, duration)` - Swipe in direction (up/down/left/right) with optional duration
 - [ ] `browser.pinch()` - Pinch-to-zoom out gesture
 - [ ] `browser.zoom()` / `browser.spread()` - Spread-to-zoom in gesture
-- [ ] `browser.touch.longPress(duration)` - Touch and hold for specified duration
 
 ## 2. Clipboard Operations
 

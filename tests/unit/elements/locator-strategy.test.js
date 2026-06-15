@@ -144,6 +144,49 @@ describe('LocatorStrategy', () => {
       expect(results).toHaveLength(1);
     });
 
+    it('should filter visibility-hidden elements by isHidden metadata by default', async () => {
+      const mockBoundingBox = { x: 0, y: 0, width: 100, height: 20, midx: 50, midy: 10 };
+      
+      mockDriver.executeScript
+        .mockResolvedValueOnce(true) // ElementFinder exists
+        .mockResolvedValueOnce(undefined) // Script injection in frame
+        .mockResolvedValueOnce({ 
+          elements: [{
+            element: { id: 'visibility-hidden' },
+            frameIndex: -1,
+            tagName: 'a',
+            boundingBox: mockBoundingBox,
+            isHidden: true
+          }]
+        }) // ElementFinder results - hidden by visibility metadata
+        .mockResolvedValueOnce(0); // No child frames
+
+      const results = await locatorStrategy.findElements({ id: 'Hidden Link', type: 'link' });
+      expect(results).toHaveLength(0);
+    });
+
+    it('should include visibility-hidden elements when hidden is requested', async () => {
+      const mockBoundingBox = { x: 0, y: 0, width: 100, height: 20, midx: 50, midy: 10 };
+      
+      mockDriver.executeScript
+        .mockResolvedValueOnce(true) // ElementFinder exists
+        .mockResolvedValueOnce(undefined) // Script injection in frame
+        .mockResolvedValueOnce({ 
+          elements: [{
+            element: { id: 'visibility-hidden' },
+            frameIndex: -1,
+            tagName: 'a',
+            boundingBox: mockBoundingBox,
+            isHidden: true
+          }]
+        }) // ElementFinder results - hidden by visibility metadata
+        .mockResolvedValueOnce(0); // No child frames
+
+      const results = await locatorStrategy.findElements({ id: 'Hidden Link', type: 'link', hidden: true });
+      expect(results).toHaveLength(1);
+      expect(results[0].isHidden).toBe(true);
+    });
+
     it('should use findProbableElements for fallback when direct matches not found', async () => {
       const mockBoundingBox = { x: 0, y: 0, width: 10, height: 10, midx: 5, midy: 5 };
       
@@ -196,6 +239,18 @@ describe('LocatorStrategy', () => {
       const stack = [{ type: 'element', id: 'items', matches: [{ id: 1 }, { id: 2 }] }];
       const results = await locatorStrategy.findAll(stack);
       expect(results).toHaveLength(2);
+    });
+
+    it('should return the requested indexed match in findAll()', async () => {
+      const stack = [{ type: 'element', id: '', index: 2, matches: [{ id: 1 }, { id: 2 }, { id: 3 }] }];
+      const results = await locatorStrategy.findAll(stack);
+      expect(results).toEqual([{ id: 2 }]);
+    });
+
+    it('should return no matches when requested index is out of range in findAll()', async () => {
+      const stack = [{ type: 'element', id: '', index: 5, matches: [{ id: 1 }, { id: 2 }] }];
+      const results = await locatorStrategy.findAll(stack);
+      expect(results).toEqual([]);
     });
   });
 

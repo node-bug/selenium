@@ -1,5 +1,4 @@
 import messenger from '../messenger.js';
-import { log } from '@nodebug/logger';
 import { BaseDelegate } from './base-delegate.js';
 
 /**
@@ -11,7 +10,6 @@ import { BaseDelegate } from './base-delegate.js';
  * - Right-clicks (context clicks)
  * - Middle-clicks
  * - Triple-clicks
- * - Long press clicks
  * - Multiple times clicks
  * - Clicks with modifier keys
  * - Coordinate-based clicks
@@ -160,24 +158,6 @@ export class ClickDelegate extends BaseDelegate {
   }
 
   /**
-   * Performs a long press on an element.
-   * 
-   * Simulates a long press by holding the mouse button down for a specified duration.
-   * 
-   * @param {number} [duration=1000] - Duration of the long press in milliseconds
-   * @returns {Promise<boolean>} True if successful
-   * @example
-   * await browser.element('long-press-target').longPress(); // Default 1000ms
-   * await browser.button('menu').longPress(2000); // 2 seconds
-   */
-  async longPress(duration = 1000) {
-    return this.withErrorHandling('longpress', async () => {
-      const locator = await this.findElement();
-      await this.browser.actions().move({ origin: locator }).press().pause(duration).release().perform();
-    }, { errorMessage: 'long pressing' });
-  }
-
-  /**
    * Internal click handler for elements.
    * 
    * Handles both standard clicks and coordinate-based clicks.
@@ -197,18 +177,18 @@ export class ClickDelegate extends BaseDelegate {
     // If no modifiers and no coordinates, use simple click
     const hasMods = mods.control || mods.shift || mods.alt || mods.meta;
     if (!hasMods && !hasCoordinates) {
-      try {
+      // try {
         await e.click();
-      } catch (err) {
-        // Fallback to JS click if element is blocked or not interactable
-        if (['ElementNotInteractableError', 'ElementClickInterceptedError'].includes(err.name)) {
-          await browser.driver.executeScript('arguments[0].click();', e);
-          log.warn(`Due to "${err.name}" error, javascript click was used to click.`);
-          return true;
-        } else {
-          throw err;
-        }
-      }
+      // } catch (err) {
+      //   // Fallback to JS click if element is blocked or not interactable
+      //   if (['ElementNotInteractableError', 'ElementClickInterceptedError'].includes(err.name)) {
+      //     await browser.driver.executeScript('arguments[0].click();', e);
+      //     log.warn(`Due to "${err.name}" error, javascript click was used to click.`);
+      //     return true;
+      //   } else {
+      //     throw err;
+      //   }
+      // }
       return true;
     }
 

@@ -369,6 +369,7 @@ export class LocatorStrategy {
           webElement.frameIndex = frameIndex;
           webElement.tagName = elem.tagName;
           webElement.boundingBox = elem.boundingBox;
+          webElement.isHidden = elem.isHidden;
           return webElement;
         });
 
@@ -376,12 +377,12 @@ export class LocatorStrategy {
         // This is handled by the findElements method which searches child frames separately
         // We just need to return the main frame elements here
 
-        // Filter by visibility settings
-        // When hidden is true, include all elements (both visible and hidden)
-        // When hidden is false, only include visible elements
+        // Filter by visibility settings.
+        // ElementFinder's isHidden metadata already includes zero-dimension checks,
+        // visibility:hidden, ancestor-hidden elements, inert, hidden, and aria-hidden.
         const visibilityFilter = elementData.hidden
           ? () => true  // Include all elements
-          : (e) => e.boundingBox.height > 0 && e.boundingBox.width > 0;
+          : (e) => e.isHidden !== true;
 
         return qualified.filter(visibilityFilter);
       } catch (err) {
@@ -1209,6 +1210,13 @@ export class LocatorStrategy {
       candidates = refCandidates;
     }
 
+    // 4. Apply index selection to the final result set when requested.
+    // For findAll(), an explicit index returns only that occurrence while no index returns all matches.
+    const requestedIndex = data[primaryElementIndex].index;
+    if (requestedIndex) {
+      candidates = candidates.slice(requestedIndex - 1, requestedIndex);
+    }
+
     // Highlight all elements with debug outline
     if (this.debug && candidates.length > 0) {
       try {
@@ -1223,7 +1231,7 @@ export class LocatorStrategy {
       }
     }
 
-    // 4. Return the final collection of elements
+    // 5. Return the final collection of elements
     return candidates;
   }
 }

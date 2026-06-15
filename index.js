@@ -425,21 +425,6 @@ class WebBrowser extends Browser {
   }
 
   /**
-   * Performs a long press click on the element.
-   * 
-   * Uses Selenium WebDriver Actions API to simulate a long press.
-   * 
-   * @param {number} [duration=1000] - Duration of the long press in milliseconds
-   * @returns {Promise<boolean>} True if successful
-   * @example
-   * await browser.element('long-press-target').longPress(); // Default 1000ms
-   * await browser.button('menu').longPress(2000); // 2 seconds
-   */
-  async longPress(duration = 1000) {
-    return await this.#clickDelegate.longPress(duration);
-  }
-
-  /**
    * Internal click handler for elements.
    * 
    * Handles both standard clicks and coordinate-based clicks.
@@ -1452,7 +1437,7 @@ class WebBrowser extends Browser {
     item.type = type;
 
     // If data is a positive integer, treat it as a 1-based index
-    // and clear the id so it matches any element of that type
+    // and clear the id so it matches any element of that type.
     if (typeof data === 'number' && Number.isInteger(data) && data > 0) {
       item.index = data;
       item.id = '';

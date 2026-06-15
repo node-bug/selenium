@@ -9,7 +9,6 @@ const ACTION_MAP = {
   rightclick: () => 'Right clicking on ',
   middleclick: () => 'Middle clicking on ',
   tripleclick: () => 'Triple clicking on ',
-  longpress: () => 'Long pressing on ',
   focus: () => 'Focussing on ',
   scroll: () => 'Scrolling into view ',
   drag: () => 'Dragging ',

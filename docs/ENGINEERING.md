@@ -278,17 +278,17 @@ findElement() // Find element via browser._finder()
 
 ### Delegate Responsibilities
 
-| Delegate             | Methods                                                                                                                   | Purpose                         |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
-| `ClickDelegate`      | `click()`, `doubleClick()`, `rightClick()`, `middleClick()`, `tripleClick()`, `longPress()`, `multipleClick()`, `hover()` | Mouse interactions              |
-| `InputDelegate`      | `write()`, `clear()`, `overwrite()`, `focus()`, `press()`, `type()`, `left()`, `right()`, `up()`, `down()`                | Keyboard/text input             |
-| `VisibilityDelegate` | `_isVisible()`, `_isEnabled()`, `_isDisabled()`, `_isNotVisible()`, `hide()`, `unhide()`, `scroll`                        | Visibility checks and scrolling |
-| `CheckboxDelegate`   | `check()`, `uncheck()`, `_isChecked()`                                                                                    | Checkbox state                  |
-| `RadioDelegate`      | `_isSet()`                                                                                                                | Radio button state              |
-| `SelectDelegate`     | `option()`, `select()`, `getOptions()`, `getSelectedOptions()`, `_hasOption()`, `_isSelected()`                           | Dropdown operations             |
-| `SwitchDelegate`     | `on()`, `off()`, `_isOn()`                                                                                                | Toggle switch operations        |
-| `SliderDelegate`     | `slide` accessor                                                                                                          | Slider control                  |
-| `DragDropDelegate`   | `perform()`                                                                                                               | Drag and drop operations        |
+| Delegate             | Methods                                                                                                    | Purpose                         |
+| -------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------- |
+| `ClickDelegate`      | `click()`, `doubleClick()`, `rightClick()`, `middleClick()`, `tripleClick()`, `multipleClick()`, `hover()` | Mouse interactions              |
+| `InputDelegate`      | `write()`, `clear()`, `overwrite()`, `focus()`, `press()`, `type()`, `left()`, `right()`, `up()`, `down()` | Keyboard/text input             |
+| `VisibilityDelegate` | `_isVisible()`, `_isEnabled()`, `_isDisabled()`, `_isNotVisible()`, `hide()`, `unhide()`, `scroll`         | Visibility checks and scrolling |
+| `CheckboxDelegate`   | `check()`, `uncheck()`, `_isChecked()`                                                                     | Checkbox state                  |
+| `RadioDelegate`      | `_isSet()`                                                                                                 | Radio button state              |
+| `SelectDelegate`     | `option()`, `select()`, `getOptions()`, `getSelectedOptions()`, `_hasOption()`, `_isSelected()`            | Dropdown operations             |
+| `SwitchDelegate`     | `on()`, `off()`, `_isOn()`                                                                                 | Toggle switch operations        |
+| `SliderDelegate`     | `slide` accessor                                                                                           | Slider control                  |
+| `DragDropDelegate`   | `perform()`                                                                                                | Drag and drop operations        |
 
 ---
 

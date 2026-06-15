@@ -1,11 +1,11 @@
 {
   "browser": "chrome",
-  "headless": true,
+  "headless": false,
   "timeout": 5,
   "downloadsPath": "./reports/downloads",
   "incognito": false,
-  "height": null,
-  "width": null,
+  "height": 700,
+  "width": 1440,
   "hub": null,
   "hub-examples": {
     "k8s": "https://eks-dev-qa-hub.mldev.cloud",

@@ -20,6 +20,24 @@ describe('Interactive Elements Integration Tests', () => {
     expect(style).toContain('pointer-events: none');
   });
 
+  test('should not retrieve visibility-hidden elements by default', async () => {
+    await expect(
+      browser.link('Visibility Hidden Link').find()
+    ).rejects.toThrow();
+
+    await expect(
+      browser.link('Visibility Hidden Link').findAll()
+    ).rejects.toThrow();
+  });
+
+  test('should retrieve visibility-hidden elements when hidden modifier is used', async () => {
+    const link = await browser.link('Visibility Hidden Link').hidden.find();
+    expect(link).toBeDefined();
+
+    const links = await browser.link('Visibility Hidden Link').hidden.findAll();
+    expect(links).toHaveLength(1);
+  });
+
   test('should interact with buttons', async () => {
     expect(await browser.button('Enabled Button').is.enabled()).toBe(true);
 

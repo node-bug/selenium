@@ -113,14 +113,15 @@ describe('SelectorStackBuilder', () => {
       expect(mockParent).toBeDefined();
     });
 
-    test('should set index to 1 when data is undefined', () => {
+    test('should leave index false when data is undefined', () => {
       selectorStackBuilder.element(undefined);
-      expect(mockStack[0].index).toBe(1);
+      expect(mockStack[0].index).toBe(false);
     });
 
     test('should handle null data', () => {
       selectorStackBuilder.element(null);
       expect(mockStack[0].id).toBeUndefined();
+      expect(mockStack[0].index).toBe(false);
     });
   });
 });
