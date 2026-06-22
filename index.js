@@ -568,16 +568,11 @@ class WebBrowser extends Browser {
           if (!dataUrl) {
             log.info('Capturing screenshot of the full page');
             dataUrl = await this.driver.takeScreenshot();
-            // For full page screenshots, get window dimensions via JavaScript
+            // For full page screenshots, use browser's get.size()
             if (width === null || height === null) {
-              const fullPageDims = await this.driver.executeScript(`
-                return {
-                  width: document.documentElement.scrollWidth,
-                  height: document.documentElement.scrollHeight
-                };
-              `);
-              width = fullPageDims.width;
-              height = fullPageDims.height;
+              const { width: w, height: h } = await this.get.size();
+              width = w;
+              height = h;
             }
           }
         } finally {
@@ -1456,8 +1451,11 @@ class WebBrowser extends Browser {
     const item = this.stack[this.stack.length - 1];
     item.type = type;
 
-    // If data is a positive integer, treat it as a 1-based index
-    // and clear the id so it matches any element of that type.
+    // If data is a positive integer, treat it as a 1-based index.
+    // Clear the id so ElementFinder matches all elements of this type
+    // (e.g., `browser.row(2)` finds all rows and the index selects the Nth).
+    // Note: `at.index(N)` keeps the original id (preserved in the `at` getter)
+    // so that the text filter is still applied before selecting by index.
     if (typeof data === 'number' && Number.isInteger(data) && data > 0) {
       item.index = data;
       item.id = '';
@@ -1470,6 +1468,8 @@ class WebBrowser extends Browser {
   get exact() { return new SelectorStackBuilder(this).exact(); }
 
   get hidden() { return new SelectorStackBuilder(this).hidden(); }
+
+  get onscreen() { return new SelectorStackBuilder(this).onscreen(); }
 
   // Default element call without modifiers
   // avoid state pollution by not pushing directly to stack here
@@ -1557,7 +1557,12 @@ class WebBrowser extends Browser {
 
   /**
    * Gets a specific occurrence from a list of matching elements (1-based index).
-   * 
+   *
+   * Preserves the original `id` so that ElementFinder still receives the correct
+   * text/id filter. The 1-based index is applied AFTER matches are resolved
+   * (in LocatorStrategy.find), so the Nth element of the actual matches is
+   * selected rather than the Nth element in the entire DOM.
+   *
    * @returns {{index: function(number): WebBrowser}} Object with index method for chaining
    * @example
    * browser.element('item').at.index(2).click(); // Selects 2nd matching element
@@ -1571,8 +1576,9 @@ class WebBrowser extends Browser {
         }
         const last = this.stack[this.stack.length - 1];
         if (last) {
+          // Keep the original id so ElementFinder can still match by text/id.
+          // The index is applied to the resolved matches in LocatorStrategy.find.
           last.index = index;
-          last.id = '';
         }
         return this;
       }

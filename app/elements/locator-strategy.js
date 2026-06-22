@@ -183,6 +183,8 @@ export class LocatorStrategy {
             webElement.frameIndex = parent.frameIndex;
             webElement.tagName = elem.tagName;
             webElement.boundingBox = elem.boundingBox;
+            webElement.isHidden = elem.isHidden;
+            webElement.inViewport = elem.inViewport;
             return webElement;
           });
 
@@ -300,6 +302,8 @@ export class LocatorStrategy {
           webElement.frameIndex = elem.frameIndex;
           webElement.tagName = elem.tagName;
           webElement.boundingBox = elem.boundingBox;
+          webElement.isHidden = elem.isHidden;
+          webElement.inViewport = elem.inViewport;
           return webElement;
         });
     }
@@ -370,6 +374,7 @@ export class LocatorStrategy {
           webElement.tagName = elem.tagName;
           webElement.boundingBox = elem.boundingBox;
           webElement.isHidden = elem.isHidden;
+          webElement.inViewport = elem.inViewport;
           return webElement;
         });
 
@@ -381,8 +386,8 @@ export class LocatorStrategy {
         // ElementFinder's isHidden metadata already includes zero-dimension checks,
         // visibility:hidden, ancestor-hidden elements, inert, hidden, and aria-hidden.
         const visibilityFilter = elementData.hidden
-          ? () => true  // Include all elements
-          : (e) => e.isHidden !== true;
+          ? (e) => elementData.onscreen ? e.inViewport === true : true  // Include all (or only onscreen)
+          : (e) => e.isHidden !== true && (!elementData.onscreen || e.inViewport === true);
 
         return qualified.filter(visibilityFilter);
       } catch (err) {
@@ -435,6 +440,8 @@ export class LocatorStrategy {
             webElement.frameIndex = frameIndex;
             webElement.tagName = elem.tagName;
             webElement.boundingBox = elem.boundingBox;
+            webElement.isHidden = elem.isHidden;
+            webElement.inViewport = elem.inViewport;
             return webElement;
           });
           const processed = await this._postProcessSwitchElements(qualified, elementData);
@@ -519,6 +526,8 @@ export class LocatorStrategy {
           webElement.frameIndex = frameIndex;
           webElement.tagName = elem.tagName;
           webElement.boundingBox = elem.boundingBox;
+          webElement.isHidden = elem.isHidden;
+          webElement.inViewport = elem.inViewport;
           return webElement;
         });
 
@@ -948,7 +957,8 @@ export class LocatorStrategy {
                   right: rect.right,
                   midx: rect.x + rect.width / 2,
                   midy: rect.y + rect.height / 2
-                }
+                },
+                inViewport: rect.top >= 0 && rect.left >= 0 && rect.bottom <= window.innerHeight && rect.right <= window.innerWidth
               });
             }
           }
@@ -965,6 +975,8 @@ export class LocatorStrategy {
         webElement.frameIndex = frameIndex;
         webElement.tagName = item.tagName;
         webElement.boundingBox = item.boundingBox;
+        webElement.isHidden = item.isHidden;
+        webElement.inViewport = item.inViewport;
         return webElement;
       });
     }

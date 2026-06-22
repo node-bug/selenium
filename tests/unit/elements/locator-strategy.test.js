@@ -102,6 +102,8 @@ describe('LocatorStrategy', () => {
       expect(results[0].frameIndex).toBe(-1);
       expect(results[0].tagName).toBe('div');
       expect(results[0].boundingBox).toEqual(mockBoundingBox);
+      expect(results[0].isHidden).toBeUndefined();
+      expect(results[0].inViewport).toBeUndefined();
     });
 
     it('should filter hidden elements when requested', async () => {
@@ -185,6 +187,32 @@ describe('LocatorStrategy', () => {
       const results = await locatorStrategy.findElements({ id: 'Hidden Link', type: 'link', hidden: true });
       expect(results).toHaveLength(1);
       expect(results[0].isHidden).toBe(true);
+      expect(results[0].inViewport).toBeUndefined();
+    });
+
+    it('should attach ElementFinder metadata to returned elements', async () => {
+      const mockBoundingBox = { x: 0, y: 0, width: 100, height: 20, midx: 50, midy: 10 };
+
+      mockDriver.executeScript
+        .mockResolvedValueOnce(true)
+        .mockResolvedValueOnce(undefined)
+        .mockResolvedValueOnce({
+          elements: [{
+            element: { id: 'metadata' },
+            frameIndex: -1,
+            tagName: 'button',
+            boundingBox: mockBoundingBox,
+            isHidden: false,
+            inViewport: true
+          }]
+        })
+        .mockResolvedValueOnce(0);
+
+      const results = await locatorStrategy.findElements({ id: 'Metadata Button', type: 'button' });
+
+      expect(results).toHaveLength(1);
+      expect(results[0].isHidden).toBe(false);
+      expect(results[0].inViewport).toBe(true);
     });
 
     it('should use findProbableElements for fallback when direct matches not found', async () => {

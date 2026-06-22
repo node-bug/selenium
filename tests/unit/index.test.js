@@ -502,6 +502,9 @@ describe('WebBrowser', () => {
         browser._finder = vi.fn().mockResolvedValue(locator);
         browser.stack = [{ id: 1 }];
         browser.driver = {
+            switchTo: vi.fn().mockReturnValue({
+                defaultContent: vi.fn().mockResolvedValue(undefined),
+            }),
             executeScript: vi.fn().mockResolvedValue({ originalStyles: new Map(), pausedCount: 0 }),
             takeScreenshot: vi.fn().mockResolvedValue('page-img'),
         };
@@ -515,9 +518,13 @@ describe('WebBrowser', () => {
     test('get.screenshot() falls back to driver screenshot', async () => {
         browser._finder = vi.fn().mockRejectedValue(new Error('fail'));
         browser.driver = {
+            switchTo: vi.fn().mockReturnValue({
+                defaultContent: vi.fn().mockResolvedValue(undefined),
+            }),
             executeScript: vi.fn()
                 .mockResolvedValueOnce({ originalStyles: new Map(), pausedCount: 0 }) // pause
-                .mockResolvedValueOnce({ width: 800, height: 600 }), // full page dims
+                .mockResolvedValueOnce(1024) // innerWidth for get.size()
+                .mockResolvedValueOnce(768), // innerHeight for get.size()
             takeScreenshot: vi.fn().mockResolvedValue('page-img'),
         };
 
@@ -532,10 +539,14 @@ describe('WebBrowser', () => {
     test('get.screenshot() succeeds when pauseAnimations fails', async () => {
         const executeScriptMock = vi.fn()
             .mockRejectedValueOnce(new Error('ElementFinder not available')) // pause fails
-            .mockResolvedValueOnce({ width: 800, height: 600 }); // full page dims
+            .mockResolvedValueOnce(1024) // innerWidth for get.size()
+            .mockResolvedValueOnce(768); // innerHeight for get.size()
 
         browser._finder = vi.fn().mockRejectedValue(new Error('no element'));
         browser.driver = {
+            switchTo: vi.fn().mockReturnValue({
+                defaultContent: vi.fn().mockResolvedValue(undefined),
+            }),
             executeScript: executeScriptMock,
             takeScreenshot: vi.fn().mockResolvedValue('page-img'),
         };
@@ -549,11 +560,15 @@ describe('WebBrowser', () => {
     test('get.screenshot() succeeds when resumeAnimations fails', async () => {
         const executeScriptMock = vi.fn()
             .mockResolvedValueOnce({ originalStyles: new Map(), pausedCount: 0 }) // pause
-            .mockResolvedValueOnce({ width: 800, height: 600 }) // full page dims
+            .mockResolvedValueOnce(1024) // innerWidth for get.size()
+            .mockResolvedValueOnce(768) // innerHeight for get.size()
             .mockRejectedValueOnce(new Error('resume failed')); // resume - but error is caught
 
         browser._finder = vi.fn().mockRejectedValue(new Error('no element'));
         browser.driver = {
+            switchTo: vi.fn().mockReturnValue({
+                defaultContent: vi.fn().mockResolvedValue(undefined),
+            }),
             executeScript: executeScriptMock,
             takeScreenshot: vi.fn().mockResolvedValue('page-img'),
         };
@@ -595,13 +610,17 @@ describe('WebBrowser', () => {
 
         await expect(browser.upload('/file')).rejects.toThrow();
     });
-    test('at.index sets index and clears id on last stack item', () => {
+    test('at.index sets index on last stack item while preserving id', () => {
+        // Bug fix: at.index() should NOT clear the id, otherwise
+        // findProbableElements returns ALL DOM elements instead of matches.
+        // The id is preserved so ElementFinder can still match by text/id,
+        // and the index is applied to the resolved matches.
         browser.stack = [{ id: 'some-text', index: false }];
 
         browser.at.index(2);
 
         expect(browser.stack[0].index).toBe(2);
-        expect(browser.stack[0].id).toBe('');
+        expect(browser.stack[0].id).toBe('some-text');
     });
     test('at.index returns browser for chaining', () => {
         browser.stack = [{ id: 'text' }];
@@ -624,7 +643,7 @@ describe('WebBrowser', () => {
         browser.at.index(0);
 
         expect(browser.stack[0].index).toBe(1);
-        expect(browser.stack[0].id).toBe('');
+        expect(browser.stack[0].id).toBe('text');
     });
     test('at.index defaults to 1 when called with negative number', () => {
         browser.stack = [{ id: 'text', index: false }];
@@ -632,7 +651,7 @@ describe('WebBrowser', () => {
         browser.at.index(-1);
 
         expect(browser.stack[0].index).toBe(1);
-        expect(browser.stack[0].id).toBe('');
+        expect(browser.stack[0].id).toBe('text');
     });
     test('at.index defaults to 1 when called with NaN', () => {
         browser.stack = [{ id: 'text', index: false }];
@@ -640,7 +659,7 @@ describe('WebBrowser', () => {
         browser.at.index(NaN);
 
         expect(browser.stack[0].index).toBe(1);
-        expect(browser.stack[0].id).toBe('');
+        expect(browser.stack[0].id).toBe('text');
     });
     test('at.index defaults to 1 when called with null', () => {
         browser.stack = [{ id: 'text', index: false }];
@@ -648,7 +667,7 @@ describe('WebBrowser', () => {
         browser.at.index(null);
 
         expect(browser.stack[0].index).toBe(1);
-        expect(browser.stack[0].id).toBe('');
+        expect(browser.stack[0].id).toBe('text');
     });
     test('at.index defaults to 1 when called with undefined', () => {
         browser.stack = [{ id: 'text', index: false }];
@@ -656,7 +675,7 @@ describe('WebBrowser', () => {
         browser.at.index(undefined);
 
         expect(browser.stack[0].index).toBe(1);
-        expect(browser.stack[0].id).toBe('');
+        expect(browser.stack[0].id).toBe('text');
     });
     test('at.index defaults to 1 when called with non-number string', () => {
         browser.stack = [{ id: 'text', index: false }];
@@ -664,7 +683,7 @@ describe('WebBrowser', () => {
         browser.at.index('x');
 
         expect(browser.stack[0].index).toBe(1);
-        expect(browser.stack[0].id).toBe('');
+        expect(browser.stack[0].id).toBe('text');
     });
     test('at.index defaults to 1 when called with non-integer float', () => {
         browser.stack = [{ id: 'text', index: false }];
@@ -672,19 +691,25 @@ describe('WebBrowser', () => {
         browser.at.index(1.5);
 
         expect(browser.stack[0].index).toBe(1);
-        expect(browser.stack[0].id).toBe('');
+        expect(browser.stack[0].id).toBe('text');
     });
-    test('element(1) and element().at.index(1) produce equivalent stack items', () => {
+    test('element(1) and element("text").at.index(1) are no longer equivalent', () => {
+        // Bug fix: element(N) clears the id (intended for type-only selectors
+        // like row(2) that match by index). at.index(N) preserves the id so
+        // ElementFinder can still match by text. These are different on purpose.
         const browser1 = new WebBrowser();
         const browser2 = new WebBrowser();
 
         browser1.element(1);
         browser2.element('some-text').at.index(1);
 
+        // element(1) clears id for index-based selection
         expect(browser1.stack[0].index).toBe(1);
         expect(browser1.stack[0].id).toBe('');
+
+        // at.index(1) preserves id so text matching still works
         expect(browser2.stack[0].index).toBe(1);
-        expect(browser2.stack[0].id).toBe('');
+        expect(browser2.stack[0].id).toBe('some-text');
     });
     test('or getter adds condition to stack', () => {
         browser.stack = [{ id: 1 }];

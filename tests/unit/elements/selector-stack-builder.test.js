@@ -28,7 +28,7 @@ describe('SelectorStackBuilder', () => {
   describe('exact method', () => {
     test('should set exact flag to true', () => {
       selectorStackBuilder.exact();
-      expect(mockStack[0]).toEqual({ exact: true, hidden: false });
+      expect(mockStack[0]).toEqual({ exact: true, hidden: false, onscreen: false });
     });
 
     test('should return parent for chaining', () => {
@@ -40,11 +40,23 @@ describe('SelectorStackBuilder', () => {
   describe('hidden method', () => {
     test('should set hidden flag to true', () => {
       selectorStackBuilder.hidden();
-      expect(mockStack[0]).toEqual({ exact: false, hidden: true });
+      expect(mockStack[0]).toEqual({ exact: false, hidden: true, onscreen: false });
     });
 
     test('should return parent for chaining', () => {
       const result = selectorStackBuilder.hidden();
+      expect(result).toBe(mockParent);
+    });
+  });
+
+  describe('onscreen method', () => {
+    test('should set onscreen flag to true', () => {
+      selectorStackBuilder.onscreen();
+      expect(mockStack[0]).toEqual({ exact: false, hidden: false, onscreen: true });
+    });
+
+    test('should return parent for chaining', () => {
+      const result = selectorStackBuilder.onscreen();
       expect(result).toBe(mockParent);
     });
   });
@@ -58,6 +70,7 @@ describe('SelectorStackBuilder', () => {
         id: 'test-id',
         exact: false,
         hidden: false,
+        onscreen: false,
         matches: [],
         index: false
       });
@@ -74,6 +87,7 @@ describe('SelectorStackBuilder', () => {
         id: 'test-id',
         exact: true,
         hidden: false,
+        onscreen: false,
         matches: [],
         index: false
       });
@@ -88,21 +102,39 @@ describe('SelectorStackBuilder', () => {
         id: 'test-id',
         exact: false,
         hidden: true,
+        onscreen: false,
         matches: [],
         index: false
       });
     });
 
-    test('should handle both exact and hidden flags when adding element', () => {
+    test('should handle onscreen flag when adding element', () => {
+      selectorStackBuilder.onscreen();
+      selectorStackBuilder.element('test-id');
+
+      expect(mockStack[0]).toEqual({
+        type: 'element',
+        id: 'test-id',
+        exact: false,
+        hidden: false,
+        onscreen: true,
+        matches: [],
+        index: false
+      });
+    });
+
+    test('should handle exact, hidden and onscreen flags when adding element', () => {
       selectorStackBuilder.exact();
       selectorStackBuilder.hidden();
+      selectorStackBuilder.onscreen();
       selectorStackBuilder.element('test-id');
-      
+
       expect(mockStack[0]).toEqual({
         type: 'element',
         id: 'test-id',
         exact: true,
         hidden: true,
+        onscreen: true,
         matches: [],
         index: false
       });

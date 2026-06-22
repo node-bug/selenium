@@ -1799,7 +1799,7 @@ const elementShot = await browser.element('chart').get.screenshot()
 console.log(elementShot.dataUrl, elementShot.width, elementShot.height)
 ```
 
-**Returns**: `Promise<{dataUrl: string, width: number, height: number}>` — `dataUrl` is the base64-encoded image data URL. `width` and `height` are the captured element dimensions when an element is selected, or the full-page document dimensions when no element is selected.
+**Returns**: `Promise<{dataUrl: string, width: number, height: number}>` — `dataUrl` is the base64-encoded image data URL. `width` and `height` are the captured element dimensions when an element is selected, or the viewport dimensions when no element is selected.
 
 ### get.size()
 

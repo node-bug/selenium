@@ -4,9 +4,10 @@
  * and a placeholder for resolved WebElement matches.
  *
  * The builder operates by pushing structured objects onto a shared stack
- * (owned by the parent WebBrowser instance). Modifier methods like {@link exact}
- * and {@link hidden} mutate the top-of-stack flags, while type methods like
- * {@link element} consume those flags and push a fully-formed selector member.
+ * (owned by the parent WebBrowser instance). Modifier methods like {@link exact},
+ * {@link hidden}, and {@link onscreen} mutate the top-of-stack flags, while type
+ * methods like {@link element} consume those flags and push a fully-formed
+ * selector member.
  *
  * Chainable methods return either the builder itself (for further modifiers)
  * or the parent WebBrowser instance (to switch back to action mode).
@@ -22,7 +23,7 @@ export class SelectorStackBuilder {
 
   // Private helper to check if an object is a flag container
   #isFlagObject(obj) {
-    return obj && typeof obj.exact === 'boolean' && typeof obj.hidden === 'boolean';
+    return obj && typeof obj.exact === 'boolean' && typeof obj.hidden === 'boolean' && typeof obj.onscreen === 'boolean';
   }
 
   /**
@@ -31,7 +32,7 @@ export class SelectorStackBuilder {
    * Otherwise, it pushes a new flag container onto the stack.
    *
    * @private
-   * @param {string} key - The flag key to set (e.g., 'exact', 'hidden').
+   * @param {string} key - The flag key to set (e.g., 'exact', 'hidden', 'onscreen').
    * @param {*} value - The value to assign.
    * @returns {SelectorStackBuilder} The builder instance for chaining.
    */
@@ -41,7 +42,7 @@ export class SelectorStackBuilder {
     if (this.#isFlagObject(top)) {
       top[key] = value;
     } else {
-      this.stack.push({ exact: false, hidden: false, [key]: value });
+      this.stack.push({ exact: false, hidden: false, onscreen: false, [key]: value });
     }
     return this; // Returns this builder instance for further chaining
   }
@@ -69,6 +70,17 @@ export class SelectorStackBuilder {
   }
 
   /**
+   * Marks the current selector to only include elements currently onscreen (in viewport).
+   * Sets the `onscreen` flag to `true` on the top-of-stack item.
+   *
+   * @returns {WebBrowser} The parent WebBrowser instance to switch back to action mode.
+   */
+  onscreen() {
+    this.#setFlag('onscreen', true);
+    return this.parent;
+  }
+
+  /**
    * Pushes a generic `element` selector onto the stack.
    *
    * Consumes any pending flag container from the top of the stack and merges
@@ -78,7 +90,7 @@ export class SelectorStackBuilder {
    * The resulting member object contains:
    * - `type`: always `'element'` (matches any XPath node).
    * - `id`: the stringified identifier used for text/attribute matching, or `undefined` when no identifier is provided.
-   * - `exact` / `hidden`: resolved flag values.
+   * - `exact` / `hidden` / `onscreen`: resolved flag values.
    * - `matches`: an empty array, later populated by {@link LocatorStrategy#resolveElements}.
    * - `index`: `false` when no index was requested, otherwise the 1-based index selection.
    *
@@ -87,7 +99,7 @@ export class SelectorStackBuilder {
    */
   element(data) {
     const og = this.stack.pop();
-    let flags = { exact: false, hidden: false };
+    let flags = { exact: false, hidden: false, onscreen: false };
 
     if (this.#isFlagObject(og)) {
       flags = og;
@@ -101,6 +113,7 @@ export class SelectorStackBuilder {
       id: value,
       exact: flags.exact,
       hidden: flags.hidden,
+      onscreen: flags.onscreen,
       matches: [],
       index: false
     };

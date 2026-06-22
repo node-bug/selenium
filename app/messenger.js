@@ -91,10 +91,11 @@ export default function messenger(a) {
     if (ELEMENT_TYPES.has(obj.type)) {
       const exact = obj.exact ? 'exact ' : '';
       const hidden = obj.hidden ? 'hidden ' : '';
+      const onscreen = obj.onscreen ? 'onscreen ' : '';
       const atIndex = obj.index ? `at index '${obj.index}' ` : '';
       // When id is empty or numeric, skip quoting the id
       const idPart = obj.id ? (/^\d+$/.test(obj.id) ? `at index '${obj.id}' ` : `'${obj.id}' `) : '';
-      return `${exact}${hidden}${obj.type} ${idPart}${atIndex}`;
+      return `${exact}${hidden}${onscreen}${obj.type} ${idPart}${atIndex}`;
     }
 
     if (obj.type === 'location') {
