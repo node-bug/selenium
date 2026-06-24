@@ -13,6 +13,7 @@ import { RadioDelegate } from './app/command-delegates/radio-delegate.js';
 import { SwitchDelegate } from './app/command-delegates/switch-delegate.js';
 import { SliderDelegate } from './app/command-delegates/slider-delegate.js';
 import { DragDropDelegate } from './app/command-delegates/drag-drop-delegate.js';
+import { NetworkDelegate } from './app/command-delegates/network-delegate.js';
 import { PluginManager } from './app/plugin-manager.js';
 import ELEMENT_DEFINITIONS from '@nodebug/browser-element-finder/element-definitions.json' with { type: 'json' };
 
@@ -43,6 +44,7 @@ class WebBrowser extends Browser {
   #switchDelegate;
   #sliderDelegate;
   #dragDropDelegate;
+  #networkDelegate;
 
   constructor() {
     super()
@@ -57,6 +59,7 @@ class WebBrowser extends Browser {
     this.#switchDelegate = new SwitchDelegate(this);
     this.#sliderDelegate = new SliderDelegate(this);
     this.#dragDropDelegate = new DragDropDelegate(this);
+    this.#networkDelegate = new NetworkDelegate(this);
 
     Object.keys(ELEMENT_DEFINITIONS).forEach(type => {
       this[type] = (data) => {
@@ -1418,6 +1421,97 @@ class WebBrowser extends Browser {
           else log.info(`Option '${selectDelegate.optionValue}' is not selected`);
           return !result;
         },
+      },
+    };
+  }
+
+  /**
+   * "Namespace" or "Sub-resource" pattern for organized access to network operations.
+   * Accessor for network monitoring and waiting operations.
+   * Usage: await browser.network.wait.ajax()
+   *        await browser.network.wait.fetch()
+   *        await browser.network.wait.all()
+   *        await browser.network.wait.request('api/users')
+   */
+  get network() {
+    const browser = this;
+    const networkDelegate = this.#networkDelegate;
+
+    return {
+      /**
+       * Injects network monitoring scripts into the page.
+       *
+       * Call this after navigating to a page but before triggering any
+       * network requests. This ensures XHR and fetch calls are tracked from the start.
+       *
+       * @returns {Promise<void>}
+       * @example
+       * await browser.goto('https://example.com');
+       * await browser.network.inject();
+       * await browser.button('Load Data').click();
+       * await browser.network.wait.for.all();
+       */
+      inject: async () => {
+        return networkDelegate.inject();
+      },
+
+      /**
+       * Accessor for network wait operations.
+       */
+      get wait() {
+        return {
+          /**
+           * Accessor for specific wait targets.
+           */
+          get for() {
+            return {
+              /**
+               * Waits for AJAX (XMLHttpRequest) requests to complete.
+               *
+               * @param {number} [timeout] - Optional timeout in milliseconds
+               * @returns {Promise<boolean>} True if all requests completed
+               */
+              ajax: async (timeout) => {
+                browser.message = messenger({ stack: browser.stack, action: 'waitForAjax' });
+                return networkDelegate.wait.ajax(timeout);
+              },
+
+              /**
+               * Waits for fetch requests to complete.
+               *
+               * @param {number} [timeout] - Optional timeout in milliseconds
+               * @returns {Promise<boolean>} True if all requests completed
+               */
+              fetch: async (timeout) => {
+                browser.message = messenger({ stack: browser.stack, action: 'waitForFetch' });
+                return networkDelegate.wait.fetch(timeout);
+              },
+
+              /**
+               * Waits for all network requests (XHR + fetch) to complete.
+               *
+               * @param {number} [timeout] - Optional timeout in milliseconds
+               * @returns {Promise<boolean>} True if all requests completed
+               */
+              all: async (timeout) => {
+                browser.message = messenger({ stack: browser.stack, action: 'waitForAll' });
+                return networkDelegate.wait.all(timeout);
+              },
+
+              /**
+               * Waits for a specific network request to complete.
+               *
+               * @param {string|RegExp} urlPattern - URL pattern to match
+               * @param {number} [timeout] - Optional timeout in milliseconds
+               * @returns {Promise<boolean>} True if request completed
+               */
+              request: async (urlPattern, timeout) => {
+                browser.message = messenger({ stack: browser.stack, action: 'waitForRequest', data: urlPattern });
+                return networkDelegate.wait.request(urlPattern, timeout);
+              },
+            };
+          },
+        };
       },
     };
   }

@@ -73,6 +73,10 @@ const ACTION_MAP = {
   shouldNotHaveOption: () => `Validating that `,
   getOptions: () => 'Getting options from ',
   getSelectedOptions: () => 'Getting selected options from ',
+  waitForAjax: () => 'Waiting for AJAX requests to complete',
+  waitForFetch: () => 'Waiting for fetch requests to complete',
+  waitForAll: () => 'Waiting for all network requests to complete',
+  waitForRequest: (a) => `Waiting for request '${a.data}' to complete`,
 };
 
 // 2. Define valid element types

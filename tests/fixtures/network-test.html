@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Test Page</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        #status { margin-top: 20px; padding: 10px; border: 1px solid #ccc; }
+    </style>
+</head>
+<body>
+    <h1>Network Test Page</h1>
+    
+    <button id="xhr-btn" onclick="makeXhrRequest()">Make XHR Request</button>
+    <button id="fetch-btn" onclick="makeFetchRequest()">Make Fetch Request</button>
+    <button id="both-btn" onclick="makeBothRequests()">Make Both Requests</button>
+    <button id="delayed-btn" onclick="makeDelayedRequest()">Make Delayed Request</button>
+    
+    <div id="status">Ready</div>
+
+    <script>
+        // Create a slow endpoint using a Blob URL with delayed response simulation
+        // We'll use a Promise-based approach to ensure requests stay active long enough for polling
+        
+        function makeXhrRequest() {
+            var status = document.getElementById('status');
+            status.textContent = 'XHR request started...';
+            
+            var xhr = new XMLHttpRequest();
+            // Use a Blob URL - these are async and trackable
+            var blob = new Blob([JSON.stringify({ id: 1, title: 'test' })], { type: 'application/json' });
+            var url = URL.createObjectURL(blob);
+            
+            xhr.open('GET', url);
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                    status.textContent = 'XHR request completed';
+                }
+            };
+            // Add delay to ensure monitoring tracks the request
+            setTimeout(function() { 
+                xhr.send(); 
+                URL.revokeObjectURL(url);
+            }, 100);
+        }
+
+        function makeFetchRequest() {
+            var status = document.getElementById('status');
+            status.textContent = 'Fetch request started...';
+            
+            // Create Blob URL for fetch
+            var blob = new Blob([JSON.stringify({ id: 2, title: 'test2' })], { type: 'application/json' });
+            var url = URL.createObjectURL(blob);
+            
+            fetch(url)
+                .then(function(response) { return response.json(); })
+                .then(function(data) {
+                    status.textContent = 'Fetch request completed';
+                    URL.revokeObjectURL(url);
+                })
+                .catch(function(err) {
+                    status.textContent = 'Fetch request failed';
+                });
+        }
+
+        function makeBothRequests() {
+            var status = document.getElementById('status');
+            status.textContent = 'Both requests started...';
+            
+            // XHR with Blob URL
+            var xhrBlob = new Blob([JSON.stringify({ id: 3, title: 'test3' })], { type: 'application/json' });
+            var xhrUrl = URL.createObjectURL(xhrBlob);
+            
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', xhrUrl);
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                    status.textContent = 'Both requests completed';
+                    URL.revokeObjectURL(xhrUrl);
+                }
+            };
+            xhr.send();
+            
+            // Fetch with Blob URL
+            var fetchBlob = new Blob([JSON.stringify({ id: 4, title: 'test4' })], { type: 'application/json' });
+            var fetchUrl = URL.createObjectURL(fetchBlob);
+            
+            fetch(fetchUrl)
+                .then(function(response) { return response.json(); })
+                .then(function() {
+                    URL.revokeObjectURL(fetchUrl);
+                })
+                .catch(function() {});
+        }
+
+        function makeDelayedRequest() {
+            var status = document.getElementById('status');
+            status.textContent = 'Delayed request started...';
+            
+            setTimeout(function() {
+                var blob = new Blob([JSON.stringify({ id: 5, title: 'test5' })], { type: 'application/json' });
+                var url = URL.createObjectURL(blob);
+                
+                fetch(url)
+                    .then(function(response) { return response.json(); })
+                    .then(function(data) {
+                        status.textContent = 'Delayed request completed';
+                        URL.revokeObjectURL(url);
+                    });
+            }, 500);
+        }
+    </script>
+</body>
+</html>
+                .then(response => {
+                    return new Promise(resolve => setTimeout(resolve, 2000));
+                })
+                .then(() => {
+                    status.textContent = 'Delayed request completed';
+                })
+                .catch(() => {});
+        }
+    </script>
+</body>
+</html>
