@@ -45,8 +45,8 @@ This document tracks proposed features to enhance end-user behavior support in t
 ## 6. Network & Performance
 
 - [ ] `browser.network.intercept(url, response)` - Mock API responses
-- [ ] `browser.network.wait.for(request)` - Wait for specific network request
-- [ ] `browser.network.wait.for.ajax()` - Wait for AJAX requests to complete
+- [x] `browser.network.wait.for(request)` - Wait for specific network request (implemented v5.2.7)
+- [x] `browser.network.wait.for.ajax()` - Wait for AJAX requests to complete (implemented v5.2.7)
 - [ ] `browser.performance.metrics()` - Get page load metrics, resource timing
 - [ ] `browser.performance.lighthouse()` - Run Lighthouse-style audits
 

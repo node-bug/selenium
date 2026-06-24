@@ -1428,10 +1428,10 @@ class WebBrowser extends Browser {
   /**
    * "Namespace" or "Sub-resource" pattern for organized access to network operations.
    * Accessor for network monitoring and waiting operations.
-   * Usage: await browser.network.wait.ajax()
-   *        await browser.network.wait.fetch()
-   *        await browser.network.wait.all()
-   *        await browser.network.wait.request('api/users')
+   * Usage: await browser.network.wait.for.ajax()
+   *        await browser.network.wait.for.fetch()
+   *        await browser.network.wait.for.all()
+   *        await browser.network.wait.for.request('api/users')
    */
   get network() {
     const browser = this;

@@ -15,6 +15,7 @@ Complete method reference for WebBrowser. See [Core Concepts](CONCEPTS.md) for u
 - [Window Management](#window-management) - Multi-window operations
 - [Tab Management](#tab-management) - Multi-tab operations
 - [Alert Handling](#alert-handling) - JavaScript alerts/prompts
+- [Network Monitoring](#network-monitoring) - Wait for XHR/fetch requests
 - [Data Retrieval](#data-retrieval) - Getting element properties
 
 ---
@@ -1621,6 +1622,148 @@ Get tab title.
 
 ```javascript
 const title = await browser.tab().get.title()
+```
+
+---
+
+## Network Monitoring
+
+Wait for XHR and fetch network requests to complete. Useful for single-page applications and pages that load data asynchronously.
+
+### How it works
+
+1. Call `browser.network.inject()` after navigating to a page — this injects monitoring scripts into the page context.
+2. Trigger any action that causes network requests (e.g., clicking a button).
+3. Call one of the `browser.network.wait.for.*` methods to wait for requests to settle.
+
+> **Note:** Monitoring must be injected on each page navigation. The injection is not persistent across `goto()` calls.
+
+### network.inject()
+
+Injects network monitoring scripts into the current page.
+
+```javascript
+await browser.goto('https://example.com')
+await browser.network.inject()
+```
+
+**Returns**: `Promise<void>`
+
+**Use when**: After every page navigation, before triggering any network requests.
+
+### network.wait.for.ajax([timeout])
+
+Waits for all active XHR (XMLHttpRequest) requests to complete.
+
+```javascript
+// Wait with default timeout (from selenium config)
+await browser.network.wait.for.ajax()
+
+// Wait with custom 10-second timeout
+await browser.network.wait.for.ajax(10000)
+```
+
+**Parameters**:
+
+- `timeout` (number, optional): Maximum time to wait in milliseconds. Defaults to `selenium.timeout` from config.
+
+**Returns**: `Promise<boolean>` — `true` when no active XHR requests remain.
+
+**Use when**: The page uses traditional XHR for data loading.
+
+### network.wait.for.fetch([timeout])
+
+Waits for all active fetch requests to complete.
+
+```javascript
+// Wait with default timeout
+await browser.network.wait.for.fetch()
+
+// Wait with custom 15-second timeout
+await browser.network.wait.for.fetch(15000)
+```
+
+**Parameters**:
+
+- `timeout` (number, optional): Maximum time to wait in milliseconds. Defaults to `selenium.timeout` from config.
+
+**Returns**: `Promise<boolean>` — `true` when no active fetch requests remain.
+
+**Use when**: The page uses the Fetch API for data loading.
+
+### network.wait.for.all([timeout])
+
+Waits for **both** XHR and fetch requests to complete.
+
+```javascript
+// Wait with default timeout
+await browser.network.wait.for.all()
+
+// Wait with custom 20-second timeout
+await browser.network.wait.for.all(20000)
+```
+
+**Parameters**:
+
+- `timeout` (number, optional): Maximum time to wait in milliseconds. Defaults to `selenium.timeout` from config.
+
+**Returns**: `Promise<boolean>` — `true` when no active network requests remain.
+
+**Use when**: The page uses a mix of XHR and fetch, or you are unsure which method is used.
+
+### network.wait.for.request(urlPattern, [timeout])
+
+Waits for a specific network request matching a URL pattern to complete.
+
+```javascript
+// Wait for a request containing 'api/users'
+await browser.network.wait.for.request('api/users')
+
+// Wait with custom timeout
+await browser.wait.for.request('api/users', 10000)
+
+// Wait using a regular expression
+await browser.network.wait.for.request(/\/api\/v2\/.*\.json/)
+```
+
+**Parameters**:
+
+- `urlPattern` (string | RegExp): Pattern to match against request URLs. Strings perform a substring match, RegExp uses full regex matching.
+- `timeout` (number, optional): Maximum time to wait in milliseconds. Defaults to `selenium.timeout` from config.
+
+**Returns**: `Promise<boolean>` — `true` when a matching request has completed.
+
+**Use when**: You need to wait for a specific API call rather than all network activity.
+
+### Typical Usage Pattern
+
+```javascript
+import WebBrowser from '@nodebug/selenium'
+
+async function testAsyncLoading() {
+  const browser = new WebBrowser()
+
+  try {
+    await browser.start()
+    await browser.goto('https://example.com/dashboard')
+
+    // Inject monitoring BEFORE triggering requests
+    await browser.network.inject()
+
+    // Click button that loads data via XHR/fetch
+    await browser.button('Load Data').click()
+
+    // Wait for all network activity to settle
+    await browser.network.wait.for.all()
+
+    // Verify data is displayed
+    await browser.table('Results').should.be.visible()
+  } finally {
+    await browser.close()
+  }
+}
+
+testAsyncLoading()
 ```
 
 ---
