@@ -19,5 +19,15 @@ export default [
     },
   },
 
+  // Browser globals for injected scripts
+  {
+    files: ['app/command-delegates/*.js'],
+    languageOptions: {
+      globals: {
+        ...globals.browser,
+      },
+    },
+  },
+
   prettierConfig,
 ]

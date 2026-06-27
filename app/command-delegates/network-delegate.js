@@ -2,8 +2,14 @@ import { log } from '@nodebug/logger';
 import messenger from '../messenger.js';
 import config from '@nodebug/config';
 import { BaseDelegate } from './base-delegate.js';
+import { readFile } from 'fs/promises';
+import { createRequire } from 'module';
 
 const selenium = config('selenium');
+
+// Resolve the path to the NetworkHelper IIFE script
+const require = createRequire(import.meta.url);
+const networkHelperPath = require.resolve('./network-helper.js');
 
 /**
  * Network delegate for handling network-related operations
@@ -17,6 +23,11 @@ export class NetworkDelegate extends BaseDelegate {
   constructor(browser) {
     super(browser);
   }
+
+  /**
+   * @type {boolean}
+   */
+  get debug() { return selenium.debug ?? false; }
 
   /**
    * Injects network monitoring scripts into the page.
@@ -33,85 +44,40 @@ export class NetworkDelegate extends BaseDelegate {
    */
   async inject() {
     const browser = this.browser;
-
-    // Selenium's executeScript runs in an isolated context, so prototype patches
-    // don't affect the page. We must inject via <script> tags to run in the page's main context.
-    // DOM attributes ARE shared between contexts, so we use them as a bridge for polling.
-    const injectScript = `
-      (function() {
-        var script = document.createElement('script');
-        script.textContent = '(' + function() {
-          if (window.__networkMonitored) return;
-          window.__networkMonitored = true;
-
-          // XHR monitoring
-          window.__activeXhrCount = 0;
-          var originalOpen = XMLHttpRequest.prototype.open;
-          var originalSend = XMLHttpRequest.prototype.send;
-
-          XMLHttpRequest.prototype.open = function(method, url) {
-            this._xhrUrl = url;
-            this._xhrMethod = method;
-            return originalOpen.apply(this, arguments);
-          };
-
-          XMLHttpRequest.prototype.send = function() {
-            window.__activeXhrCount++;
-            var self = this;
-            this.addEventListener('readystatechange', function() {
-              if (self.readyState === 4) {
-                window.__activeXhrCount--;
-                if (window.__completedRequests) {
-                  window.__completedRequests.push({ url: self._xhrUrl || '', method: self._xhrMethod || 'XHR' });
-                }
-              }
-            });
-            return originalSend.apply(this, arguments);
-          };
-
-          // Fetch monitoring
-          window.__activeFetchCount = 0;
-          var originalFetch = window.fetch;
-          window.fetch = function() {
-            window.__activeFetchCount++;
-            var args = Array.prototype.slice.call(arguments);
-            var url = (args[0] || '').toString();
-            return originalFetch.apply(this, args).then(function(response) {
-              return response;
-            }).catch(function(err) {
-              throw err;
-            }).finally(function() {
-              window.__activeFetchCount--;
-              if (window.__completedRequests) {
-                window.__completedRequests.push({ url: url, method: 'FETCH' });
-              }
-            });
-          };
-
-          // Completed requests tracking
-          window.__completedRequests = [];
-
-          // Set initial DOM bridge attributes so Selenium can read state
-          document.body.setAttribute('data-network-xhr-count', '0');
-          document.body.setAttribute('data-network-fetch-count', '0');
-          document.body.setAttribute('data-network-completed-requests', '[]');
-
-          // Update DOM bridge whenever counters change (polls from within page context)
-          setInterval(function() {
-            document.body.setAttribute('data-network-xhr-count', String(window.__activeXhrCount || 0));
-            document.body.setAttribute('data-network-fetch-count', String(window.__activeFetchCount || 0));
-            document.body.setAttribute('data-network-completed-requests', JSON.stringify(window.__completedRequests || []));
-          }, 50);
-        }.toString() + ').call(window);';
-        document.head.appendChild(script);
-      })();
-    `;
-
     try {
-      await browser.driver.executeScript(injectScript);
+      await this._injectNetworkHelper();
       log.info('Network monitoring scripts injected');
     } catch (err) {
       browser.handleError(err, 'injecting network monitoring scripts');
+    }
+  }
+
+  /**
+   * Injects the NetworkHelper IIFE script into the page.
+   * This mirrors the pattern used for ElementFinder injection.
+   * @private
+   */
+  async _injectNetworkHelper() {
+    const browser = this.browser;
+    try {
+      // Check if NetworkHelper already exists in the page
+      const exists = await browser.driver.executeScript(`return typeof window.NetworkHelper !== 'undefined';`);
+      if (!exists) {
+        const scriptContent = await readFile(networkHelperPath, 'utf8');
+        // Execute the IIFE script and assign to window.NetworkHelper (the script does this itself)
+        await browser.driver.executeScript(`
+          ${scriptContent}
+        `);
+        const injected = await browser.driver.executeScript(`return typeof window.NetworkHelper !== 'undefined';`);
+        if (!injected) {
+          throw new Error('NetworkHelper script injection failed - window.NetworkHelper not defined');
+        }
+      }
+    } catch (err) {
+      if (this.debug) {
+        console.warn('Failed to inject NetworkHelper:', err.message);
+      }
+      throw err;
     }
   }
 

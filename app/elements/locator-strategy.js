@@ -164,10 +164,6 @@ export class LocatorStrategy {
           return result;
         `, parent, childData.type, childData.id, childData.exact);
 
-        if (this.debug) {
-          log.debug(`findChildElements: type='${childData.type}', id='${childData.id}', exact=${childData.exact}, result count=${elements?.elements?.length || 0}`);
-        }
-
         if (!elements || !elements.elements || elements.elements.length === 0) {
           return [];
         }
