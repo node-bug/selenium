@@ -224,6 +224,30 @@ export class LocatorStrategy {
   }
 
   /**
+   * Checks DOM containment for elements within a reference element.
+   * Used as fallback when reference element has zero dimensions (e.g., modal-dialog wrappers).
+   *
+   * @param {WebElement} reference - The reference element to check containment within.
+   * @param {WebElement[]} candidates - Array of candidate elements to filter (with metadata).
+   * @returns {Promise<WebElement[]>} Elements that are contained within the reference (preserving metadata).
+   */
+  async #checkContainment(reference, candidates) {
+    if (!candidates || candidates.length === 0) return [];
+
+    // Get indices of contained elements (since executeScript returns new WebElement objects)
+    const containedIndices = await this.driver.executeScript(`
+      const ref = arguments[0];
+      const cands = arguments[1];
+      return cands
+        .map((c, idx) => ref.contains(c) ? idx : -1)
+        .filter(idx => idx !== -1);
+    `, reference, candidates);
+
+    // Return the original WebElement objects that have metadata
+    return containedIndices.map(idx => candidates[idx]);
+  }
+
+  /**
    * Finds all matching elements across frames.
    * 
    * Searches frame-by-frame: main frame first, then child frames.
@@ -1019,10 +1043,24 @@ export class LocatorStrategy {
           // against any of them (similar to findAll behavior)
           const referenceMatches = Array.isArray(currentElement) ? currentElement : [currentElement];
 
-          const results = await this.relativeSearch(target, item, referenceMatches.length === 1 ? referenceMatches[0] : referenceMatches);
-          
+          // Check if reference element has zero dimensions (e.g., modal-dialog wrapper)
+          // If so, use DOM containment instead of spatial filtering
+          const firstRef = Array.isArray(currentElement) ? currentElement[0] : currentElement;
+          const hasZeroDimensionReference = firstRef?.boundingBox &&
+            firstRef.boundingBox.width === 0 &&
+            firstRef.boundingBox.height === 0;
+
+          let results;
+          if (hasZeroDimensionReference && item.located === 'within') {
+            // Use DOM containment for zero-dimension reference elements
+            results = await this.#checkContainment(firstRef, target.matches);
+          } else {
+            // Normal spatial filtering
+            results = await this.relativeSearch(target, item, referenceMatches.length === 1 ? referenceMatches[0] : referenceMatches);
+          }
+
           currentElement = results[target.index ? target.index - 1 : 0];
-          
+
           if (!currentElement) {
             // For location items, report the target element's id with the context element's id
             const relation = item.located || 'within';
