@@ -37,8 +37,8 @@ export default function screenshotComparisonPlugin(browser, options = {}) {
     wrap: 'screenshot',  // Auto-wrap the screenshot method
 
     hooks: {
-      afterScreenshot: async ({ screenshot, options }) => {
-        if (!options.baseline) return { screenshot };
+      afterScreenshot: async ({ dataUrl, width, height, options }) => {
+        if (!options.baseline) return { dataUrl, width, height };
 
         await loadDependencies();
 
@@ -47,7 +47,7 @@ export default function screenshotComparisonPlugin(browser, options = {}) {
         const path = await import('path');
         
         const baselineBuffer = await fs.promises.readFile(options.baseline);
-        const actualBuffer = Buffer.from(screenshot, 'base64');
+        const actualBuffer = Buffer.from(dataUrl, 'base64');
 
         const img1 = PNG.sync.read(baselineBuffer);
         const img2 = PNG.sync.read(actualBuffer);
@@ -55,7 +55,9 @@ export default function screenshotComparisonPlugin(browser, options = {}) {
         // Check dimensions
         if (img1.width !== img2.width || img1.height !== img2.height) {
           return {
-            screenshot,
+            dataUrl,
+            width,
+            height,
             comparison: {
               match: false,
               reason: 'dimensions-mismatch',
@@ -74,7 +76,9 @@ export default function screenshotComparisonPlugin(browser, options = {}) {
         );
 
         const result = {
-          screenshot,
+          dataUrl,
+          width,
+          height,
           comparison: {
             match: mismatches === 0,
             mismatchedPixels: mismatches,
@@ -106,8 +110,8 @@ export default function screenshotComparisonPlugin(browser, options = {}) {
        * @param {Object} options - Comparison options
        */
       assertVisual: async (baselinePath, options = {}) => {
-        const screenshot = await browser.get.screenshot();
-        const result = await browser.visual.compare(screenshot, {
+        const { dataUrl } = await browser.get.screenshot();
+        const result = await browser.visual.compare(dataUrl, {
           ...options,
           baseline: baselinePath
         });
@@ -126,7 +130,7 @@ export default function screenshotComparisonPlugin(browser, options = {}) {
        * @param {string} baselinePath - Path to save baseline
        */
       createBaseline: async (baselinePath) => {
-        const screenshot = await browser.get.screenshot();
+        const { dataUrl } = await browser.get.screenshot();
         const fs = await import('fs');
         const path = await import('path');
         
@@ -135,7 +139,7 @@ export default function screenshotComparisonPlugin(browser, options = {}) {
           fs.mkdirSync(dir, { recursive: true });
         }
         
-        await fs.promises.writeFile(baselinePath, Buffer.from(screenshot, 'base64'));
+        await fs.promises.writeFile(baselinePath, Buffer.from(dataUrl, 'base64'));
         return baselinePath;
       }
     })

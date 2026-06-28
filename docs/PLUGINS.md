@@ -14,8 +14,8 @@ browser.use({
     beforeScreenshot: (data) => {
       /* modify screenshot options */
     },
-    afterScreenshot: (data) => {
-      /* process screenshot result */
+    afterScreenshot: ({ dataUrl, width, height }) => {
+      /* process screenshot result object */
     },
   },
   extend: (browser) => ({
@@ -57,7 +57,7 @@ browser.use({
     beforeScreenshot: (data) => {
       /* ... */
     },
-    afterScreenshot: (data) => {
+    afterScreenshot: ({ dataUrl, width, height }) => {
       /* ... */
     },
     beforeClick: (args) => {
@@ -159,9 +159,9 @@ module.exports = {
       options.timestamp = Date.now()
       return options
     },
-    afterScreenshot: (buffer) => {
-      // Add watermark or process the screenshot
-      return processScreenshot(buffer)
+    afterScreenshot: ({ dataUrl, width, height }) => {
+      // Add watermark or process the screenshot result object
+      return processScreenshot({ dataUrl, width, height })
     },
   },
   extend: (browser) => ({
@@ -210,7 +210,7 @@ Receive the arguments that would be passed to the wrapped method:
 Receive the result returned by the wrapped method:
 
 - `afterClick`: receives the click result
-- `afterScreenshot`: receives the screenshot buffer/base64
+- `afterScreenshot`: receives the screenshot result object `{ dataUrl, width, height }`
 - `afterGoto`: receives the navigation result
 
 ### Important Notes
@@ -236,8 +236,8 @@ browser.use({
     beforeScreenshot: (data) => {
       /* modify screenshot options */
     },
-    afterScreenshot: (data) => {
-      /* process screenshot result */
+    afterScreenshot: ({ dataUrl, width, height }) => {
+      /* process screenshot result object */
     },
   },
   extend: (browser) => ({
@@ -279,7 +279,7 @@ browser.use({
     beforeScreenshot: (data) => {
       /* ... */
     },
-    afterScreenshot: (data) => {
+    afterScreenshot: ({ dataUrl, width, height }) => {
       /* ... */
     },
     beforeClick: (args) => {
@@ -379,9 +379,9 @@ module.exports = {
       options.timestamp = Date.now()
       return options
     },
-    afterScreenshot: (buffer) => {
-      // Add watermark or process the screenshot
-      return processScreenshot(buffer)
+    afterScreenshot: ({ dataUrl, width, height }) => {
+      // Add watermark or process the screenshot result object
+      return processScreenshot({ dataUrl, width, height })
     },
   },
   extend: (browser) => ({
@@ -408,7 +408,7 @@ Receive the arguments that would be passed to the wrapped method:
 Receive the result returned by the wrapped method:
 
 - `afterClick`: receives the click result
-- `afterScreenshot`: receives the screenshot buffer/base64
+- `afterScreenshot`: receives the screenshot result object `{ dataUrl, width, height }`
 - `afterGoto`: receives the navigation result
 
 ### Important Notes
@@ -432,8 +432,8 @@ browser.use({
     beforeScreenshot: (data) => {
       /* modify screenshot options */
     },
-    afterScreenshot: (data) => {
-      /* process screenshot result */
+    afterScreenshot: ({ dataUrl, width, height }) => {
+      /* process screenshot result object */
     },
   },
   extend: (browser) => ({
@@ -475,7 +475,7 @@ browser.use({
     beforeScreenshot: (data) => {
       /* ... */
     },
-    afterScreenshot: (data) => {
+    afterScreenshot: ({ dataUrl, width, height }) => {
       /* ... */
     },
     beforeClick: (args) => {
@@ -575,9 +575,9 @@ module.exports = {
       options.timestamp = Date.now()
       return options
     },
-    afterScreenshot: (buffer) => {
-      // Add watermark or process the screenshot
-      return processScreenshot(buffer)
+    afterScreenshot: ({ dataUrl, width, height }) => {
+      // Add watermark or process the screenshot result object
+      return processScreenshot({ dataUrl, width, height })
     },
   },
   extend: (browser) => ({
@@ -604,7 +604,7 @@ Receive the arguments that would be passed to the wrapped method:
 Receive the result returned by the wrapped method:
 
 - `afterClick`: receives the click result
-- `afterScreenshot`: receives the screenshot buffer/base64
+- `afterScreenshot`: receives the screenshot result object `{ dataUrl, width, height }`
 - `afterGoto`: receives the navigation result
 
 ### Important Notes
@@ -628,8 +628,8 @@ browser.use({
     beforeScreenshot: (data) => {
       /* modify screenshot options */
     },
-    afterScreenshot: (data) => {
-      /* process screenshot result */
+    afterScreenshot: ({ dataUrl, width, height }) => {
+      /* process screenshot result object */
     },
   },
   extend: (browser) => ({
@@ -671,7 +671,7 @@ browser.use({
     beforeScreenshot: (data) => {
       /* ... */
     },
-    afterScreenshot: (data) => {
+    afterScreenshot: ({ dataUrl, width, height }) => {
       /* ... */
     },
     beforeClick: (args) => {
@@ -759,12 +759,12 @@ export default function screenshotComparisonPlugin(browser, options = {}) {
     wrap: 'screenshot', // Auto-wrap screenshot method for hooks
 
     hooks: {
-      afterScreenshot: async ({ screenshot, options }) => {
-        if (!options.baseline) return { screenshot }
+      afterScreenshot: async ({ dataUrl, width, height, options }) => {
+        if (!options.baseline) return { dataUrl, width, height }
 
         // Read baseline image
         const baselineBuffer = await fs.promises.readFile(options.baseline)
-        const actualBuffer = Buffer.from(screenshot, 'base64')
+        const actualBuffer = Buffer.from(dataUrl, 'base64')
 
         const img1 = PNG.sync.read(baselineBuffer)
         const img2 = PNG.sync.read(actualBuffer)
@@ -772,7 +772,9 @@ export default function screenshotComparisonPlugin(browser, options = {}) {
         // Check dimensions
         if (img1.width !== img2.width || img1.height !== img2.height) {
           return {
-            screenshot,
+            dataUrl,
+            width,
+            height,
             comparison: {
               match: false,
               reason: 'dimensions-mismatch',
@@ -794,7 +796,9 @@ export default function screenshotComparisonPlugin(browser, options = {}) {
         )
 
         const result = {
-          screenshot,
+          dataUrl,
+          width,
+          height,
           comparison: {
             match: mismatches === 0,
             mismatchedPixels: mismatches,
@@ -822,7 +826,7 @@ export default function screenshotComparisonPlugin(browser, options = {}) {
     extend: () => ({
       assertVisual: async (baselinePath, threshold = 0.1) => {
         const screenshot = await browser.get.screenshot()
-        const result = await browser.visual.compare(screenshot, {
+        const result = await browser.visual.compare(screenshot.dataUrl, {
           baseline: baselinePath,
           threshold,
         })

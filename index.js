@@ -535,12 +535,19 @@ class WebBrowser extends Browser {
 
       screenshot: async () => {
         let dataUrl = null;
+        let width = null;
+        let height = null;
         let pauseState = null;
 
         // Pause animations before taking screenshot to ensure consistent results
         try {
           await this.locatorStrategy._injectElementFinder();
-          pauseState = await this.driver.executeScript('return window.ElementFinder.pauseAnimations()');
+          pauseState = await this.driver.executeScript(`
+            if (!window.ElementFinder || typeof window.ElementFinder.pauseAnimations !== 'function') {
+              return null;
+            }
+            return window.ElementFinder.pauseAnimations();
+          `);
         } catch (err) {
           log.warn(`Could not pause animations for screenshot: ${err.message}`);
         }
@@ -550,6 +557,8 @@ class WebBrowser extends Browser {
             try {
               this.message = messenger({ stack: this.stack, action: 'screenshot' });
               const locator = await this._finder();
+              width = locator.boundingBox?.width;
+              height = locator.boundingBox?.height;
               dataUrl = await locator.takeScreenshot(true);
             } catch (err) {
               log.error(`Failed to capture element screenshot: ${err.message}`);
@@ -559,6 +568,17 @@ class WebBrowser extends Browser {
           if (!dataUrl) {
             log.info('Capturing screenshot of the full page');
             dataUrl = await this.driver.takeScreenshot();
+            // For full page screenshots, get window dimensions via JavaScript
+            if (width === null || height === null) {
+              const fullPageDims = await this.driver.executeScript(`
+                return {
+                  width: document.documentElement.scrollWidth,
+                  height: document.documentElement.scrollHeight
+                };
+              `);
+              width = fullPageDims.width;
+              height = fullPageDims.height;
+            }
           }
         } finally {
           // Resume animations after taking screenshot
@@ -575,7 +595,7 @@ class WebBrowser extends Browser {
         }
 
         this.stack = [];
-        return dataUrl;
+        return { dataUrl, width, height };
       },
     };
   }

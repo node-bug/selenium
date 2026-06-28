@@ -11,7 +11,7 @@
     "url": "https://github.com/node-bug/selenium/issues"
   },
   "dependencies": {
-    "@nodebug/browser-element-finder": "^1.2.5",
+    "@nodebug/browser-element-finder": "^1.2.6",
     "@nodebug/config": "^2.1.4",
     "@nodebug/logger": "^1.1.5",
     "selenium-webdriver": "4.43.0"

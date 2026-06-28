@@ -496,6 +496,7 @@ describe('WebBrowser', () => {
     test('get.screenshot() uses element screenshot when stack exists', async () => {
         const locator = {
             takeScreenshot: vi.fn().mockResolvedValue('element-img'),
+            boundingBox: { width: 100, height: 50 },
         };
 
         browser._finder = vi.fn().mockResolvedValue(locator);
@@ -507,12 +508,16 @@ describe('WebBrowser', () => {
 
         const result = await browser.get.screenshot();
 
-        expect(result).toBe('element-img');
+        expect(result.dataUrl).toBe('element-img');
+        expect(result.width).toBe(100);
+        expect(result.height).toBe(50);
     });
     test('get.screenshot() falls back to driver screenshot', async () => {
         browser._finder = vi.fn().mockRejectedValue(new Error('fail'));
         browser.driver = {
-            executeScript: vi.fn().mockResolvedValue({ originalStyles: new Map(), pausedCount: 0 }),
+            executeScript: vi.fn()
+                .mockResolvedValueOnce({ originalStyles: new Map(), pausedCount: 0 }) // pause
+                .mockResolvedValueOnce({ width: 800, height: 600 }), // full page dims
             takeScreenshot: vi.fn().mockResolvedValue('page-img'),
         };
 
@@ -520,23 +525,14 @@ describe('WebBrowser', () => {
 
         const result = await browser.get.screenshot();
 
-        expect(result).toBe('page-img');
+        expect(result.dataUrl).toBe('page-img');
+        expect(typeof result.width).toBe('number');
+        expect(typeof result.height).toBe('number');
     });
     test('get.screenshot() succeeds when pauseAnimations fails', async () => {
-        browser._finder = vi.fn().mockRejectedValue(new Error('no element'));
-        browser.driver = {
-            executeScript: vi.fn().mockRejectedValue(new Error('ElementFinder not available')),
-            takeScreenshot: vi.fn().mockResolvedValue('page-img'),
-        };
-
-        const result = await browser.get.screenshot();
-
-        expect(result).toBe('page-img');
-    });
-    test('get.screenshot() succeeds when resumeAnimations fails', async () => {
         const executeScriptMock = vi.fn()
-            .mockResolvedValueOnce({ originalStyles: new Map(), pausedCount: 0 }) // pause
-            .mockRejectedValueOnce(new Error('resume failed')); // resume
+            .mockRejectedValueOnce(new Error('ElementFinder not available')) // pause fails
+            .mockResolvedValueOnce({ width: 800, height: 600 }); // full page dims
 
         browser._finder = vi.fn().mockRejectedValue(new Error('no element'));
         browser.driver = {
@@ -546,11 +542,32 @@ describe('WebBrowser', () => {
 
         const result = await browser.get.screenshot();
 
-        expect(result).toBe('page-img');
+        expect(result.dataUrl).toBe('page-img');
+        expect(typeof result.width).toBe('number');
+        expect(typeof result.height).toBe('number');
+    });
+    test('get.screenshot() succeeds when resumeAnimations fails', async () => {
+        const executeScriptMock = vi.fn()
+            .mockResolvedValueOnce({ originalStyles: new Map(), pausedCount: 0 }) // pause
+            .mockResolvedValueOnce({ width: 800, height: 600 }) // full page dims
+            .mockRejectedValueOnce(new Error('resume failed')); // resume - but error is caught
+
+        browser._finder = vi.fn().mockRejectedValue(new Error('no element'));
+        browser.driver = {
+            executeScript: executeScriptMock,
+            takeScreenshot: vi.fn().mockResolvedValue('page-img'),
+        };
+
+        const result = await browser.get.screenshot();
+
+        expect(result.dataUrl).toBe('page-img');
+        expect(typeof result.width).toBe('number');
+        expect(typeof result.height).toBe('number');
     });
     test('get.screenshot() calls pause and resume animations', async () => {
         const locator = {
             takeScreenshot: vi.fn().mockResolvedValue('element-img'),
+            boundingBox: { width: 100, height: 50 },
         };
 
         const executeScriptMock = vi.fn()
@@ -567,7 +584,7 @@ describe('WebBrowser', () => {
         await browser.get.screenshot();
 
         expect(executeScriptMock).toHaveBeenCalledTimes(2);
-        expect(executeScriptMock).toHaveBeenNthCalledWith(1, 'return window.ElementFinder.pauseAnimations()');
+        expect(executeScriptMock).toHaveBeenNthCalledWith(1, expect.stringContaining('pauseAnimations'));
         expect(executeScriptMock).toHaveBeenNthCalledWith(2, 'window.ElementFinder.resumeAnimations(arguments[0])', { originalStyles: new Map(), pausedCount: 2 });
     });
     test('upload() handles error via handleError', async () => {
