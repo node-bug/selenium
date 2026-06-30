@@ -57,7 +57,7 @@ export class BrowserTarget {
      * 
      * @returns {number} Timeout value in milliseconds
      */
-    get timeout() { return (selenium.timeout || 10) * 1000; }
+    get timeout() { return selenium.timeout || 10000; }
 
     /**
      * Chain method for fluent interface

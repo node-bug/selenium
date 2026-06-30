@@ -20,7 +20,7 @@ class Alert {
     initialize(driver) { this._driver = driver; }
     get driver() { return this._driver; }
     set driver(value) { this.initialize(value); }
-    get timeout() { return (selenium.timeout || 10) * 1000; }
+    get timeout() { return selenium.timeout || 10000; }
 
     /**
      * Chain method for fluent interface

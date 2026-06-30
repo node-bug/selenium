@@ -180,7 +180,7 @@ Create `.config/selenium.json`:
 {
   "browser": "chrome",
   "headless": true,
-  "timeout": 10,
+  "timeout": 10000,
   "width": 1280,
   "height": 800
 }

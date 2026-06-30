@@ -118,7 +118,7 @@ export class NetworkDelegate extends BaseDelegate {
    */
   async #waitForAjax(timeout = null) {
     const browser = this.browser;
-    const waitTimeout = timeout ?? (selenium.timeout * 1000);
+    const waitTimeout = timeout ?? selenium.timeout;
     const endTime = Date.now() + waitTimeout;
 
     try {
@@ -155,7 +155,7 @@ export class NetworkDelegate extends BaseDelegate {
    */
   async #waitForFetch(timeout = null) {
     const browser = this.browser;
-    const waitTimeout = timeout ?? (selenium.timeout * 1000);
+    const waitTimeout = timeout ?? selenium.timeout;
     const endTime = Date.now() + waitTimeout;
 
     try {
@@ -192,7 +192,7 @@ export class NetworkDelegate extends BaseDelegate {
    */
   async #waitForAll(timeout = null) {
     const browser = this.browser;
-    const waitTimeout = timeout ?? (selenium.timeout * 1000);
+    const waitTimeout = timeout ?? selenium.timeout;
     const endTime = Date.now() + waitTimeout;
 
     try {
@@ -231,7 +231,7 @@ export class NetworkDelegate extends BaseDelegate {
    */
   async #waitForRequest(urlPattern, timeout = null) {
     const browser = this.browser;
-    const waitTimeout = timeout ?? (selenium.timeout * 1000);
+    const waitTimeout = timeout ?? selenium.timeout;
     const endTime = Date.now() + waitTimeout;
 
     try {

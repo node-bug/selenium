@@ -160,7 +160,7 @@ class WebBrowser extends Browser {
   async _finder(t = null) {
     let locator;
     const stacks = this.getDescriptions();
-    const timeout = t ?? (selenium.timeout * 1000);
+    const timeout = t ?? selenium.timeout;
     const endTime = Date.now() + timeout;
 
     while (Date.now() < endTime) {
@@ -219,7 +219,7 @@ class WebBrowser extends Browser {
   async findAll(t = null) {
     this.message = messenger({ stack: this.stack, action: 'find' });
     const stacks = this.getDescriptions();
-    const timeout = t ?? (selenium.timeout * 1000);
+    const timeout = t ?? selenium.timeout;
     const endTime = Date.now() + timeout;
 
     let locators = [];

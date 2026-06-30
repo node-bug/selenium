@@ -60,7 +60,7 @@ Create `.config/selenium.json`:
 {
   "browser": "chrome",
   "headless": false,
-  "timeout": 10
+  "timeout": 10000
 }
 ```
 
@@ -429,7 +429,7 @@ See [ENGINEERING.md](docs/ENGINEERING.md#module-decision-trees) for detailed gui
 ### Waiting for Elements (Implicit Waits)
 
 ```javascript
-// Will wait up to 30 seconds (configured timeout)
+// Will wait up to configured timeout (milliseconds)
 await browser.element('Loading').should.not.be.visible()
 ````
 

@@ -370,7 +370,7 @@ Elements are matched by searching attributes in priority:
 // Simplified flow in _finder()
 async _finder(t = null) {
   const stacks = this.getDescriptions();  // Split OR conditions
-  const timeout = t ?? (selenium.timeout * 1000);
+  const timeout = t ?? selenium.timeout;
   const endTime = Date.now() + timeout;
 
   while (Date.now() < endTime) {

@@ -83,7 +83,7 @@ console.log(`Found ${items.length} items`)
 // Get all links
 const links = await browser.link('nav-link').findAll()
 
-// Custom timeout (5 seconds)
+// Custom timeout (5000 ms)
 const results = await browser.button('result').findAll(5000)
 
 // OR condition - find buttons with either text
@@ -1659,7 +1659,7 @@ Waits for all active XHR (XMLHttpRequest) requests to complete.
 // Wait with default timeout (from selenium config)
 await browser.network.wait.for.ajax()
 
-// Wait with custom 10-second timeout
+// Wait with custom 10000 ms timeout
 await browser.network.wait.for.ajax(10000)
 ```
 
@@ -1679,7 +1679,7 @@ Waits for all active fetch requests to complete.
 // Wait with default timeout
 await browser.network.wait.for.fetch()
 
-// Wait with custom 15-second timeout
+// Wait with custom 15000 ms timeout
 await browser.network.wait.for.fetch(15000)
 ```
 
@@ -1699,7 +1699,7 @@ Waits for **both** XHR and fetch requests to complete.
 // Wait with default timeout
 await browser.network.wait.for.all()
 
-// Wait with custom 20-second timeout
+// Wait with custom 20000 ms timeout
 await browser.network.wait.for.all(20000)
 ```
 

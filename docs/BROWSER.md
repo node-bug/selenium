@@ -432,7 +432,7 @@ Create `.config/selenium.json`:
 | `browser`       | string  | `"chrome"` | Browser type (`"chrome"`, `"firefox"`, `"safari"`) |
 | `headless`      | boolean | `false`    | Run without GUI                                    |
 | `incognito`     | boolean | `false`    | Private browsing mode                              |
-| `timeout`       | number  | `30`       | Default element timeout (seconds)                  |
+| `timeout`       | number  | `30000`    | Default element timeout (milliseconds)             |
 | `width`         | number  | `null`     | Window width (pixels)                              |
 | `height`        | number  | `null`     | Window height (pixels)                             |
 | `downloadsPath` | string  | `null`     | Directory for downloads                            |

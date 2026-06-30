@@ -190,11 +190,11 @@ Set browser window dimensions:
 
 ### Timeout
 
-Set default wait timeout in seconds:
+Set default wait timeout in milliseconds:
 
 ```json
 {
-  "timeout": 30
+  "timeout": 30000
 }
 ```
 

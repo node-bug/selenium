@@ -254,7 +254,7 @@ npm run lint                # ESLint check
 - **Vitest** with single-thread execution (`minThreads: 1`, `maxThreads: 1`) for proper browser cleanup
 - Integration tests use real Chrome browser via Selenium
 - Unit tests use mocks for dependencies
-- Test timeout: 100 seconds
+- Test timeout: 100000 ms
 - Force exit to ensure browser cleanup
 
 ## Code Conventions
@@ -487,7 +487,7 @@ Element finding uses retry loop until timeout:
 
 ```javascript
 async _finder(t = null) {
-  const timeout = t ?? (selenium.timeout * 1000);
+  const timeout = t ?? selenium.timeout;
   const endTime = Date.now() + timeout;
 
   while (Date.now() < endTime) {

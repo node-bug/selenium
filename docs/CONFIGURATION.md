@@ -58,13 +58,13 @@ Private browsing mode (no cookies/history saved).
 
 ### timeout
 
-Default timeout in seconds for element operations.
+Default timeout in milliseconds for element operations.
 
 ```json
-{ "timeout": 10 }
+{ "timeout": 10000 }
 ```
 
-**Default**: `10`
+**Default**: `10000`
 
 ### height / width
 

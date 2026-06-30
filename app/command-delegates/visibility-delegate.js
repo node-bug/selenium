@@ -51,7 +51,7 @@ export class VisibilityDelegate extends BaseDelegate {
     const browser = this.browser;
     let found = true;
 
-    const timeout = t ?? (selenium.timeout * 1000);
+    const timeout = t ?? selenium.timeout;
     const endTime = Date.now() + timeout;
     try {
       while (Date.now() < endTime) {
@@ -93,7 +93,7 @@ export class VisibilityDelegate extends BaseDelegate {
   async _isEnabled(t) {
     const browser = this.browser;
     let disabled = true;
-    const timeout = t ?? (selenium.timeout * 1000);
+    const timeout = t ?? selenium.timeout;
     const endTime = Date.now() + timeout;
     try {
       while (Date.now() < endTime) {
@@ -123,7 +123,7 @@ export class VisibilityDelegate extends BaseDelegate {
   async _isDisabled(t) {
     const browser = this.browser;
     let disabled = false;
-    const timeout = t ?? (selenium.timeout * 1000);
+    const timeout = t ?? selenium.timeout;
     const endTime = Date.now() + timeout;
     try {
       while (Date.now() < endTime) {
