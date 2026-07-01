@@ -106,46 +106,6 @@ describe('LocatorStrategy', () => {
       expect(results[0].inViewport).toBeUndefined();
     });
 
-    it('should filter hidden elements when requested', async () => {
-      const mockBoundingBox = { x: 0, y: 0, width: 0, height: 0, midx: 0, midy: 0 };
-      
-      mockDriver.executeScript
-        .mockResolvedValueOnce(true) // ElementFinder exists
-        .mockResolvedValueOnce(undefined) // Script injection in frame
-        .mockResolvedValueOnce({ 
-          elements: [{
-            element: { id: 'hidden' },
-            frameIndex: -1,
-            tagName: 'div',
-            boundingBox: mockBoundingBox
-          }]
-        }) // ElementFinder results - zero dimensions
-        .mockResolvedValueOnce(0); // No child frames
-
-      const results = await locatorStrategy.findElements({ id: 'test', type: 'element', hidden: true });
-      expect(results).toHaveLength(1);
-    });
-    
-    it('should filter visible elements by default', async () => {
-      const mockBoundingBox = { x: 0, y: 0, width: 10, height: 10, midx: 5, midy: 5 };
-      
-      mockDriver.executeScript
-        .mockResolvedValueOnce(true) // ElementFinder exists
-        .mockResolvedValueOnce(undefined) // Script injection in frame
-        .mockResolvedValueOnce({ 
-          elements: [{
-            element: { id: 'visible' },
-            frameIndex: -1,
-            tagName: 'div',
-            boundingBox: mockBoundingBox
-          }]
-        }) // ElementFinder results - visible
-        .mockResolvedValueOnce(0); // No child frames
-
-      const results = await locatorStrategy.findElements({ id: 'test', type: 'element' });
-      expect(results).toHaveLength(1);
-    });
-
     it('should filter visibility-hidden elements by isHidden metadata by default', async () => {
       const mockBoundingBox = { x: 0, y: 0, width: 100, height: 20, midx: 50, midy: 10 };
       

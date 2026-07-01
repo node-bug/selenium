@@ -10,7 +10,7 @@ Create `.config/selenium.json`:
 {
   "browser": "chrome",
   "headless": true,
-  "timeout": 10,
+  "timeout": 10000,
   "downloadsPath": "./reports/downloads",
   "incognito": false,
   "height": null,
@@ -173,7 +173,7 @@ Configuration can be set via (in priority order):
 {
   "browser": "chrome",
   "headless": false,
-  "timeout": 10,
+  "timeout": 10000,
   "width": 1280,
   "height": 800
 }
@@ -185,7 +185,7 @@ Configuration can be set via (in priority order):
 {
   "browser": "chrome",
   "headless": true,
-  "timeout": 30,
+  "timeout": 30000,
   "goog:chromeOptions": {
     "args": ["--no-sandbox", "--disable-dev-shm-usage"]
   }

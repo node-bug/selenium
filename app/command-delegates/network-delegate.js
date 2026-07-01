@@ -75,7 +75,7 @@ export class NetworkDelegate extends BaseDelegate {
       }
     } catch (err) {
       if (this.debug) {
-        console.warn('Failed to inject NetworkHelper:', err.message);
+        log.warn('Failed to inject NetworkHelper:', err.message);
       }
       throw err;
     }

@@ -56,7 +56,7 @@ vi.mock('@nodebug/logger', () => ({
 vi.mock('@nodebug/config', () => ({
   default: vi.fn(() => ({
     selenium: {
-      timeout: 5,
+      timeout: 5000,
     },
   })),
 }));

@@ -36,7 +36,7 @@ The integration tests show that Shadow DOM searches are particularly slow (some 
 
 ### 4. Refine Element Finding Logic
 
-The `LocatorStrategy` often performs "qualified" searches where it finds elements and then filters them (e.g., filtering out zero-dimension elements).
+The `LocatorStrategy` often performs "qualified" searches where it finds elements and then filters them (e.g., filtering by visibility metadata).
 
 **Optimization Opportunity:**
 

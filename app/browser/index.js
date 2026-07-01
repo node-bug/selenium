@@ -164,7 +164,7 @@ class Browser {
    */
   get timeout() {
     const timeoutValue = parseInt(selenium.timeout, 10);
-    return isNaN(timeoutValue) ? 10000 : timeoutValue * 1000;
+    return isNaN(timeoutValue) ? 10000 : timeoutValue;
   }
 
   /**

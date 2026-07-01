@@ -2,7 +2,7 @@ import { vi } from 'vitest';
 
 let dynamicConfig = {
   selenium: {
-    timeout: 5,
+    timeout: 5000,
     hub: null,
   },
 };
@@ -149,7 +149,7 @@ describe('Browser (ESM)', () => {
   // ---------------- PROPERTIES ----------------
   describe('properties', () => {
     test('has correct timeout property', () => {
-      expect(browser.timeout).toBe(5000); // 10 seconds * 1000
+      expect(browser.timeout).toBe(5000);
     });
 
     test('has correct capabilities getter/setter', () => {

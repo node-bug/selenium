@@ -32,7 +32,7 @@ Create `.config/selenium.json` in your project root:
 {
   "browser": "chrome",
   "headless": false,
-  "timeout": 30,
+  "timeout": 30000,
   "baseUrl": "https://example.com",
   "window": {
     "width": 1920,
@@ -247,7 +247,7 @@ Configure where files are downloaded:
 {
   "browser": "chrome",
   "headless": false,
-  "timeout": 30,
+  "timeout": 30000,
   "window": { "width": 1920, "height": 1080 }
 }
 ```
@@ -258,7 +258,7 @@ Configure where files are downloaded:
 {
   "browser": "chrome",
   "headless": true,
-  "timeout": 60,
+  "timeout": 60000,
   "chromeOptions": {
     "args": ["--no-sandbox", "--disable-gpu"]
   }
@@ -271,7 +271,7 @@ Configure where files are downloaded:
 {
   "browser": "chrome",
   "headless": true,
-  "timeout": 45,
+  "timeout": 45000,
   "chromeOptions": {
     "prefs": {
       "profile.managed_default_content_settings.images": 2
@@ -369,7 +369,7 @@ Set browser geolocation:
 {
   "browser": "chrome",
   "headless": false,
-  "timeout": 30,
+  "timeout": 30000,
   "window": {
     "width": 1920,
     "height": 1080
@@ -384,7 +384,7 @@ Set browser geolocation:
 {
   "browser": "chrome",
   "headless": true,
-  "timeout": 60,
+  "timeout": 60000,
   "chromeOptions": {
     "args": ["--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage"]
   }
@@ -428,7 +428,7 @@ BROWSER=firefox npm test
 ```json
 {
   "browser": "chrome",
-  "timeout": 60,
+  "timeout": 60000,
   "chromeOptions": {
     "args": ["--enable-automation"]
   }
@@ -475,7 +475,7 @@ BROWSER=firefox npm test
 
 ```json
 {
-  "timeout": 30,
+  "timeout": 30000,
   "baseUrl": "https://example.com",
   "window": {
     "width": 1920,
@@ -543,7 +543,7 @@ export SELENIUM_BROWSER=firefox
 export SELENIUM_HEADLESS=true
 
 # Set timeout
-export SELENIUM_TIMEOUT=60
+export SELENIUM_TIMEOUT=60000
 ```
 
 ---

@@ -75,7 +75,7 @@ export class LocatorStrategy {
       this.#elementFinderInjected = true;
     } catch (err) {
       if (this.debug) {
-        console.warn('Failed to inject ElementFinder:', err.message);
+        log.warn('Failed to inject ElementFinder:', err.message);
       }
       throw err; // Re-throw to ensure we know if injection fails
     }
@@ -98,7 +98,7 @@ export class LocatorStrategy {
       await this.driver.switchTo().defaultContent();
     } catch (err) {
       // If we can't switch to default content, the driver may be detached
-      if (this.debug) console.warn('Failed to switch to default content:', err.message);
+      if (this.debug) log.warn('Failed to switch to default content:', err.message);
       return null;
     }
 
@@ -109,7 +109,7 @@ export class LocatorStrategy {
         // Frame doesn't exist, moved, or is inaccessible - this is normal in dynamic pages
         // Only catch NoSuchFrameError, rethrow other errors
         if (err.name === 'NoSuchFrameError') {
-          if (this.debug) console.warn(`Frame ${frameIndex} not found`);
+          if (this.debug) log.warn(`Frame ${frameIndex} not found`);
           return null;
         }
         throw err;
@@ -124,7 +124,7 @@ export class LocatorStrategy {
       try {
         await this.driver.switchTo().defaultContent();
       } catch (err) {
-        if (this.debug) console.warn('Failed to restore default content after callback:', err.message);
+        if (this.debug) log.warn('Failed to restore default content after callback:', err.message);
       }
     }
   }
@@ -134,11 +134,11 @@ export class LocatorStrategy {
    *
    * This method is used for the 'within' spatial filter. It switches to the parent's
    * frame and uses ElementFinder to find matching children, then qualifies them
-   * with bounding-box metadata and filters out zero-dimension (invisible) elements.
+   * with bounding-box metadata.
    *
    * @param {WebElement} parent - The parent WebElement whose frame context to use.
    * @param {Object} childData - The selector descriptor containing `id`, `exact`, and `type`.
-   * @returns {Promise<WebElement[]>} Array of qualified child elements with visible dimensions.
+   * @returns {Promise<WebElement[]>} Array of qualified child elements with metadata.
    * @throws {Error} If context switching or query fails
    */
   async findChildElements(parent, childData) {
@@ -187,7 +187,7 @@ export class LocatorStrategy {
         return qualified;
       } catch (err) {
         if (this.debug) {
-          console.error(`Error finding child elements of type '${childData.type}':`, err.message);
+          log.error(`Error finding child elements of type '${childData.type}':`, err.message);
         }
         return [];
       }
@@ -221,30 +221,6 @@ export class LocatorStrategy {
    */
   async relativeSearch(item, rel, relativeElement) {
     return relativeSearch(item, rel, relativeElement);
-  }
-
-  /**
-   * Checks DOM containment for elements within a reference element.
-   * Used as fallback when reference element has zero dimensions (e.g., modal-dialog wrappers).
-   *
-   * @param {WebElement} reference - The reference element to check containment within.
-   * @param {WebElement[]} candidates - Array of candidate elements to filter (with metadata).
-   * @returns {Promise<WebElement[]>} Elements that are contained within the reference (preserving metadata).
-   */
-  async #checkContainment(reference, candidates) {
-    if (!candidates || candidates.length === 0) return [];
-
-    // Get indices of contained elements (since executeScript returns new WebElement objects)
-    const containedIndices = await this.driver.executeScript(`
-      const ref = arguments[0];
-      const cands = arguments[1];
-      return cands
-        .map((c, idx) => ref.contains(c) ? idx : -1)
-        .filter(idx => idx !== -1);
-    `, reference, candidates);
-
-    // Return the original WebElement objects that have metadata
-    return containedIndices.map(idx => candidates[idx]);
   }
 
   /**
@@ -343,7 +319,7 @@ export class LocatorStrategy {
       return count || 0;
     } catch (err) {
       if (this.debug) {
-        console.warn('Failed to get frame count:', err.message);
+        log.warn('Failed to get frame count:', err.message);
       }
       return 0;
     }
@@ -403,8 +379,7 @@ export class LocatorStrategy {
         // We just need to return the main frame elements here
 
         // Filter by visibility settings.
-        // ElementFinder's isHidden metadata already includes zero-dimension checks,
-        // visibility:hidden, ancestor-hidden elements, inert, hidden, and aria-hidden.
+        // ElementFinder's isHidden metadata includes visibility:hidden, ancestor-hidden elements, inert, hidden, and aria-hidden.
         const visibilityFilter = elementData.hidden
           ? (e) => elementData.onscreen ? e.inViewport === true : true  // Include all (or only onscreen)
           : (e) => e.isHidden !== true && (!elementData.onscreen || e.inViewport === true);
@@ -412,7 +387,7 @@ export class LocatorStrategy {
         return qualified.filter(visibilityFilter);
       } catch (err) {
         if (this.debug) {
-          console.warn(`Error searching in frame ${frameIndex}:`, err.message);
+          log.warn(`Error searching in frame ${frameIndex}:`, err.message);
         }
         return [];
       }
@@ -557,7 +532,7 @@ export class LocatorStrategy {
         return processed;
       } catch (err) {
         if (this.debug) {
-          console.warn(`Error searching for switch in frame ${frameIndex}:`, err.message);
+          log.warn(`Error searching for switch in frame ${frameIndex}:`, err.message);
         }
         return [];
       }
@@ -691,7 +666,7 @@ export class LocatorStrategy {
         return result;
       } catch (err) {
         if (this.debug) {
-          console.warn(`Error finding closest switch in frame ${frameIndex}:`, err.message);
+          log.warn(`Error finding closest switch in frame ${frameIndex}:`, err.message);
         }
         return null;
       }
@@ -833,8 +808,6 @@ export class LocatorStrategy {
             for (const target of targetResult.elements) {
               // Skip elements without the element property (from cross-origin iframes)
               if (!target.element) continue;
-              // Skip hidden elements (zero dimension)
-              if (target.boundingBox.height === 0 || target.boundingBox.width === 0) continue;
               const targetRect = target.element.getBoundingClientRect();
               const distance = getEdgeProximityDistance(refRect, targetRect);
               
@@ -855,7 +828,7 @@ export class LocatorStrategy {
         return result;
       } catch (err) {
         if (this.debug) {
-          console.warn(`Error finding closest element in frame ${frameIndex}:`, err.message);
+          log.warn(`Error finding closest element in frame ${frameIndex}:`, err.message);
         }
         return null;
       }
@@ -907,7 +880,7 @@ export class LocatorStrategy {
           }
         } catch (err) {
           if (this.debug) {
-            console.error(`Failed to resolve element '${newItem.id}' of type '${newItem.type}':`, err.message);
+            log.error(`Failed to resolve element '${newItem.id}' of type '${newItem.type}':`, err.message);
           }
           newItem.matches = []; // Empty matches on error
         }
@@ -1043,21 +1016,8 @@ export class LocatorStrategy {
           // against any of them (similar to findAll behavior)
           const referenceMatches = Array.isArray(currentElement) ? currentElement : [currentElement];
 
-          // Check if reference element has zero dimensions (e.g., modal-dialog wrapper)
-          // If so, use DOM containment instead of spatial filtering
-          const firstRef = Array.isArray(currentElement) ? currentElement[0] : currentElement;
-          const hasZeroDimensionReference = firstRef?.boundingBox &&
-            firstRef.boundingBox.width === 0 &&
-            firstRef.boundingBox.height === 0;
-
-          let results;
-          if (hasZeroDimensionReference && item.located === 'within') {
-            // Use DOM containment for zero-dimension reference elements
-            results = await this.#checkContainment(firstRef, target.matches);
-          } else {
-            // Normal spatial filtering
-            results = await this.relativeSearch(target, item, referenceMatches.length === 1 ? referenceMatches[0] : referenceMatches);
-          }
+          // Apply spatial filtering based on bounding box geometry
+          const results = await this.relativeSearch(target, item, referenceMatches.length === 1 ? referenceMatches[0] : referenceMatches);
 
           currentElement = results[target.index ? target.index - 1 : 0];
 
@@ -1273,7 +1233,7 @@ export class LocatorStrategy {
           });
         `, ...candidates);
       } catch (err) {
-        console.warn('Failed to highlight elements:', err.message);
+        log.warn('Failed to highlight elements:', err.message);
       }
     }
 

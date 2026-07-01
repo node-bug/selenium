@@ -106,7 +106,7 @@ vi.mock('@nodebug/logger', () => ({
 // Mock config module
 vi.mock('@nodebug/config', () => ({
   default: vi.fn(() => ({
-    timeout: 1, // small timeout for fast tests
+    timeout: 1000, // small timeout for fast tests
     browser: 'chrome',
 })),
 }));

@@ -443,7 +443,7 @@ Browser behavior is configured in `.config/selenium.json`:
 {
   "browser": "chrome",
   "headless": false,
-  "timeout": 30,
+  "timeout": 30000,
   "baseUrl": "https://example.com"
 }
 ```

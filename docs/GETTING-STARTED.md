@@ -20,7 +20,7 @@ Create `.config/selenium.json` in your project root:
 {
   "browser": "chrome",
   "headless": false,
-  "timeout": 30
+  "timeout": 30000
 }
 ```
 
@@ -458,7 +458,7 @@ See [SELECTORS.md#element-types](SELECTORS.md#element-types) for complete list.
 
 **"Timeout waiting for element"?**
 
-- Increase timeout in config: `"timeout": 30`
+- Increase timeout in config: `"timeout": 30000`
 - Or use explicit wait: `should.be.visible(60000)`
 - Check if element is inside modal: `.within.dialog()`
 
@@ -495,7 +495,7 @@ See [SELECTORS.md#element-types](SELECTORS.md#element-types) for complete list.
 {
   "browser": "chrome",
   "headless": true,
-  "timeout": 30,
+  "timeout": 30000,
   "downloadsPath": "./downloads"
 }
 ```

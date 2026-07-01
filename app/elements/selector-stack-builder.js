@@ -59,7 +59,7 @@ export class SelectorStackBuilder {
   }
 
   /**
-   * Marks the current selector to include hidden (zero-dimension) elements in results.
+   * Marks the current selector to include hidden elements in results.
    * Sets the `hidden` flag to `true` on the top-of-stack item.
    *
    * @returns {WebBrowser} The parent WebBrowser instance to switch back to action mode.

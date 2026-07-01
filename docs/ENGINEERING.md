@@ -1093,7 +1093,7 @@ console.log(
 {
   "browser": "chrome",
   "headless": false,
-  "timeout": 10,
+  "timeout": 10000,
   "width": 1280,
   "height": 800,
   "hub": null,

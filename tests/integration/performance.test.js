@@ -1,3 +1,4 @@
+import { log } from '@nodebug/logger';
 import WebBrowser from '../../index.js';
 
 describe('WebBrowser Performance Tests', () => {
@@ -19,7 +20,7 @@ describe('WebBrowser Performance Tests', () => {
     const loadTime = endTime - startTime;
 
     // Log performance metrics
-    console.log(`Page load time: ${loadTime}ms`);
+    log.info(`Page load time: ${loadTime}ms`);
     expect(loadTime).toBeLessThan(10000); // Should load within 10 seconds
   });
 
@@ -31,7 +32,7 @@ describe('WebBrowser Performance Tests', () => {
     const endTime = Date.now();
     const refreshTime = endTime - startTime;
 
-    console.log(`Page refresh time: ${refreshTime}ms`);
+    log.info(`Page refresh time: ${refreshTime}ms`);
     expect(refreshTime).toBeLessThan(10000);
   });
 });
