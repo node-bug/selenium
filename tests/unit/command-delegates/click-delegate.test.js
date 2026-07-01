@@ -199,6 +199,78 @@ describe('ClickDelegate (ESM)', () => {
       expect(actionsMock.click).toHaveBeenCalled();
     });
 
+    test('coordinate click converts top-left offset to center-relative origin', async () => {
+      // rect is { x: 0, y: 0, width: 100, height: 50 } => center (50, 25)
+      // top-left offset (10, 20) => center-relative (-40, -5)
+      await clickDelegate._clicker(mockElement, 10, 20);
+
+      expect(actionsMock.move).toHaveBeenCalledTimes(1);
+      const moveArg = actionsMock.move.mock.calls[0][0];
+      expect(moveArg).toEqual({ origin: mockElement, x: -40, y: -5 });
+    });
+
+    test('coordinate click uses element as origin regardless of element offset', async () => {
+      mockElement.getRect.mockResolvedValue({
+        x: 150,
+        y: 75,
+        width: 200,
+        height: 100, // center (100, 50)
+      });
+
+      // top-left offset (30, 40) => center-relative (-70, -10)
+      await clickDelegate._clicker(mockElement, 30, 40);
+
+      expect(actionsMock.move).toHaveBeenCalledTimes(1);
+      const moveArg = actionsMock.move.mock.calls[0][0];
+      expect(moveArg).toEqual({ origin: mockElement, x: -70, y: -10 });
+    });
+
+    test('coordinate click with NaN x/y throws a clear error', async () => {
+      mockElement.getRect.mockResolvedValue({
+        x: 50,
+        y: 60,
+        width: 100,
+        height: 50,
+      });
+
+      await expect(
+        clickDelegate._clicker(mockElement, NaN, NaN)
+      ).rejects.toThrow(/Invalid click coordinate.*is NaN/);
+
+      expect(actionsMock.move).not.toHaveBeenCalled();
+    });
+
+    test('coordinate click with NaN x only throws a clear error', async () => {
+      mockElement.getRect.mockResolvedValue({
+        x: 50,
+        y: 60,
+        width: 100,
+        height: 50,
+      });
+
+      await expect(
+        clickDelegate._clicker(mockElement, 'abc', 10)
+      ).rejects.toThrow(/Invalid click coordinate.*x \(abc\).*is NaN/);
+
+      expect(actionsMock.move).not.toHaveBeenCalled();
+    });
+
+    test('coordinate click with string numeric coordinates parses correctly', async () => {
+      mockElement.getRect.mockResolvedValue({
+        x: 10,
+        y: 20,
+        width: 100,
+        height: 50, // center (50, 25)
+      });
+
+      // top-left offset (5, 15) => center-relative (-45, -10)
+      await clickDelegate._clicker(mockElement, '5', '15');
+
+      expect(actionsMock.move).toHaveBeenCalledTimes(1);
+      const moveArg = actionsMock.move.mock.calls[0][0];
+      expect(moveArg).toEqual({ origin: mockElement, x: -45, y: -10 });
+    });
+
     test('throws out of bounds', async () => {
       await expect(
         clickDelegate._clicker(mockElement, 200, 200)

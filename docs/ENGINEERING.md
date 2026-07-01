@@ -214,7 +214,7 @@ Each item in the selector stack has a `type` property:
 | Type        | Properties                                          | Purpose                        |
 | ----------- | --------------------------------------------------- | ------------------------------ |
 | `element`   | `id`, `exact`, `hidden`, `index`, `matches`, `type` | Element selector descriptor    |
-| `location`  | `located`, `exactly`                                | Spatial relationship filter    |
+| `location`  | `located`, `exactly`, `parent`                      | Spatial relationship filter    |
 | `condition` | `operator`                                          | Logical operator (`or`)        |
 | `action`    | `perform`                                           | Action marker (`drag`, `onto`) |
 
@@ -236,6 +236,13 @@ Each item in the selector stack has a `type` property:
   type: 'location',
   located: 'below',         // Spatial relationship
   exactly: false            // Strict alignment
+}
+
+// Location filter with DOM containment
+{
+  type: 'location',
+  located: 'within',        // Containment relationship
+  parent: true              // Use DOM.contains() instead of bounding-box
 }
 
 // OR condition
@@ -296,14 +303,15 @@ findElement() // Find element via browser._finder()
 
 ### Spatial Relationships
 
-| Relationship | Condition                              | With `exactly`                |
-| ------------ | -------------------------------------- | ----------------------------- |
-| `above`      | `candidate.bottom <= reference.top`    | Horizontal alignment required |
-| `below`      | `candidate.top >= reference.bottom`    | Horizontal alignment required |
-| `toLeftOf`   | `candidate.right <= reference.left`    | Vertical alignment required   |
-| `toRightOf`  | `candidate.left >= reference.right`    | Vertical alignment required   |
-| `within`     | Midpoint inside reference bounding box | N/A                           |
-| `near`       | Vertical overlap within 100px          | N/A                           |
+| Relationship    | Condition                                   | With `exactly`                |
+| --------------- | ------------------------------------------- | ----------------------------- |
+| `above`         | `candidate.bottom <= reference.top`         | Horizontal alignment required |
+| `below`         | `candidate.top >= reference.bottom`         | Horizontal alignment required |
+| `toLeftOf`      | `candidate.right <= reference.left`         | Vertical alignment required   |
+| `toRightOf`     | `candidate.left >= reference.right`         | Vertical alignment required   |
+| `within`        | Midpoint inside reference bounding box      | N/A                           |
+| `within.parent` | `reference.contains(candidate)` via DOM API | N/A                           |
+| `near`          | Vertical overlap within 100px               | N/A                           |
 
 ### Spatial Filter Configuration
 
@@ -320,8 +328,11 @@ const DEFAULT_CONFIG = {
 1. User specifies spatial relationship: .below.element('anchor')
 2. Stack contains: [target, location, anchor]
 3. LocatorStrategy.find() resolves anchor first
-4. relativeSearch() filters candidates by spatial relationship
-5. Bounding boxes are compared for position matching
+4. If location has `parent: true` and `located: 'within'`, use DOM containment:
+   - Calls `#checkContainment(reference, candidates)` via `driver.executeScript`
+   - Uses `reference.contains(candidate)` for each candidate
+5. Otherwise, `relativeSearch()` filters candidates by spatial relationship
+6. Bounding boxes are compared for position matching
 ```
 
 ---

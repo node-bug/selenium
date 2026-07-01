@@ -176,14 +176,17 @@ describe('Browser (ESM)', () => {
     });
 
     test('uses Selenium Grid hub when configured', async () => {
-      // Update the hub on the same object reference that the module captured at load time
+      // config.js snapshots `selenium` once at module-load time, so the hub must be
+      // set BEFORE the module graph is imported. Reset the registry and re-import so
+      // the fresh config (with hub) is captured by the new Browser instance.
       dynamicConfig.selenium.hub = 'http://localhost:4444/wd/hub';
-      
-      // Instantiate a fresh browser so it reads the new config
-      const hubBrowser = new Browser.default();
-      
+      vi.resetModules();
+
+      const HubBrowser = await import('../../../app/browser/index.js');
+      const hubBrowser = new HubBrowser.default();
+
       await hubBrowser.new();
-      
+
       // Verify setFileDetector was called when hub is configured
       expect(mockDriver.setFileDetector).toHaveBeenCalled();
     });

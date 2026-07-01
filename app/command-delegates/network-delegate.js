@@ -1,11 +1,8 @@
 import { log } from '@nodebug/logger';
-import messenger from '../messenger.js';
-import config from '@nodebug/config';
 import { BaseDelegate } from './base-delegate.js';
 import { readFile } from 'fs/promises';
 import { createRequire } from 'module';
-
-const selenium = config('selenium');
+import { selenium } from '../config.js';
 
 // Resolve the path to the NetworkHelper IIFE script
 const require = createRequire(import.meta.url);
@@ -46,7 +43,7 @@ export class NetworkDelegate extends BaseDelegate {
     const browser = this.browser;
     try {
       await this._injectNetworkHelper();
-      log.info('Network monitoring scripts injected');
+      log.debug('Network monitoring scripts injected');
     } catch (err) {
       browser.handleError(err, 'injecting network monitoring scripts');
     }
@@ -125,7 +122,7 @@ export class NetworkDelegate extends BaseDelegate {
       while (Date.now() < endTime) {
         const activeCount = await this.#readCounter('data-network-xhr-count');
         if (activeCount === 0) {
-          log.info('All AJAX requests completed');
+          log.debug('All AJAX requests completed');
           return true;
         }
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -162,7 +159,7 @@ export class NetworkDelegate extends BaseDelegate {
       while (Date.now() < endTime) {
         const activeCount = await this.#readCounter('data-network-fetch-count');
         if (activeCount === 0) {
-          log.info('All fetch requests completed');
+          log.debug('All fetch requests completed');
           return true;
         }
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -200,7 +197,7 @@ export class NetworkDelegate extends BaseDelegate {
         const xhrCount = await this.#readCounter('data-network-xhr-count');
         const fetchCount = await this.#readCounter('data-network-fetch-count');
         if (xhrCount === 0 && fetchCount === 0) {
-          log.info('All network requests completed');
+          log.debug('All network requests completed');
           return true;
         }
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -247,7 +244,7 @@ export class NetworkDelegate extends BaseDelegate {
         });
 
         if (found) {
-          log.info(`Request matching '${urlPattern}' completed`);
+          log.debug(`Request matching '${urlPattern}' completed`);
           return true;
         }
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -269,8 +266,6 @@ export class NetworkDelegate extends BaseDelegate {
    * @returns {Object} Object containing wait methods
    */
   get wait() {
-    const browser = this.browser;
-
     return {
       /**
        * Waits for AJAX (XMLHttpRequest) requests to complete.
@@ -279,7 +274,6 @@ export class NetworkDelegate extends BaseDelegate {
        * @returns {Promise<boolean>} True if all requests completed
        */
       ajax: async (timeout) => {
-        browser.message = messenger({ stack: browser.stack, action: 'waitForAjax' });
         return await this.#waitForAjax(timeout);
       },
 
@@ -290,7 +284,6 @@ export class NetworkDelegate extends BaseDelegate {
        * @returns {Promise<boolean>} True if all requests completed
        */
       fetch: async (timeout) => {
-        browser.message = messenger({ stack: browser.stack, action: 'waitForFetch' });
         return await this.#waitForFetch(timeout);
       },
 
@@ -301,7 +294,6 @@ export class NetworkDelegate extends BaseDelegate {
        * @returns {Promise<boolean>} True if all requests completed
        */
       all: async (timeout) => {
-        browser.message = messenger({ stack: browser.stack, action: 'waitForAll' });
         return await this.#waitForAll(timeout);
       },
 
@@ -313,7 +305,6 @@ export class NetworkDelegate extends BaseDelegate {
        * @returns {Promise<boolean>} True if request completed
        */
       request: async (urlPattern, timeout) => {
-        browser.message = messenger({ stack: browser.stack, action: 'waitForRequest', data: urlPattern });
         return await this.#waitForRequest(urlPattern, timeout);
       },
     };

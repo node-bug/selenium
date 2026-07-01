@@ -200,15 +200,34 @@ export class ClickDelegate extends BaseDelegate {
       await this.pressModifiers(actions, platformName);
 
       if (hasCoordinates) {
-        const rect = await e.getRect();
-        if (x >= rect.width || y >= rect.height) {
-          throw new Error(`Click out of bounds: target x:${x} y:${y}, element size ${rect.width}x${rect.height}`);
+        const parsedX = parseInt(x, 10);
+        const parsedY = parseInt(y, 10);
+        if (isNaN(parsedX) || isNaN(parsedY)) {
+          throw new Error(
+            `Invalid click coordinate: ${isNaN(parsedX) ? `x (${x})` : ''}${
+              isNaN(parsedX) && isNaN(parsedY) ? ' and ' : ''
+            }${isNaN(parsedY) ? `y (${y})` : ''} is NaN. Provide numeric coordinates.`
+          );
         }
-        const ex = rect.x + isNaN(parseInt(x, 10)) ? 0 : parseInt(x, 10);
-        const ey = rect.y + isNaN(parseInt(y, 10)) ? 0 : parseInt(y, 10);
+
+        const rect = await e.getRect();
+        if (parsedX >= rect.width || parsedY >= rect.height) {
+          throw new Error(`Click out of bounds: target x:${parsedX} y:${parsedY}, element size ${rect.width}x${rect.height}`);
+        }
+        const offsetX = parsedX;
+        const offsetY = parsedY;
+
+        // Our API expresses coordinates relative to the element's TOP-LEFT
+        // (matching rect.x/rect.y and Playwright's position option). Selenium's
+        // move() origin is the element's CENTER, so convert the top-left offset
+        // to a center-relative offset. Using the element as origin also
+        // auto-scrolls it into view, avoiding MoveTargetOutOfBoundsError that
+        // would occur with viewport-absolute coordinates from getRect().
+        const cx = offsetX - rect.width / 2;
+        const cy = offsetY - rect.height / 2;
 
         actions
-          .move({ x: Math.ceil(ex), y: Math.ceil(ey) })
+          .move({ origin: e, x: Math.ceil(cx), y: Math.ceil(cy) })
           .pause(500)
           .click();
       } else {

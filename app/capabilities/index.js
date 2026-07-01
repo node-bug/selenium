@@ -12,12 +12,10 @@
  * const caps = capabilities();
  * console.log(caps);
  */
-import config from '@nodebug/config'
 import Chrome from './chrome.js'
 import Firefox from './firefox.js'
 import Safari from './safari.js'
-
-const selenium = config('selenium')
+import { selenium } from '../config.js'
 
 /**
  * Get browser capabilities based on configuration

@@ -323,6 +323,13 @@ await browser.button('Save').toRightOf.text('Auto-save').click()
 
 // Find link inside modal
 await browser.link('Close').within.dialog('Confirm').click()
+
+// DOM containment: find button that is a DOM descendant of a container
+// (uses reference.contains(candidate) instead of bounding-box spatial filtering)
+await browser
+  .button('Save Changes')
+  .within.parent.toolbar('Buttons Panel')
+  .click()
 ```
 
 Learn more: [SELECTORS.md](SELECTORS.md)

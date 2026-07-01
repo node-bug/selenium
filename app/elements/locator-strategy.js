@@ -1,15 +1,13 @@
-import config from '@nodebug/config';
 import { log } from '@nodebug/logger';
 import { relativeSearch } from './spatial-selection.js';
 import { readFile } from 'fs/promises';
 import { createRequire } from 'module';
 import ELEMENT_DEFINITIONS from '@nodebug/browser-element-finder/element-definitions.json' with { type: 'json' };
+import { selenium } from '../config.js';
 
 // Load ElementFinder browser bundle from @nodebug/browser-element-finder package
 const require = createRequire(import.meta.url);
 const elementFinderPath = require.resolve('@nodebug/browser-element-finder/min');
-
-const selenium = config('selenium');
 
 /**
  * Core element-finding strategy with Selenium WebDriver integration.
@@ -49,36 +47,29 @@ export class LocatorStrategy {
   async _injectElementFinder() {
     if (this.#elementFinderInjected) return;
 
-    try {
-      // Check if ElementFinder already exists
-      const exists = await this.driver.executeScript(`
-        return typeof window.ElementFinder !== 'undefined';
+    // Check if ElementFinder already exists
+    const exists = await this.driver.executeScript(`
+      return typeof window.ElementFinder !== 'undefined';
+    `);
+
+    if (!exists) {
+      // Inject the ElementFinder script from @nodebug/browser-element-finder package
+      const scriptContent = await readFile(elementFinderPath, 'utf8');
+      // Execute the IIFE script and assign to window.ElementFinder
+      await this.driver.executeScript(`
+        ${scriptContent}
+        window.ElementFinder = ElementFinder;
       `);
 
-      if (!exists) {
-        // Inject the ElementFinder script from @nodebug/browser-element-finder package
-        const scriptContent = await readFile(elementFinderPath, 'utf8');
-        // Execute the IIFE script and assign to window.ElementFinder
-        await this.driver.executeScript(`
-          ${scriptContent}
-          window.ElementFinder = ElementFinder;
-        `);
-
-        // Verify injection succeeded
-        const injected = await this.driver.executeScript(`
-          return typeof window.ElementFinder !== 'undefined';
-        `);
-        if (!injected) {
-          throw new Error('ElementFinder script injection failed - window.ElementFinder not defined');
-        }
+      // Verify injection succeeded
+      const injected = await this.driver.executeScript(`
+        return typeof window.ElementFinder !== 'undefined';
+      `);
+      if (!injected) {
+        throw new Error('ElementFinder script injection failed - window.ElementFinder not defined');
       }
-      this.#elementFinderInjected = true;
-    } catch (err) {
-      if (this.debug) {
-        log.warn('Failed to inject ElementFinder:', err.message);
-      }
-      throw err; // Re-throw to ensure we know if injection fails
     }
+    this.#elementFinderInjected = true;
   }
 
   /**
@@ -96,9 +87,8 @@ export class LocatorStrategy {
   async _withContext(frameIndex, callback) {
     try {
       await this.driver.switchTo().defaultContent();
-    } catch (err) {
+    } catch {
       // If we can't switch to default content, the driver may be detached
-      if (this.debug) log.warn('Failed to switch to default content:', err.message);
       return null;
     }
 
@@ -109,7 +99,6 @@ export class LocatorStrategy {
         // Frame doesn't exist, moved, or is inaccessible - this is normal in dynamic pages
         // Only catch NoSuchFrameError, rethrow other errors
         if (err.name === 'NoSuchFrameError') {
-          if (this.debug) log.warn(`Frame ${frameIndex} not found`);
           return null;
         }
         throw err;
@@ -123,8 +112,8 @@ export class LocatorStrategy {
       // This ensures the driver context is restored for subsequent operations
       try {
         await this.driver.switchTo().defaultContent();
-      } catch (err) {
-        if (this.debug) log.warn('Failed to restore default content after callback:', err.message);
+      } catch {
+        // Silently ignore frame switch errors during cleanup
       }
     }
   }
@@ -185,10 +174,7 @@ export class LocatorStrategy {
           });
 
         return qualified;
-      } catch (err) {
-        if (this.debug) {
-          log.error(`Error finding child elements of type '${childData.type}':`, err.message);
-        }
+      } catch {
         return [];
       }
     });
@@ -221,6 +207,30 @@ export class LocatorStrategy {
    */
   async relativeSearch(item, rel, relativeElement) {
     return relativeSearch(item, rel, relativeElement);
+  }
+
+  /**
+   * Checks DOM containment for elements within a reference element.
+   * Uses `reference.contains(candidate)` to determine if candidates are DOM descendants.
+   *
+   * @param {WebElement} reference - The reference element to check containment within.
+   * @param {WebElement[]} candidates - Array of candidate elements to filter (with metadata).
+   * @returns {Promise<WebElement[]>} Elements that are contained within the reference (preserving metadata).
+   */
+  async #checkContainment(reference, candidates) {
+    if (!candidates || candidates.length === 0) return [];
+
+    // Get indices of contained elements (since executeScript returns new WebElement objects)
+    const containedIndices = await this.driver.executeScript(`
+      const ref = arguments[0];
+      const cands = arguments[1];
+      return cands
+        .map((c, idx) => ref.contains(c) ? idx : -1)
+        .filter(idx => idx !== -1);
+    `, reference, candidates);
+
+    // Return the original WebElement objects that have metadata
+    return containedIndices.map(idx => candidates[idx]);
   }
 
   /**
@@ -317,10 +327,7 @@ export class LocatorStrategy {
         return document.querySelectorAll('iframe').length;
       `);
       return count || 0;
-    } catch (err) {
-      if (this.debug) {
-        log.warn('Failed to get frame count:', err.message);
-      }
+    } catch {
       return 0;
     }
   }
@@ -385,10 +392,7 @@ export class LocatorStrategy {
           : (e) => e.isHidden !== true && (!elementData.onscreen || e.inViewport === true);
 
         return qualified.filter(visibilityFilter);
-      } catch (err) {
-        if (this.debug) {
-          log.warn(`Error searching in frame ${frameIndex}:`, err.message);
-        }
+      } catch {
         return [];
       }
     });
@@ -530,10 +534,7 @@ export class LocatorStrategy {
         const processed = await this._postProcessSwitchElements(qualified, elementData);
 
         return processed;
-      } catch (err) {
-        if (this.debug) {
-          log.warn(`Error searching for switch in frame ${frameIndex}:`, err.message);
-        }
+      } catch {
         return [];
       }
     });
@@ -664,10 +665,7 @@ export class LocatorStrategy {
           result = await this._postProcessSwitchElement(result, elementData);
         }
         return result;
-      } catch (err) {
-        if (this.debug) {
-          log.warn(`Error finding closest switch in frame ${frameIndex}:`, err.message);
-        }
+      } catch {
         return null;
       }
     });
@@ -826,10 +824,7 @@ export class LocatorStrategy {
           result.frameIndex = frameIndex;
         }
         return result;
-      } catch (err) {
-        if (this.debug) {
-          log.warn(`Error finding closest element in frame ${frameIndex}:`, err.message);
-        }
+      } catch {
         return null;
       }
     });
@@ -878,10 +873,7 @@ export class LocatorStrategy {
           if (newItem.type === 'column' && newItem.matches.length > 0) {
             newItem.matches = await this._expandColumnMatches(newItem);
           }
-        } catch (err) {
-          if (this.debug) {
-            log.error(`Failed to resolve element '${newItem.id}' of type '${newItem.type}':`, err.message);
-          }
+        } catch {
           newItem.matches = []; // Empty matches on error
         }
       }
@@ -1016,8 +1008,24 @@ export class LocatorStrategy {
           // against any of them (similar to findAll behavior)
           const referenceMatches = Array.isArray(currentElement) ? currentElement : [currentElement];
 
-          // Apply spatial filtering based on bounding box geometry
-          const results = await this.relativeSearch(target, item, referenceMatches.length === 1 ? referenceMatches[0] : referenceMatches);
+          let results;
+          // When 'within' has the parent flag, use DOM containment instead of spatial filtering
+          if (item.located === 'within' && item.parent === true) {
+            if (referenceMatches.length === 1) {
+              results = await this.#checkContainment(referenceMatches[0], target.matches);
+            } else {
+              // Multiple reference elements: check containment against each
+              const containedSet = new Set();
+              for (const ref of referenceMatches) {
+                const contained = await this.#checkContainment(ref, target.matches);
+                contained.forEach(el => containedSet.add(el));
+              }
+              results = Array.from(containedSet);
+            }
+          } else {
+            // Normal spatial filtering based on bounding box geometry
+            results = await this.relativeSearch(target, item, referenceMatches.length === 1 ? referenceMatches[0] : referenceMatches);
+          }
 
           currentElement = results[target.index ? target.index - 1 : 0];
 
@@ -1067,10 +1075,7 @@ export class LocatorStrategy {
       if (currentElement.frameIndex >= 0) {
         await this.driver.switchTo().frame(currentElement.frameIndex);
       }
-    } catch (err) {
-      if (this.debug) {
-        log.warn('Failed to switch to final element frame:', err.message);
-      }
+    } catch {
       // Don't throw - element may still be valid even if frame switch fails
     }
 
@@ -1163,7 +1168,17 @@ export class LocatorStrategy {
         }
 
         // Filter the candidates using this spatial relationship
-        candidates = await this.relativeSearch({ matches: candidates }, locationFilter, refMatches);
+        // When 'within' has the parent flag, use DOM containment instead of spatial filtering
+        if (locationFilter.located === 'within' && locationFilter.parent === true) {
+          const containedSet = new Set();
+          for (const ref of refMatches) {
+            const contained = await this.#checkContainment(ref, candidates);
+            contained.forEach(el => containedSet.add(el));
+          }
+          candidates = Array.from(containedSet);
+        } else {
+          candidates = await this.relativeSearch({ matches: candidates }, locationFilter, refMatches);
+        }
 
         if (candidates.length === 0) {
           throw new ReferenceError(
@@ -1204,7 +1219,17 @@ export class LocatorStrategy {
           }
 
           // Filter the candidates using this spatial relationship
-          refCandidates = await this.relativeSearch({ matches: refCandidates }, locationFilter, refMatches);
+          // When 'within' has the parent flag, use DOM containment instead of spatial filtering
+          if (locationFilter.located === 'within' && locationFilter.parent === true) {
+            const containedSet = new Set();
+            for (const ref of refMatches) {
+              const contained = await this.#checkContainment(ref, refCandidates);
+              contained.forEach(el => containedSet.add(el));
+            }
+            refCandidates = Array.from(containedSet);
+          } else {
+            refCandidates = await this.relativeSearch({ matches: refCandidates }, locationFilter, refMatches);
+          }
 
           if (refCandidates.length === 0) {
             const relation = locationFilter.located || 'within';

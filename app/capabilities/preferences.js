@@ -10,11 +10,9 @@
  * import { downloadPath } from './app/capabilities/preferences.js';
  * console.log(downloadPath);
  */
-import config from '@nodebug/config'
 import { resolve } from 'path'
 import { existsSync, mkdirSync } from 'fs'
-
-const seleniumConfig = config('selenium')
+import { selenium as seleniumConfig } from '../config.js'
 
 /**
  * Ensures the download directory exists and returns the absolute path.
@@ -25,7 +23,7 @@ const seleniumConfig = config('selenium')
  * console.log(dir);
  */
 function downloadsDirectory() {
-  const dir = resolve(seleniumConfig.downloadsPath || './downloads')
+  const dir = resolve(seleniumConfig.downloadsPath)
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true })
   }

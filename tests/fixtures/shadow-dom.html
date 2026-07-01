@@ -367,6 +367,64 @@
     </div>
 
     <!-- =====================================================================
+         SECTION 11: PARENT WITHIN (DOM CONTAINMENT)
+         =====================================================================
+         Covers:
+         - .within.parent.element() using DOM.contains() instead of spatial bounding-box
+         - Parent container with identifiable text that ElementFinder can match
+         - Child elements (buttons, checkboxes, radios, textbox) as DOM descendants
+         - Negative test: element NOT contained in reference should throw
+         ===================================================================== -->
+    <div class="section" id="section-parent-within">
+        <div class="section-label">Section 11 &mdash; Parent Within (DOM Containment)</div>
+        <h2>Parent Container with Child Elements</h2>
+        <p class="description">Containers with identifiable labels and child elements for testing .within.parent.element() DOM containment.</p>
+
+        <!-- Container 1: Buttons panel — div role=toolbar so toolbar('Buttons Panel') matches the container itself -->
+        <div id="parent-buttons-container" role="toolbar" aria-label="Buttons Panel" style="border: 2px solid #3182ce; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+            <button class="primary">Save Changes</button>
+            <button class="secondary">Discard</button>
+            <!-- Deeply nested button — still a DOM descendant -->
+            <div style="margin-top: 12px;">
+                <div>
+                    <button class="secondary">Deep Nested Action</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Container 2: Options panel with checkboxes and radios -->
+        <div id="parent-options-container" role="toolbar" aria-label="Options Panel" style="border: 2px solid #38a169; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+            <div style="margin-bottom: 8px;">
+                <input type="checkbox" id="opt-remember">
+                <label for="opt-remember">Remember me</label>
+            </div>
+            <div style="margin-bottom: 8px;">
+                <input type="checkbox" id="opt-notify">
+                <label for="opt-notify">Enable notifications</label>
+            </div>
+            <div style="margin-top: 12px;">
+                <input type="radio" name="theme" id="opt-light">
+                <label for="opt-light">Light theme</label>
+            </div>
+            <div style="margin-top: 8px;">
+                <input type="radio" name="theme" id="opt-dark">
+                <label for="opt-dark">Dark theme</label>
+            </div>
+        </div>
+
+        <!-- Container 3: Form panel with textbox -->
+        <div id="parent-form-container" role="toolbar" aria-label="Form Panel" style="border: 2px solid #d69e2e; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+            <input type="text" placeholder="Enter your name" style="width: 200px;">
+            <input type="email" placeholder="Enter email" style="width: 200px; margin-top: 8px; display: block;">
+        </div>
+
+        <!-- Container 4: Separate panel — used for negative test (buttons are NOT here) -->
+        <div id="parent-separate-container" role="toolbar" aria-label="Separate Panel" style="border: 2px solid #e53e3e; border-radius: 8px; padding: 16px;">
+            <p>This panel does not contain any buttons from the Buttons Panel above.</p>
+        </div>
+    </div>
+
+    <!-- =====================================================================
          JAVASCRIPT: SHADOW DOM SETUP
          ===================================================================== -->
     <script>

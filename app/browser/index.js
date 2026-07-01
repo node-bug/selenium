@@ -1,4 +1,3 @@
-import config from '@nodebug/config'
 import { log } from '@nodebug/logger'
 import { Builder } from 'selenium-webdriver'
 import remote from 'selenium-webdriver/remote/index.js'
@@ -6,8 +5,7 @@ import capabilities from '../capabilities/index.js'
 import Window from './window.js'
 import Tab from './tab.js'
 import Alert from './alerts.js'
-
-const selenium = config('selenium')
+import { selenium } from '../config.js'
 
 /**
  * Base Browser class for Selenium WebDriver operations

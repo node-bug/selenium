@@ -37,6 +37,7 @@ const element = await browser.button('Submit').find()
 - Returns first matching element
 - Throws error if no element found within timeout
 - Clears selector stack after execution
+- Supports DOM containment via `.within.parent` for strict parent-child checks
 
 **Example**:
 
@@ -49,6 +50,12 @@ const element = await browser
   .button('Save')
   .below.element('Form Title')
   .within.dialog('Confirm')
+  .find()
+
+// DOM containment (strict parent-child hierarchy)
+const button = await browser
+  .button('Save Changes')
+  .within.parent.toolbar('Buttons Panel')
   .find()
 ```
 

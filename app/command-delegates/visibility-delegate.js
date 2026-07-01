@@ -1,9 +1,7 @@
 import { log } from '@nodebug/logger';
 import messenger from '../messenger.js';
-import config from '@nodebug/config';
 import { BaseDelegate } from './base-delegate.js';
-
-const selenium = config('selenium');
+import { selenium } from '../config.js';
 
 /**
  * Visibility delegate for handling element visibility operations

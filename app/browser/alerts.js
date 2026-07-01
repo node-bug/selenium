@@ -1,8 +1,6 @@
 import { log } from '@nodebug/logger'
 import { until } from 'selenium-webdriver'
-import config from '@nodebug/config';
-
-const selenium = config('selenium');
+import { selenium } from '../config.js';
 
 /**
  * Alert class for handling browser alerts and prompts
@@ -20,7 +18,7 @@ class Alert {
     initialize(driver) { this._driver = driver; }
     get driver() { return this._driver; }
     set driver(value) { this.initialize(value); }
-    get timeout() { return selenium.timeout || 10000; }
+    get timeout() { return selenium.timeout; }
 
     /**
      * Chain method for fluent interface

@@ -35,6 +35,7 @@ await browser
 - **🎯 Human-like element selection** - Find elements by what they say, where they are, or their type—just like humans
 - **🔗 Fluent API** - Chain methods for readable, maintainable code
 - **🗺️ Spatial context** - Locate elements by position: `above`, `below`, `toLeftOf`, `toRightOf`, `within`, `near`
+- **🌳 DOM containment** - Use `.within.parent` for strict parent-child hierarchy checks via `DOM.contains()`
 - **🎭 Semantic selectors** - 20+ element types: button, textbox, checkbox, dropdown, dialog, table, etc.
 - **🏗️ Multi-window/tab support** - Manage multiple browser contexts and tabs seamlessly
 - **📍 Smart element prioritization** - Searches text, placeholders, labels, test IDs, ARIA labels automatically

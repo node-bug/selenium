@@ -182,6 +182,27 @@ await browser.button('Save').within.dialog('Settings').click()
 await browser.button('Delete').within.row('User123').click()
 ```
 
+By default, `within` uses **bounding-box spatial filtering** (checks if the candidate's midpoint falls inside the reference element's bounding box). Use `.parent` to switch to **DOM containment** instead:
+
+```javascript
+// DOM containment: finds button that is a DOM descendant of the toolbar
+await browser
+  .button('Save Changes')
+  .within.parent.toolbar('Buttons Panel')
+  .click()
+```
+
+| Mode              | Method                     | Behavior                                         |
+| ----------------- | -------------------------- | ------------------------------------------------ |
+| Spatial (default) | `.within.element()`        | Candidate midpoint inside reference bounding box |
+| DOM Containment   | `.within.parent.element()` | `reference.contains(candidate)` via DOM API      |
+
+DOM containment is useful when:
+
+- Elements have zero dimensions or overlapping bounding boxes
+- You need strict parent-child DOM hierarchy checks
+- Spatial filtering produces false positives due to layout quirks
+
 #### near
 
 Element is in proximity to another element:

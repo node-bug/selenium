@@ -1,5 +1,4 @@
 import { log } from '@nodebug/logger';
-import config from '@nodebug/config';
 import Browser from './app/browser/index.js';
 import { LocatorStrategy } from './app/elements/locator-strategy.js';
 import { SelectorStackBuilder } from './app/elements/selector-stack-builder.js';
@@ -15,9 +14,8 @@ import { SliderDelegate } from './app/command-delegates/slider-delegate.js';
 import { DragDropDelegate } from './app/command-delegates/drag-drop-delegate.js';
 import { NetworkDelegate } from './app/command-delegates/network-delegate.js';
 import { PluginManager } from './app/plugin-manager.js';
+import { selenium } from './app/config.js';
 import ELEMENT_DEFINITIONS from '@nodebug/browser-element-finder/element-definitions.json' with { type: 'json' };
-
-const selenium = config('selenium');
 
 /**
  * Main WebBrowser class for Selenium WebDriver operations
@@ -45,6 +43,7 @@ class WebBrowser extends Browser {
   #sliderDelegate;
   #dragDropDelegate;
   #networkDelegate;
+  #parentNext = false;
 
   constructor() {
     super()
@@ -1585,6 +1584,7 @@ class WebBrowser extends Browser {
    * Pushes a location descriptor onto the stack.
    * If the previous item on the stack is a bare { exactly: true } flag,
    * it is consumed and merged into the location descriptor.
+   * If #parentNext is set, the parent flag is merged into the location descriptor.
    * @private
    */
   #pushLocation(located) {
@@ -1594,6 +1594,11 @@ class WebBrowser extends Browser {
     if (this.#isFlag(prev)) {
       this.stack.pop();
       location.exactly = true;
+    }
+
+    if (this.#parentNext) {
+      location.parent = true;
+      this.#parentNext = false;
     }
 
     this.stack.push(location);
@@ -1616,6 +1621,24 @@ class WebBrowser extends Browser {
 
   /** @returns {this} */
   get near() { this.#pushLocation('near'); return this; }
+
+  /**
+   * Modifies the next spatial location to use DOM containment instead of bounding-box filtering.
+   * Designed to be used with `within`: browser.button('X').within.parent.element('Y') finds
+   * a button labeled 'X' that is a DOM descendant of an element labeled 'Y'.
+   * @returns {this}
+   */
+  get parent() {
+    // If the last stack item is already a location, modify it directly.
+    // This supports both `.parent.within` and `.within.parent` orderings.
+    const last = this.stack[this.stack.length - 1];
+    if (last && last.type === 'location') {
+      last.parent = true;
+    } else {
+      this.#parentNext = true;
+    }
+    return this;
+  }
 
   /**
    * Forces strict alignment for the next spatial location in the stack.
