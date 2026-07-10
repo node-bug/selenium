@@ -1027,6 +1027,11 @@ export class LocatorStrategy {
             results = await this.relativeSearch(target, item, referenceMatches.length === 1 ? referenceMatches[0] : referenceMatches);
           }
 
+          // NOTE: target.index is applied to the *spatially filtered* results, not to target.matches.
+          // This is intentional: .at.index(n) selects the n-th element from whatever the current
+          // result set is after all filters have been applied.
+          // e.g. browser.button('Submit').below.element('Form').at.index(2) → 2nd button BELOW 'Form',
+          // NOT the 2nd 'Submit' button on the page that happens to be below 'Form'.
           currentElement = results[target.index ? target.index - 1 : 0];
 
           if (!currentElement) {

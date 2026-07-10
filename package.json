@@ -11,9 +11,7 @@
   "dependencies": {
     "@nodebug/config": "^2.1.4",
     "@nodebug/logger": "^1.1.5",
-    "selenium-webdriver": "4.43.0"
-  },
-  "peerDependencies": {
+    "selenium-webdriver": "4.43.0",
     "@nodebug/browser-element-finder": "file:../browser-element-finder"
   },
   "description": "implementation of seleniumjs to use with test automation",

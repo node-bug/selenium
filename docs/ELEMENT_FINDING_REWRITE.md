@@ -71,14 +71,15 @@ Orchestrates element finding across frames with two-pass strategy and fallback l
 Filters elements based on spatial relationships to reference elements.
 
 **Supported Spatial Relationships:**
-| Relationship | Condition | With "exactly" |
-|---|---|---|
-| `above` | Candidate bottom < ref top | Horizontally aligned |
-| `below` | Candidate top > ref bottom | Horizontally aligned |
-| `toLeftOf` | Candidate right < ref left | Vertically aligned |
-| `toRightOf` | Candidate left > ref right | Vertically aligned |
-| `within` | Candidate midpoint inside ref box | N/A (supports arrays) |
-| `near` | Same row (±100px vertically) | N/A |
+
+| Relationship | Condition                         | With "exactly"        |
+| ------------ | --------------------------------- | --------------------- |
+| `above`      | Candidate bottom < ref top        | Horizontally aligned  |
+| `below`      | Candidate top > ref bottom        | Horizontally aligned  |
+| `toLeftOf`   | Candidate right < ref left        | Vertically aligned    |
+| `toRightOf`  | Candidate left > ref right        | Vertically aligned    |
+| `within`     | Candidate midpoint inside ref box | N/A (supports arrays) |
+| `near`       | Same row (±100px vertically)      | N/A                   |
 
 ## All Supported Cases
 
@@ -187,7 +188,7 @@ await browser.button('Custom Label').click()
 1. Resolve all stack items into WebElement arrays
 2. Process stack from **bottom to top**:
    - Apply spatial filter if present
-   - Select by index (1-based, default to 1st)
+   - Select by index (1-based, default to 1st) — **index is applied to the filtered result set**, not the original matches
    - Ensure one match (throw if 0)
 3. Switch to element's frame
 4. Return element (with debug highlight if enabled)

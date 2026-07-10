@@ -373,6 +373,45 @@ await browser.button('Delete').click()
 await browser.button('Delete').at.index(2).click()
 ```
 
+### Index with Spatial Filters
+
+When combining `.at.index()` with spatial filters (`.below`, `.above`, `.within`, `.toLeftOf`, `.toRightOf`), **the index is applied to the spatially filtered results**, not to the original set of matching elements. This is intentional and expected behavior.
+
+The selector pipeline works as follows:
+
+1. Find all elements matching the target type/text
+2. Apply spatial filter(s) to narrow the results
+3. Apply `.at.index()` to select from the _filtered_ set
+
+```javascript
+// Page has 5 buttons labeled 'Submit'
+// Only 2 of them are below an element labeled 'Form'
+
+// This selects the 2nd button FROM the spatially filtered set (buttons below 'Form')
+// NOT the 2nd 'Submit' button on the entire page
+await browser.button('Submit').below.element('Form').at.index(2).click()
+
+// Equivalent explicit form
+await browser.button('Submit').at.index(2).below.element('Form').click()
+```
+
+```javascript
+// Example: Page structure
+// - Submit button 1 (above Form)
+// - Submit button 2 (below Form)   ← index(1) selects this
+// - Submit button 3 (below Form)   ← index(2) selects this
+// - Submit button 4 (nowhere near Form)
+// - Submit button 5 (above Form)
+
+await browser.button('Submit').below.element('Form').at.index(1).click()
+// → Clicks 'Submit button 2' (first result after spatial filter)
+
+await browser.button('Submit').below.element('Form').at.index(2).click()
+// → Clicks 'Submit button 3' (second result after spatial filter)
+```
+
+> **Key takeaway:** `.at.index(n)` always selects the n-th element from whatever the current result set is. When used with spatial filters, that means the n-th element _among those that pass the spatial constraint_.
+
 ### When element() Works Without .at.index()
 
 Calling `element()` without `.at.index()` is safe when exactly one element matches:

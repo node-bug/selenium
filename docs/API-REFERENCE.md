@@ -1999,6 +1999,17 @@ await browser.textbox('Email').at.index(2).write('..') // 2nd matching textbox
 
 > **Tip:** You can also pass a number directly to the element type selector instead of chaining `.at.index()`. For example, `browser.row(2)` is equivalent to `browser.row('').at.index(2)`.
 
+#### Index with Spatial Filters
+
+When `.at.index()` is combined with spatial filters (`.below`, `.above`, `.within`, `.toLeftOf`, `.toRightOf`), the index selects from the **spatially filtered result set**, not from all matching elements on the page. This is expected behavior.
+
+```javascript
+// Selects 2nd element FROM those that pass the spatial filter
+await browser.button('Submit').below.element('Form').at.index(2).click()
+```
+
+See [Selectors - Index with Spatial Filters](SELECTORS.md#index-with-spatial-filters) for detailed examples.
+
 ### exact
 
 Exact text matching instead of partial.
