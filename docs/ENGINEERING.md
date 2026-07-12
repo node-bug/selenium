@@ -341,7 +341,7 @@ const DEFAULT_CONFIG = {
 
 ### 1. ElementFinder Injection
 
-The `LocatorStrategy` injects `@nodebug/browser-element-finder` script into the browser context once per session.
+The `LocatorStrategy` injects `@nodebug/browser-element-finder` script into the browser context once per frame. The injection is idempotent (checked in-browser via `typeof window.ElementFinder`) and applies any configured `ignoredTags` on top of the library defaults.
 
 ```javascript
 // In locator-strategy.js
@@ -352,6 +352,21 @@ async _injectElementFinder() {
     window.ElementFinder = ElementFinder;
   `);
 }
+```
+
+A public wrapper is exposed on the browser instance so callers can explicitly ensure `window.ElementFinder` is available before running raw `driver.executeScript` calls:
+
+```javascript
+// In index.js — delegates to LocatorStrategy._injectElementFinder()
+async injectElementFinder() {
+  return await this.locatorStrategy._injectElementFinder();
+}
+
+// Usage
+await browser.injectElementFinder();
+const result = await browser.driver.executeScript(
+  'return window.ElementFinder.findProbableElements("button", "Submit")'
+);
 ```
 
 ### 2. Cross-Frame Discovery
@@ -963,6 +978,7 @@ const frames = await browser.driver.findElements(By.css('iframe'))
 console.log(`Found ${frames.length} frames`)
 
 // Verify ElementFinder injection
+await browser.injectElementFinder()
 const injected = await browser.driver.executeScript(
   'return typeof window.ElementFinder'
 )

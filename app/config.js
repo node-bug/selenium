@@ -31,6 +31,9 @@ const DEFAULTS = {
   width: 1366,
   hub: null,
   debug: false,
+  // Tags to ignore during element traversal, ADDED on top of the library defaults
+  // (SCRIPT, STYLE, TEMPLATE, NOSCRIPT). Empty array = no change to defaults.
+  ignoredTags: [],
 };
 
 /**
@@ -64,6 +67,16 @@ function normalize(raw) {
     cfg.browser = DEFAULTS.browser;
   } else {
     cfg.browser = browser;
+  }
+
+  // Normalize ignoredTags: must be an array; each entry trimmed + uppercased so the
+  // config is case-insensitive (mirrors the finder's internal normalizeTagList).
+  if (Array.isArray(cfg.ignoredTags)) {
+    cfg.ignoredTags = cfg.ignoredTags
+      .filter((t) => typeof t === 'string' && t.trim() !== '')
+      .map((t) => t.trim().toUpperCase());
+  } else {
+    cfg.ignoredTags = [];
   }
 
   return cfg;

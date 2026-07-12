@@ -154,6 +154,25 @@ class WebBrowser extends Browser {
   }
 
   /**
+   * Injects the ElementFinder script into the current browser frame context.
+   *
+   * This is a thin public wrapper around `LocatorStrategy._injectElementFinder()`
+   * so callers can explicitly ensure `window.ElementFinder` is available before
+   * running raw `driver.executeScript` calls that depend on it. Injection is
+   * idempotent per frame and applies any configured `ignoredTags`.
+   *
+   * @returns {Promise<void>} Resolves once ElementFinder is available in the page
+   * @example
+   * await browser.start();
+   * await browser.goto('https://example.com');
+   * await browser.injectElementFinder();
+   * const result = await browser.driver.executeScript('return window.ElementFinder.findProbableElements("button", "Submit")');
+   */
+  async injectElementFinder() {
+    return await this.locatorStrategy._injectElementFinder();
+  }
+
+  /**
    * Centralized retry logic for finding elements
    */
   async _finder(t = null) {

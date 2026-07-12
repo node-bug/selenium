@@ -25,8 +25,9 @@ const elementFinderPath = require.resolve('@nodebug/browser-element-finder/min')
  * 8. **Alignment Precision**: Optional exact alignment (for above/below/left/right)
  */
 export class LocatorStrategy {
-  // Flag to track if ElementFinder script has been injected
-  #elementFinderInjected = false;
+  // Cached ElementFinder bundle (read once from disk) so repeated frame injects
+  // don't re-read the file. Lazily populated by _injectElementFinder().
+  #elementFinderScript = null;
 
   /**
    * @type {import('selenium-webdriver').WebDriver}
@@ -40,28 +41,38 @@ export class LocatorStrategy {
   get debug() { return selenium.debug ?? false; }
 
   /**
-   * Injects the ElementFinder script into the browser context.
-   * This is called once per session to make ElementFinder available.
+   * Injects the ElementFinder script into the *current* browser frame context.
+   *
+   * This is the single source of ElementFinder injection for the whole strategy:
+   * `findElements()`, `findChildElements()`, the per-frame search methods, and the
+   * screenshot path in `index.js` all route through here. Because each frame has its
+   * own `window` global, injection is checked in-browser (not via a JS-side flag) and
+   * applied per frame as needed.
+   *
+   * After a successful inject, any configured `ignoredTags` are applied via
+   * `ElementFinder.addIgnoredTags(...)`, ADDED on top of the library defaults
+   * (SCRIPT, STYLE, TEMPLATE, NOSCRIPT). The call is idempotent (Set.add), so it is
+   * safe to invoke on every inject.
    * @private
    */
   async _injectElementFinder() {
-    if (this.#elementFinderInjected) return;
-
-    // Check if ElementFinder already exists
+    // Check if ElementFinder already exists in the current frame context.
     const exists = await this.driver.executeScript(`
       return typeof window.ElementFinder !== 'undefined';
     `);
 
     if (!exists) {
-      // Inject the ElementFinder script from @nodebug/browser-element-finder package
-      const scriptContent = await readFile(elementFinderPath, 'utf8');
-      // Execute the IIFE script and assign to window.ElementFinder
+      // Lazily read + cache the ElementFinder bundle from @nodebug/browser-element-finder.
+      if (this.#elementFinderScript === null) {
+        this.#elementFinderScript = await readFile(elementFinderPath, 'utf8');
+      }
+      // Execute the IIFE script and assign to window.ElementFinder.
       await this.driver.executeScript(`
-        ${scriptContent}
+        ${this.#elementFinderScript}
         window.ElementFinder = ElementFinder;
       `);
 
-      // Verify injection succeeded
+      // Verify injection succeeded.
       const injected = await this.driver.executeScript(`
         return typeof window.ElementFinder !== 'undefined';
       `);
@@ -69,7 +80,13 @@ export class LocatorStrategy {
         throw new Error('ElementFinder script injection failed - window.ElementFinder not defined');
       }
     }
-    this.#elementFinderInjected = true;
+
+    // Apply configured ignored tags (additive on library defaults). Safe to call every time.
+    if (selenium.ignoredTags && selenium.ignoredTags.length > 0) {
+      await this.driver.executeScript(`
+        window.ElementFinder.addIgnoredTags(${JSON.stringify(selenium.ignoredTags)});
+      `);
+    }
   }
 
   /**
@@ -342,14 +359,8 @@ export class LocatorStrategy {
   async _searchInFrame(frameIndex, elementData) {
     return this._withContext(frameIndex, async () => {
       try {
-        // Inject ElementFinder in this frame context if not already present
-        const scriptContent = await readFile(elementFinderPath, 'utf8');
-        await this.driver.executeScript(`
-          if (typeof window.ElementFinder === 'undefined') {
-            ${scriptContent}
-            window.ElementFinder = ElementFinder;
-          }
-        `);
+        // Ensure ElementFinder is injected into this frame context (and ignored tags applied).
+        await this._injectElementFinder();
 
         const results = await this.driver.executeScript(`
           const type = arguments[0];
@@ -409,14 +420,8 @@ export class LocatorStrategy {
   async _searchSwitchInFrame(frameIndex, elementData) {
     return this._withContext(frameIndex, async () => {
       try {
-        // Inject ElementFinder in this frame context if not already present
-        const scriptContent = await readFile(elementFinderPath, 'utf8');
-        await this.driver.executeScript(`
-          if (typeof window.ElementFinder === 'undefined') {
-            ${scriptContent}
-            window.ElementFinder = ElementFinder;
-          }
-        `);
+        // Ensure ElementFinder is injected into this frame context (and ignored tags applied).
+        await this._injectElementFinder();
 
         // First try to find switch elements directly by text
         const directResults = await this.driver.executeScript(`
@@ -580,14 +585,8 @@ export class LocatorStrategy {
   async _findClosestSwitchInFrame(frameIndex, elementData, threshold) {
     return this._withContext(frameIndex, async () => {
       try {
-        // Inject ElementFinder in this frame context if not already present
-        const scriptContent = await readFile(elementFinderPath, 'utf8');
-        await this.driver.executeScript(`
-          if (typeof window.ElementFinder === 'undefined') {
-            ${scriptContent}
-            window.ElementFinder = ElementFinder;
-          }
-        `);
+        // Ensure ElementFinder is injected into this frame context (and ignored tags applied).
+        await this._injectElementFinder();
 
         let result = await this.driver.executeScript(`
           const text = arguments[0];

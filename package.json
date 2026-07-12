@@ -9,10 +9,10 @@
     "url": "https://github.com/node-bug/selenium/issues"
   },
   "dependencies": {
+    "@nodebug/browser-element-finder": "file:../browser-element-finder",
     "@nodebug/config": "^2.1.4",
     "@nodebug/logger": "^1.1.5",
-    "selenium-webdriver": "4.43.0",
-    "@nodebug/browser-element-finder": "file:../browser-element-finder"
+    "selenium-webdriver": "4.43.0"
   },
   "description": "implementation of seleniumjs to use with test automation",
   "homepage": "https://github.com/node-bug/selenium#readme",

@@ -77,14 +77,14 @@ describe('LocatorStrategy', () => {
       const mockElement = { id: 'el1' };
       const mockBoundingBox = { x: 0, y: 0, width: 10, height: 10, midx: 5, midy: 5 };
       
-      // Mock sequence:
-      // 1. _injectElementFinder check - ElementFinder exists
-      // 2. _searchInFrame - inject script in frame (returns undefined, we just need it to not throw)
-      // 3. _searchInFrame - ElementFinder results
+      // Mock sequence (unified injector, no ignoredTags configured):
+      // 1. findElements -> _injectElementFinder exists check -> true
+      // 2. _searchInFrame -> _injectElementFinder exists check -> true (no addIgnoredTags)
+      // 3. _searchInFrame -> ElementFinder results
       // 4. _getChildFrameCount - 0 frames
       mockDriver.executeScript
-        .mockResolvedValueOnce(true)  // ElementFinder already exists (from _injectElementFinder)
-        .mockResolvedValueOnce(undefined) // Script injection in frame (from _searchInFrame)
+        .mockResolvedValueOnce(true)  // ElementFinder already exists (from findElements)
+        .mockResolvedValueOnce(true)  // ElementFinder already exists (from _searchInFrame)
         .mockResolvedValueOnce({ 
           elements: [{
             element: mockElement,
@@ -110,8 +110,8 @@ describe('LocatorStrategy', () => {
       const mockBoundingBox = { x: 0, y: 0, width: 100, height: 20, midx: 50, midy: 10 };
       
       mockDriver.executeScript
-        .mockResolvedValueOnce(true) // ElementFinder exists
-        .mockResolvedValueOnce(undefined) // Script injection in frame
+        .mockResolvedValueOnce(true) // ElementFinder exists (findElements)
+        .mockResolvedValueOnce(true) // ElementFinder exists (_searchInFrame)
         .mockResolvedValueOnce({ 
           elements: [{
             element: { id: 'visibility-hidden' },
@@ -131,8 +131,8 @@ describe('LocatorStrategy', () => {
       const mockBoundingBox = { x: 0, y: 0, width: 100, height: 20, midx: 50, midy: 10 };
       
       mockDriver.executeScript
-        .mockResolvedValueOnce(true) // ElementFinder exists
-        .mockResolvedValueOnce(undefined) // Script injection in frame
+        .mockResolvedValueOnce(true) // ElementFinder exists (findElements)
+        .mockResolvedValueOnce(true) // ElementFinder exists (_searchInFrame)
         .mockResolvedValueOnce({ 
           elements: [{
             element: { id: 'visibility-hidden' },
@@ -155,7 +155,7 @@ describe('LocatorStrategy', () => {
 
       mockDriver.executeScript
         .mockResolvedValueOnce(true)
-        .mockResolvedValueOnce(undefined)
+        .mockResolvedValueOnce(true)
         .mockResolvedValueOnce({
           elements: [{
             element: { id: 'metadata' },
@@ -178,13 +178,14 @@ describe('LocatorStrategy', () => {
     it('should use findProbableElements for fallback when direct matches not found', async () => {
       const mockBoundingBox = { x: 0, y: 0, width: 10, height: 10, midx: 5, midy: 5 };
       
-      // Mock sequence for findElements:
-      // 1. ElementFinder exists check (from _injectElementFinder)
-      // 2. Main frame search - no direct matches, but findProbableElements returns fallback
-      // 3. Get frame count - 0 frames (from _getChildFrameCount)
+      // Mock sequence for findElements (unified injector, no ignoredTags configured):
+      // 1. ElementFinder exists check (from findElements)
+      // 2. ElementFinder exists check (from _searchInFrame)
+      // 3. findProbableElements fallback result
+      // 4. Get frame count - 0 frames (from _getChildFrameCount)
       mockDriver.executeScript
         .mockResolvedValueOnce(true) // ElementFinder exists (from findElements)
-        .mockResolvedValueOnce(undefined) // Script injection in frame
+        .mockResolvedValueOnce(true) // ElementFinder exists (from _searchInFrame)
         .mockResolvedValueOnce({ 
           elements: [{
             element: { id: 'checkbox1' }, 

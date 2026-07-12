@@ -45,4 +45,20 @@ describe('WebBrowser Element Retrieval Tests', () => {
     expect(typeof width).toBe('number');
     expect(typeof height).toBe('number');
   });
+
+  test('should expose injectElementFinder that makes window.ElementFinder available', async () => {
+    await browser.injectElementFinder();
+    const injected = await browser.driver.executeScript(
+      'return typeof window.ElementFinder'
+    );
+    expect(injected).toBe('object');
+
+    // And it can be used directly for raw discovery
+    const result = await browser.driver.executeScript(
+      'return window.ElementFinder.findProbableElements("textbox", "Single-line Text")'
+    );
+    expect(result).toBeDefined();
+    expect(Array.isArray(result.elements)).toBe(true);
+    expect(result.elements.length).toBeGreaterThan(0);
+  });
 });

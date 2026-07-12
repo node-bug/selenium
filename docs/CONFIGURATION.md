@@ -16,6 +16,8 @@ Create `.config/selenium.json`:
   "height": null,
   "width": null,
   "hub": null,
+  "debug": false,
+  "ignoredTags": [],
   "goog:chromeOptions": {
     "args": ["--no-sandbox", "--disable-dev-shm-usage"]
   }
@@ -106,6 +108,19 @@ Enable debug mode. When enabled, found elements will be highlighted with a thick
 ```
 
 **Default**: `false`
+
+### ignoredTags
+
+Tags to ignore during element traversal. Configured tags are **added** on top of the
+library defaults (`SCRIPT`, `STYLE`, `TEMPLATE`, `NOSCRIPT`) — they are never removed, so
+script/style content is always excluded. Tag names are case-insensitive and normalized to
+uppercase automatically.
+
+```json
+{ "ignoredTags": ["SVG", "MARK"] }
+```
+
+**Default**: `[]` (no additional tags ignored beyond the library defaults)
 
 ### Browser-Specific Options
 

@@ -244,6 +244,11 @@ describe('WebBrowser', () => {
         expect(browser.locatorStrategy).toBeDefined();
     });
 
+    test('injectElementFinder delegates to locatorStrategy._injectElementFinder', async () => {
+        await browser.injectElementFinder();
+        expect(browser.locatorStrategy._injectElementFinder).toHaveBeenCalledTimes(1);
+    });
+
     test('should accept empty string for element type', () => {
         expect(() => browser.element('')).not.toThrow();
     });
@@ -601,6 +606,29 @@ describe('WebBrowser', () => {
         expect(executeScriptMock).toHaveBeenCalledTimes(2);
         expect(executeScriptMock).toHaveBeenNthCalledWith(1, expect.stringContaining('pauseAnimations'));
         expect(executeScriptMock).toHaveBeenNthCalledWith(2, 'window.ElementFinder.resumeAnimations(arguments[0])', { originalStyles: new Map(), pausedCount: 2 });
+    });
+    test('get.screenshot() injects ElementFinder before pausing animations', async () => {
+        const locator = {
+            takeScreenshot: vi.fn().mockResolvedValue('element-img'),
+            boundingBox: { width: 100, height: 50 },
+        };
+
+        const executeScriptMock = vi.fn()
+            .mockResolvedValueOnce({ originalStyles: new Map(), pausedCount: 1 }) // pause
+            .mockResolvedValueOnce(undefined); // resume
+
+        browser._finder = vi.fn().mockResolvedValue(locator);
+        browser.stack = [{ id: 1 }];
+        browser.driver = {
+            executeScript: executeScriptMock,
+            takeScreenshot: vi.fn().mockResolvedValue('page-img'),
+        };
+
+        await browser.get.screenshot();
+
+        // Regression guard: screenshot must ensure ElementFinder is injected (so
+        // pauseAnimations/resumeAnimations are available) via the unified injector.
+        expect(browser.locatorStrategy._injectElementFinder).toHaveBeenCalled();
     });
     test('upload() handles error via handleError', async () => {
         const error = new Error('fail');

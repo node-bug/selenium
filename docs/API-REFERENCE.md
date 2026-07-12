@@ -193,6 +193,31 @@ await browser.goto('https://example.com')
 
 **Returns**: `Promise<boolean>`
 
+### injectElementFinder()
+
+Explicitly injects the `ElementFinder` script into the current browser frame context.
+
+This is a thin public wrapper around the internal `LocatorStrategy._injectElementFinder()`. It is useful when you want to run raw `driver.executeScript` calls that depend on `window.ElementFinder` (e.g. `window.ElementFinder.findProbableElements(...)`) without going through the fluent selector stack.
+
+```javascript
+await browser.start()
+await browser.goto('https://example.com')
+await browser.injectElementFinder()
+
+const result = await browser.driver.executeScript(
+  'return window.ElementFinder.findProbableElements("button", "Submit")',
+)
+```
+
+**Returns**: `Promise<void>`
+
+**Behavior**:
+
+- Idempotent per frame — checks `typeof window.ElementFinder !== 'undefined'` before injecting, so repeated calls are safe.
+- Applies any configured `ignoredTags` (from `.config/selenium.json`) on top of the library defaults (SCRIPT, STYLE, TEMPLATE, NOSCRIPT).
+- Injection is per-frame: each frame has its own `window`, so call it again after switching into an iframe.
+- Normally not required — the fluent API injects ElementFinder automatically during element finding and screenshots.
+
 ### refresh()
 
 Refresh the current page.

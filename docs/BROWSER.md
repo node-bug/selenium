@@ -419,6 +419,8 @@ Create `.config/selenium.json`:
   "height": null,
   "width": null,
   "hub": null,
+  "debug": false,
+  "ignoredTags": [],
   "goog:chromeOptions": {
     "args": ["--no-sandbox"]
   }
@@ -427,16 +429,18 @@ Create `.config/selenium.json`:
 
 ### Browser Options
 
-| Option          | Type    | Default    | Description                                        |
-| --------------- | ------- | ---------- | -------------------------------------------------- |
-| `browser`       | string  | `"chrome"` | Browser type (`"chrome"`, `"firefox"`, `"safari"`) |
-| `headless`      | boolean | `false`    | Run without GUI                                    |
-| `incognito`     | boolean | `false`    | Private browsing mode                              |
-| `timeout`       | number  | `30000`    | Default element timeout (milliseconds)             |
-| `width`         | number  | `null`     | Window width (pixels)                              |
-| `height`        | number  | `null`     | Window height (pixels)                             |
-| `downloadsPath` | string  | `null`     | Directory for downloads                            |
-| `hub`           | string  | `null`     | Selenium Grid hub URL                              |
+| Option          | Type    | Default    | Description                                             |
+| --------------- | ------- | ---------- | ------------------------------------------------------- |
+| `browser`       | string  | `"chrome"` | Browser type (`"chrome"`, `"firefox"`, `"safari"`)      |
+| `headless`      | boolean | `false`    | Run without GUI                                         |
+| `incognito`     | boolean | `false`    | Private browsing mode                                   |
+| `timeout`       | number  | `30000`    | Default element timeout (milliseconds)                  |
+| `width`         | number  | `null`     | Window width (pixels)                                   |
+| `height`        | number  | `null`     | Window height (pixels)                                  |
+| `downloadsPath` | string  | `null`     | Directory for downloads                                 |
+| `hub`           | string  | `null`     | Selenium Grid hub URL                                   |
+| `debug`         | boolean | `false`    | Highlight found elements with a red outline             |
+| `ignoredTags`   | array   | `[]`       | Extra tags to skip during traversal (added to defaults) |
 
 ### Common Configurations
 

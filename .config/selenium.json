@@ -3,10 +3,11 @@
   "headless": true,
   "timeout": 5000,
   "downloadsPath": "./reports/downloads",
-  "incognito": false,
+  "incognito": true,
   "height": 700,
   "width": 1440,
   "hub": null,
+  "ignoredTags": [],
   "hub-examples": {
     "k8s": "https://eks-dev-qa-hub.mldev.cloud",
     "dev-swarm": "https://dev-qa-zalenium.mldev.cloud",
