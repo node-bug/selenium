@@ -95,9 +95,16 @@ export class VisibilityDelegate extends BaseDelegate {
     const endTime = Date.now() + timeout;
     try {
       while (Date.now() < endTime) {
-        disabled = await this.#disability(1000)
+        try {
+          disabled = await this.#disability(1000);
+        } catch {
+          // Element not present yet (or not locatable) — keep retrying until the
+          // full timeout instead of letting the error escape the loop.
+          disabled = true;
+          continue;
+        }
         if (!disabled) {
-          log.info(`Element is enabled`)
+          log.info(`Element is enabled`);
           browser.stack = [];
           return !disabled;
         }
@@ -125,9 +132,16 @@ export class VisibilityDelegate extends BaseDelegate {
     const endTime = Date.now() + timeout;
     try {
       while (Date.now() < endTime) {
-        disabled = await this.#disability(1000)
+        try {
+          disabled = await this.#disability(1000);
+        } catch {
+          // Element not present yet (or not locatable) — keep retrying until the
+          // full timeout instead of letting the error escape the loop.
+          disabled = false;
+          continue;
+        }
         if (disabled) {
-          log.info(`Element is disabled`)
+          log.info(`Element is disabled`);
           browser.stack = [];
           return disabled;
         }

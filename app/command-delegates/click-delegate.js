@@ -20,7 +20,6 @@ export class ClickDelegate extends BaseDelegate {
    * Performs a click on an element.
    * 
    * Clicks on an element at its center or at specified coordinates.
-   * Falls back to JavaScript click if Selenium click fails.
    *
    * Supports modifier keys via chaining: `browser.button('link').ctrl.click()`.
    * Modifiers (ctrl, shift, alt, meta) are read from `browser._tempMods` and
@@ -161,7 +160,6 @@ export class ClickDelegate extends BaseDelegate {
    * Internal click handler for elements.
    * 
    * Handles both standard clicks and coordinate-based clicks.
-   * Falls back to JavaScript click if Selenium click fails.
    * 
    * @private
    * @param {Object} e - WebElement to click
@@ -177,18 +175,7 @@ export class ClickDelegate extends BaseDelegate {
     // If no modifiers and no coordinates, use simple click
     const hasMods = mods.control || mods.shift || mods.alt || mods.meta;
     if (!hasMods && !hasCoordinates) {
-      // try {
-        await e.click();
-      // } catch (err) {
-      //   // Fallback to JS click if element is blocked or not interactable
-      //   if (['ElementNotInteractableError', 'ElementClickInterceptedError'].includes(err.name)) {
-      //     await browser.driver.executeScript('arguments[0].click();', e);
-      //     log.warn(`Due to "${err.name}" error, javascript click was used to click.`);
-      //     return true;
-      //   } else {
-      //     throw err;
-      //   }
-      // }
+      await e.click();
       return true;
     }
 

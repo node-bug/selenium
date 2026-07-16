@@ -62,4 +62,35 @@ describe('Network Wait Integration Tests', () => {
       expect(result).toBe(true);
     });
   });
+
+  describe('Regex Pattern Matching (Bug: waitForRequest mis-detects flagged regexes)', () => {
+    test('should match request by plain string pattern', async () => {
+      // Control: a plain string pattern works today.
+      await browser.button('Make API Request').click();
+
+      const result = await browser.network.wait.for.request('data:', 10000);
+      expect(result).toBe(true);
+    });
+
+    test('should match request by regex without flags', async () => {
+      // Control: a regex WITHOUT flags (/API/) is detected correctly even with
+      // the current string-inspection logic, because its toString() is '/API/'
+      // (starts and ends with '/'). This proves only *flagged* regexes break.
+      await browser.button('Make API Request').click();
+
+      const result = await browser.network.wait.for.request(/API/, 10000);
+      expect(result).toBe(true);
+    });
+
+    test('should match request by regex with flags (BUG)', async () => {
+      // Bug-confirming: a regex WITH flags (/api/i) is mis-detected. Its
+      // toString() is '/api/i', which starts with '/' but ends with 'i', so the
+      // current code treats it as the literal substring '/api/i' and never
+      // matches the uppercase 'API' URL. This test FAILS with the current code.
+      await browser.button('Make API Request').click();
+
+      const result = await browser.network.wait.for.request(/api/i, 10000);
+      expect(result).toBe(true);
+    });
+  });
 });

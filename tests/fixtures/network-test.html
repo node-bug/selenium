@@ -17,6 +17,7 @@
     <button id="fetch-btn" onclick="makeFetchRequest()">Make Fetch Request</button>
     <button id="both-btn" onclick="makeBothRequests()">Make Both Requests</button>
     <button id="delayed-btn" onclick="makeDelayedRequest()">Make Delayed Request</button>
+    <button id="api-btn" onclick="makeApiRequest()">Make API Request</button>
     
     <div id="status">Ready</div>
 
@@ -110,6 +111,24 @@
                         URL.revokeObjectURL(url);
                     });
             }, 500);
+        }
+
+        function makeApiRequest() {
+            var status = document.getElementById('status');
+            status.textContent = 'API request started...';
+
+            // Use a data: URL containing an uppercase 'API' token so that a
+            // case-insensitive regex (/api/i) should match it. Resolves instantly
+            // with no network dependency, and is recorded by the NetworkHelper
+            // fetch monitor in window.__completedRequests.
+            var url = 'data:application/json,{"API":"value"}';
+
+            fetch(url)
+                .then(function(response) { return response; })
+                .then(function() {
+                    status.textContent = 'API request completed';
+                })
+                .catch(function() {});
         }
     </script>
 </body>
