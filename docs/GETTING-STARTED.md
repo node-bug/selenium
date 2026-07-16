@@ -398,7 +398,7 @@ await browser.element('Item').should.be.visible()
 ```javascript
 // Visibility
 await browser.element('Item').is.visible()
-await browser.element('Item').is.not.visible()
+await browser.element('Item').is.not.visible() // polls until timeout; true once element is gone
 
 // Enabled/Disabled
 await browser.button('Submit').is.enabled()
@@ -408,6 +408,8 @@ await browser.button('Submit').is.disabled()
 await browser.checkbox('Agree').is.checked()
 await browser.checkbox('Agree').is.not.checked()
 ```
+
+> **Note on `is.not.visible()`**: It returns `true` as soon as the element can no longer be _located_ (e.g., removed from the DOM), so it also works for an element that **disappears after a few seconds**. A CSS-hidden element (`display:none`, etc.) is still locatable and reports as visible. See [API-REFERENCE.md → is.not.visible()](API-REFERENCE.md) for details.
 
 Learn more: [FORMS.md](FORMS.md)
 

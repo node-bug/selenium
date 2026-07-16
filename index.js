@@ -186,12 +186,10 @@ class WebBrowser extends Browser {
         try {
           locator = await this.locatorStrategy.find(currentStack);
           if (locator) return locator;
-        } catch (err) {
-          // Re-throw ReferenceError immediately - it indicates a fundamental problem
-          // like "element not found" due to spatial constraints not being met
-          if (err instanceof ReferenceError) {
-            throw err;
-          }
+        } catch {
+          // Element not found yet (or a spatial constraint is not yet satisfied).
+          // Keep retrying until the timeout rather than throwing immediately, so the
+          // whole API consistently waits for late-appearing elements.
           continue; // Try next stack in the OR condition
         }
       }

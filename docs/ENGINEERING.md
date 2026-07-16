@@ -290,12 +290,20 @@ findElement() // Find element via browser._finder()
 | `ClickDelegate`      | `click()`, `doubleClick()`, `rightClick()`, `middleClick()`, `tripleClick()`, `multipleClick()`, `hover()` | Mouse interactions              |
 | `InputDelegate`      | `write()`, `clear()`, `overwrite()`, `focus()`, `press()`, `type()`, `left()`, `right()`, `up()`, `down()` | Keyboard/text input             |
 | `VisibilityDelegate` | `_isVisible()`, `_isEnabled()`, `_isDisabled()`, `_isNotVisible()`, `hide()`, `unhide()`, `scroll`         | Visibility checks and scrolling |
-| `CheckboxDelegate`   | `check()`, `uncheck()`, `_isChecked()`                                                                     | Checkbox state                  |
-| `RadioDelegate`      | `_isSet()`                                                                                                 | Radio button state              |
-| `SelectDelegate`     | `option()`, `select()`, `getOptions()`, `getSelectedOptions()`, `_hasOption()`, `_isSelected()`            | Dropdown operations             |
-| `SwitchDelegate`     | `on()`, `off()`, `_isOn()`                                                                                 | Toggle switch operations        |
-| `SliderDelegate`     | `slide` accessor                                                                                           | Slider control                  |
-| `DragDropDelegate`   | `perform()`                                                                                                | Drag and drop operations        |
+
+**`VisibilityDelegate` retry / polling semantics (for agents):**
+
+- The element finder (`WebBrowser._finder`) retries until the full `timeout` for any not-found element, then throws `Element not found after <timeout>ms timeout`. The `is.*` boolean checks catch that final error and return `false` for a never-found element.
+- `_isVisible()` calls `_finder(t)` once and returns `false` if the element is never found within `t`.
+- `_isEnabled()` / `_isDisabled()` **poll until the timeout**: each iteration locates the element (via `_finder`, which retries until found) and re-checks the current enabled/disabled state, returning `true` as soon as the desired state is reached. This handles both a late-appearing element AND an element whose enabled/disabled **state changes after a delay** (e.g., present-but-disabled then enabled). An element that is never found, or never reaches the desired state within `t`, returns `false`.
+- `_isNotVisible()` **polls until the timeout** and returns `true` as soon as the element is **not found** (then stops early). This correctly handles an element that is present now but **disappears / is removed from the DOM after a delay** — `is.not.visible()` will keep waiting and return `true` once the element is gone. An element that stays present for the whole window returns `false`.
+- **Presence vs. CSS visibility**: `is.not.visible()` is based on whether the element is _locatable_ by its selector/label. A CSS-hidden element (`display:none`, `visibility:hidden`, `opacity:0`) is still locatable and therefore reports as **visible** (`is.not.visible()` → `false`). To detect "not visible" via `is.not.visible()`, the element must be **removed from the DOM**, not merely CSS-hidden.
+  | `CheckboxDelegate` | `check()`, `uncheck()`, `_isChecked()` | Checkbox state |
+  | `RadioDelegate` | `_isSet()` | Radio button state |
+  | `SelectDelegate` | `option()`, `select()`, `getOptions()`, `getSelectedOptions()`, `_hasOption()`, `_isSelected()` | Dropdown operations |
+  | `SwitchDelegate` | `on()`, `off()`, `_isOn()` | Toggle switch operations |
+  | `SliderDelegate` | `slide` accessor | Slider control |
+  | `DragDropDelegate` | `perform()` | Drag and drop operations |
 
 ---
 

@@ -31,6 +31,8 @@ export class VisibilityDelegate extends BaseDelegate {
       found = !!locator;
       log.info(`Element is visible.`);
     } catch (err) {
+      // _finder() retries until the timeout and then throws; treat a not-found
+      // element as "not visible" rather than propagating the error.
       log.warn(`Element not visible: ${err.message}`);
     } finally {
       browser.stack = [];
@@ -47,22 +49,31 @@ export class VisibilityDelegate extends BaseDelegate {
    */
   async _isNotVisible(t = null) {
     const browser = this.browser;
-    let found = true;
-
     const timeout = t ?? selenium.timeout;
     const endTime = Date.now() + timeout;
+    let notVisible = false;
     try {
+      // Poll until the timeout. _finder() retries until the timeout and then
+      // throws, so each iteration waits up to ~1s for the element. As soon as the
+      // element is not found (or becomes invisible / is removed from the DOM),
+      // treat it as not visible and stop. This correctly handles both a
+      // never-present element and one that becomes invisible after a delay.
       while (Date.now() < endTime) {
-        await browser._finder(1000);
+        try {
+          await browser._finder(1000);
+          notVisible = false; // Element currently present/visible
+        } catch {
+          notVisible = true; // Element currently not visible
+          break;
+        }
       }
-    } catch {
-      log.info(`Element is not visible.`);
-      found = false
+    } catch (err) {
+      log.warn(`Element is not visible: ${err.message}`);
     } finally {
       browser.stack = [];
     }
-    if (found) log.warn(`Element visible: Element found after ${timeout}ms timeout`);
-    return !found
+    if (!notVisible) log.warn(`Element visible: Element found after timeout`);
+    return notVisible;
   }
 
   /**
@@ -90,29 +101,35 @@ export class VisibilityDelegate extends BaseDelegate {
    */
   async _isEnabled(t) {
     const browser = this.browser;
-    let disabled = true;
     const timeout = t ?? selenium.timeout;
     const endTime = Date.now() + timeout;
     try {
+      // Poll until the timeout. _finder() retries until the element is found, and
+      // #disability() checks the current enabled/disabled state. We re-check the
+      // state on each iteration so this correctly handles both a late-appearing
+      // element AND an element whose enabled state changes after a delay.
       while (Date.now() < endTime) {
         try {
-          disabled = await this.#disability(1000);
+          const disabled = await this.#disability(1000);
+          if (!disabled) {
+            log.info(`Element is enabled`);
+            browser.stack = [];
+            return true;
+          }
         } catch {
-          // Element not present yet (or not locatable) — keep retrying until the
-          // full timeout instead of letting the error escape the loop.
-          disabled = true;
+          // Element not present yet — keep polling until the timeout.
           continue;
         }
-        if (!disabled) {
-          log.info(`Element is enabled`);
-          browser.stack = [];
-          return !disabled;
-        }
+        // Element is present but still disabled; wait and re-check.
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
-      log.warn(`Element disabled: Element not enabled after ${timeout}ms timeout`);
-      return !disabled;
+      log.warn(`Element disabled: Element not enabled after timeout`);
+      return false;
     } catch (err) {
-      browser.handleError(err, 'validating element is enabled');
+      // _finder() retries until the timeout and then throws; treat a not-found
+      // element as "not enabled" rather than propagating the error.
+      log.warn(`Element not enabled: ${err.message}`);
+      return false;
     } finally {
       browser.stack = [];
     }
@@ -127,29 +144,35 @@ export class VisibilityDelegate extends BaseDelegate {
    */
   async _isDisabled(t) {
     const browser = this.browser;
-    let disabled = false;
     const timeout = t ?? selenium.timeout;
     const endTime = Date.now() + timeout;
     try {
+      // Poll until the timeout. _finder() retries until the element is found, and
+      // #disability() checks the current enabled/disabled state. We re-check the
+      // state on each iteration so this correctly handles both a late-appearing
+      // element AND an element whose disabled state changes after a delay.
       while (Date.now() < endTime) {
         try {
-          disabled = await this.#disability(1000);
+          const disabled = await this.#disability(1000);
+          if (disabled) {
+            log.info(`Element is disabled`);
+            browser.stack = [];
+            return true;
+          }
         } catch {
-          // Element not present yet (or not locatable) — keep retrying until the
-          // full timeout instead of letting the error escape the loop.
-          disabled = false;
+          // Element not present yet — keep polling until the timeout.
           continue;
         }
-        if (disabled) {
-          log.info(`Element is disabled`);
-          browser.stack = [];
-          return disabled;
-        }
+        // Element is present but still enabled; wait and re-check.
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
-      log.warn(`Element enabled: Element not disabled after ${timeout}ms timeout`);
-      return disabled;
+      log.warn(`Element enabled: Element not disabled after timeout`);
+      return false;
     } catch (err) {
-      browser.handleError(err, 'validating element is disabled');
+      // _finder() retries until the timeout and then throws; treat a not-found
+      // element as "not disabled" rather than propagating the error.
+      log.warn(`Element not disabled: ${err.message}`);
+      return false;
     } finally {
       browser.stack = [];
     }

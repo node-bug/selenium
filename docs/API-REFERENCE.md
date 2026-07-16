@@ -1047,6 +1047,38 @@ if (visible) {
 
 **QA Best Practice**: For test validations that validate whether elements are displayed, use `should.be.visible()` or `should.not.be.visible()` instead.
 
+### is.not.visible([timeout])
+
+**Returns `true`/`false` for conditional logic** - Does not throw errors.
+
+Check if an element is **not** visible (i.e., not present in the DOM or not locatable). Like `is.visible()`, this returns a boolean and is intended for runtime branching logic, not for QA assertions.
+
+```javascript
+const hidden = await browser.element('Spinner').is.not.visible()
+if (hidden) {
+  console.log('Spinner is gone')
+}
+```
+
+**Returns**: `Promise<boolean>` - `true` if the element is not visible, `false` if it is currently present/visible.
+
+**Retry / polling behavior (important for agents):**
+
+- `is.not.visible()` **polls until the timeout**. Internally it repeatedly calls the element finder (which itself retries until the timeout) and returns `true` as soon as the element is **not found** — then it stops early.
+- This means it correctly handles a **late-changing** element:
+  - An element that is **present now but disappears/is removed after a few seconds** → `is.not.visible()` will keep waiting and return `true` once the element is gone.
+  - An element that **never appears** → `is.not.visible()` returns `true` (typically quickly, after the first failed find).
+  - An element that **stays present/visible** for the whole window → returns `false` after the timeout.
+- The result reflects the element's state **at the moment it is no longer found**, not whether it was ever visible earlier. So a "wait until it disappears" pattern works as expected.
+
+**Parameters**:
+
+- `timeout` (number, optional): Milliseconds to wait/poll. Defaults to `selenium.timeout`.
+
+**Note on visibility vs. presence**: `is.not.visible()` is based on whether the element can be **located** by its selector/label. An element that is in the DOM but visually hidden via CSS (e.g., `display:none`, `visibility:hidden`, `opacity:0`) is still _locatable_ and will therefore report as **visible** (`is.not.visible()` → `false`). To detect "not visible" via `is.not.visible()`, the element must be **removed from the DOM** (or otherwise no longer matchable), not merely CSS-hidden.
+
+**QA Best Practice**: For test validations, prefer `should.not.be.visible()` (which throws on failure). Use `is.not.visible()` for conditional branching where you need a boolean.
+
 ### should.be.visible([timeout])
 
 **Assertion that throws an error and stops test execution on failure.**
@@ -1100,6 +1132,16 @@ if (!disabled) {
 
 **Returns**: `Promise<boolean>` - `true` if disabled, `false` otherwise
 
+**Retry / polling behavior (important for agents):**
+
+- `is.disabled()` **polls until the timeout**. It repeatedly locates the element and re-checks its disabled state on each iteration, returning `true` as soon as the element is disabled.
+- This correctly handles both a **late-appearing** element and an element whose **disabled state changes after a delay** (e.g., present but enabled, then disabled a few seconds later) — `is.disabled()` keeps waiting and returns `true` once the state changes.
+- An element that is never found, or stays enabled for the whole window, returns `false` after the timeout.
+
+**Parameters**:
+
+- `timeout` (number, optional): Milliseconds to wait/poll. Defaults to `selenium.timeout`.
+
 **QA Best Practice**: For test validations that validate whether elements are disabled, use `should.be.disabled()` or `should.be.enabled()` instead.
 
 ### is.enabled()
@@ -1116,6 +1158,16 @@ if (enabled) {
 ```
 
 **Returns**: `Promise<boolean>` - `true` if enabled, `false` if disabled
+
+**Retry / polling behavior (important for agents):**
+
+- `is.enabled()` **polls until the timeout**. It repeatedly locates the element and re-checks its enabled state on each iteration, returning `true` as soon as the element is enabled.
+- This correctly handles both a **late-appearing** element and an element whose **enabled state changes after a delay** (e.g., present but disabled, then enabled a few seconds later) — `is.enabled()` keeps waiting and returns `true` once the state changes.
+- An element that is never found, or stays disabled for the whole window, returns `false` after the timeout.
+
+**Parameters**:
+
+- `timeout` (number, optional): Milliseconds to wait/poll. Defaults to `selenium.timeout`.
 
 ### should.be.disabled()
 
