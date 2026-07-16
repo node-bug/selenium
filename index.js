@@ -1574,12 +1574,28 @@ class WebBrowser extends Browser {
     return this;
   }
 
-  // Entry points that return a new builder
-  get exact() { return new SelectorStackBuilder(this).exact(); }
+  // Entry points that return a new builder.
+  // These modifiers only take effect when placed BEFORE the element type
+  // (e.g. `browser.hidden.button('X')`). When chained AFTER an element member
+  // (e.g. `browser.button('X').hidden`), the top of the stack is already an
+  // element, so we treat the modifier as a no-op and return `this` unchanged.
+  get exact() {
+    const top = this.stack[this.stack.length - 1];
+    if (top && Object.keys(ELEMENT_DEFINITIONS).includes(top.type)) return this;
+    return new SelectorStackBuilder(this).exact();
+  }
 
-  get hidden() { return new SelectorStackBuilder(this).hidden(); }
+  get hidden() {
+    const top = this.stack[this.stack.length - 1];
+    if (top && Object.keys(ELEMENT_DEFINITIONS).includes(top.type)) return this;
+    return new SelectorStackBuilder(this).hidden();
+  }
 
-  get onscreen() { return new SelectorStackBuilder(this).onscreen(); }
+  get onscreen() {
+    const top = this.stack[this.stack.length - 1];
+    if (top && Object.keys(ELEMENT_DEFINITIONS).includes(top.type)) return this;
+    return new SelectorStackBuilder(this).onscreen();
+  }
 
   // Default element call without modifiers
   // avoid state pollution by not pushing directly to stack here

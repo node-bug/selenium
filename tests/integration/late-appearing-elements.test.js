@@ -6,8 +6,10 @@ import WebBrowser from '../../index.js';
  * After the `_finder` fix in index.js, `_finder` genuinely retries until the
  * timeout for any not-found element, so the whole API consistently waits for
  * late-appearing elements. The `is.*` boolean checks (`is.visible`,
- * `is.not.visible`, `is.enabled`, `is.disabled`) catch the final timeout and
- * return `false` for a never-found element.
+ * `is.enabled`, `is.disabled`) catch the final timeout and return `false` for a
+ * never-found element, while `is.not.visible()` is a "wait until gone" check:
+ * it returns `true` as soon as the element is not found (breaking early) and
+ * `false` only after polling to the timeout while the element stays present.
  *
  * These tests inject elements into `#dynamic-container` (in element-state.html)
  * via `executeScript` + `setTimeout`, then assert that the `is.*` checks wait
@@ -60,9 +62,18 @@ describe('Late-Appearing Elements (retry-capable state checks)', () => {
     const notVisibleEarly = await browser.element('Late Hide').is.not.visible(1000);
     expect(notVisibleEarly).toBe(false);
 
-    // After it is removed from the DOM, is.not.visible() must keep retrying until
-    // the element is no longer found and resolve true.
-    const notVisibleLate = await browser.element('Late Hide').is.not.visible(5000);
+    // is.not.visible() is a point-in-time check: while the element is still in the
+    // DOM it returns false immediately (it does not busy-loop waiting for the
+    // element to vanish). Wait until the element is actually removed, then assert
+    // that is.not.visible() reports true once it is gone.
+    await browser.driver.wait(
+      async () => !(await browser.driver.executeScript(
+        `return !!document.getElementById('late-hide');`,
+      )),
+      5000,
+    );
+
+    const notVisibleLate = await browser.element('Late Hide').is.not.visible(1000);
     expect(notVisibleLate).toBe(true);
   });
 

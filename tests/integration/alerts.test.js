@@ -90,4 +90,24 @@ describe('WebBrowser Alerts Tests', () => {
     await browser.alert().accept();
 
   });
+
+  test('should throw clear error when write() called with no alert present', async () => {
+    await browser.goto(`file://${process.cwd()}/tests/fixtures/alerts.html`);
+
+    // No button clicked, so no alert is open. Clear any cached alert reference
+    // so this.alert is undefined, reproducing the unguarded-access bug.
+    browser.alert().alert = undefined;
+
+    await expect(browser.alert().write('Hello World')).rejects.toThrow(/No alert present/);
+  });
+
+  test('should throw clear error when get.text() called with no alert present', async () => {
+    await browser.goto(`file://${process.cwd()}/tests/fixtures/alerts.html`);
+
+    // No button clicked, so no alert is open. Clear any cached alert reference
+    // so this.alert is undefined, reproducing the unguarded-access bug.
+    browser.alert().alert = undefined;
+
+    await expect(browser.alert().get.text()).rejects.toThrow(/No alert present/);
+  });
 });

@@ -225,6 +225,8 @@ export class NetworkDelegate extends BaseDelegate {
    * @example
    * await browser.network.wait.for.request('api/users');
    * await browser.network.wait.for.request(/api\/users/);
+   * // RegExp instances keep their flags (e.g. /api/i matches 'API')
+   * await browser.network.wait.for.request(/api/i);
    */
   async #waitForRequest(urlPattern, timeout = null) {
     const browser = this.browser;
@@ -234,12 +236,20 @@ export class NetworkDelegate extends BaseDelegate {
     try {
       while (Date.now() < endTime) {
         const completed = await this.#readCompletedRequests();
+        const isRegex = urlPattern instanceof RegExp;
         const patternStr = urlPattern.toString();
-        const isRegex = patternStr.startsWith('/') && patternStr.endsWith('/');
-        const regex = isRegex ? new RegExp(patternStr.slice(1, -1)) : null;
+        // Fallback for string patterns written in regex literal form (/.../),
+        // e.g. when a RegExp is passed as a string. Real RegExp instances are
+        // detected via instanceof above, which also preserves flags like /i.
+        const looksLikeRegexLiteral = !isRegex && patternStr.startsWith('/') && patternStr.endsWith('/');
+        const regex = isRegex
+          ? urlPattern
+          : looksLikeRegexLiteral
+            ? new RegExp(patternStr.slice(1, -1))
+            : null;
 
         const found = completed.some(req => {
-          if (isRegex) return regex.test(req.url);
+          if (regex) return regex.test(req.url);
           return req.url.includes(patternStr);
         });
 

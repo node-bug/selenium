@@ -283,6 +283,81 @@ describe('WebBrowser', () => {
         });
     });
 
+    describe('exact/hidden/onscreen modifiers only apply BEFORE the element', () => {
+        test('exact pushes a flag when stack is empty (pre-element)', () => {
+            browser.exact;
+            expect(browser.stack).toEqual([{ exact: true, hidden: false, onscreen: false }]);
+        });
+
+        test('hidden pushes a flag when stack is empty (pre-element)', () => {
+            browser.hidden;
+            expect(browser.stack).toEqual([{ exact: false, hidden: true, onscreen: false }]);
+        });
+
+        test('onscreen pushes a flag when stack is empty (pre-element)', () => {
+            browser.onscreen;
+            expect(browser.stack).toEqual([{ exact: false, hidden: false, onscreen: true }]);
+        });
+
+        test('exact pushes a flag when top of stack is a location (pre-element for next)', () => {
+            browser.element('A').below.exact;
+            const top = browser.stack[browser.stack.length - 1];
+            expect(top).toEqual({ exact: true, hidden: false, onscreen: false });
+        });
+
+        test('hidden pushes a flag when top of stack is a location (pre-element for next)', () => {
+            browser.element('A').below.hidden;
+            const top = browser.stack[browser.stack.length - 1];
+            expect(top).toEqual({ exact: false, hidden: true, onscreen: false });
+        });
+
+        test('onscreen pushes a flag when top of stack is a location (pre-element for next)', () => {
+            browser.element('A').below.onscreen;
+            const top = browser.stack[browser.stack.length - 1];
+            expect(top).toEqual({ exact: false, hidden: false, onscreen: true });
+        });
+
+        test('exact is a no-op when chained AFTER an element member', () => {
+            browser.button('Submit').exact;
+            // Only the element member should be on the stack; no flag pushed.
+            expect(browser.stack).toHaveLength(1);
+            expect(browser.stack[0].type).toBe('button');
+            expect(browser.stack[0].exact).toBe(false);
+        });
+
+        test('hidden is a no-op when chained AFTER an element member', () => {
+            browser.link('X').hidden;
+            expect(browser.stack).toHaveLength(1);
+            expect(browser.stack[0].type).toBe('link');
+            expect(browser.stack[0].hidden).toBe(false);
+        });
+
+        test('onscreen is a no-op when chained AFTER an element member', () => {
+            browser.button('Submit').onscreen;
+            expect(browser.stack).toHaveLength(1);
+            expect(browser.stack[0].type).toBe('button');
+            expect(browser.stack[0].onscreen).toBe(false);
+        });
+
+        test('pre-element exact is consumed by the following element()', () => {
+            browser.exact.element('X');
+            expect(browser.stack).toHaveLength(1);
+            expect(browser.stack[0]).toMatchObject({ type: 'element', id: 'X', exact: true });
+        });
+
+        test('pre-element hidden is consumed by the following element()', () => {
+            browser.hidden.element('X');
+            expect(browser.stack).toHaveLength(1);
+            expect(browser.stack[0]).toMatchObject({ type: 'element', id: 'X', hidden: true });
+        });
+
+        test('pre-element onscreen is consumed by the following element()', () => {
+            browser.onscreen.element('X');
+            expect(browser.stack).toHaveLength(1);
+            expect(browser.stack[0]).toMatchObject({ type: 'element', id: 'X', onscreen: true });
+        });
+    });
+
     test('message getter/setter works', () => {
         browser.message = 'hello';
         expect(browser.message).toBe('hello');

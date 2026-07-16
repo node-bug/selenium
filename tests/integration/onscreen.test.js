@@ -83,4 +83,19 @@ describe('WebBrowser Onscreen Modifier', () => {
     expect(btn).toBeDefined();
     expect(btn.inViewport).toBe(true);
   });
+
+  test('onscreen modifier chained AFTER the element is a no-op (off-screen still resolves)', async () => {
+    // Per the new rule, exact/hidden/onscreen only apply when placed BEFORE the
+    // element type. Chaining `.onscreen` after `button(...)` must be ignored, so
+    // the off-screen "Submit Form" button still resolves (no viewport filter).
+    const btn = await browser.button('Submit Form').onscreen.find();
+    expect(btn).toBeDefined();
+    expect(btn.inViewport).toBe(false);
+  });
+
+  test('exact modifier chained AFTER the element is a no-op (partial match still applies)', async () => {
+    // `exact` after the element is ignored, so a partial match still succeeds.
+    const btn = await browser.button('Click Me').exact.find();
+    expect(btn).toBeDefined();
+  });
 });

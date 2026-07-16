@@ -1064,11 +1064,13 @@ if (hidden) {
 
 **Retry / polling behavior (important for agents):**
 
-- `is.not.visible()` **polls until the timeout**. Internally it repeatedly calls the element finder (which itself retries until the timeout) and returns `true` as soon as the element is **not found** — then it stops early.
+- `is.not.visible()` is a **"wait until the element is gone"** operation. Internally it repeatedly calls the element finder (which itself retries until the timeout) and inspects the result on each iteration:
+  - **Element is absent** → the finder throws → `is.not.visible()` sets the result to `true` and **breaks out of the loop immediately** (no busy-loop). This is the fast path: a never-present element returns `true` after the first failed find.
+  - **Element is present/visible** → the finder succeeds → the result is set to `false`, but the loop **does not break**; it keeps polling until the timeout in case the element disappears later. Only after the full timeout does it return `false`.
 - This means it correctly handles a **late-changing** element:
   - An element that is **present now but disappears/is removed after a few seconds** → `is.not.visible()` will keep waiting and return `true` once the element is gone.
-  - An element that **never appears** → `is.not.visible()` returns `true` (typically quickly, after the first failed find).
-  - An element that **stays present/visible** for the whole window → returns `false` after the timeout.
+  - An element that **never appears** → `is.not.visible()` returns `true` quickly (breaks on the first failed find).
+  - An element that **stays present/visible** for the whole window → returns `false` only after polling to the full timeout (it does not return early for a present element).
 - The result reflects the element's state **at the moment it is no longer found**, not whether it was ever visible earlier. So a "wait until it disappears" pattern works as expected.
 
 **Parameters**:
@@ -1808,11 +1810,16 @@ await browser.wait.for.request('api/users', 10000)
 
 // Wait using a regular expression
 await browser.network.wait.for.request(/\/api\/v2\/.*\.json/)
+
+// RegExp instances keep their flags — e.g. case-insensitive matching
+await browser.network.wait.for.request(/api/i)
 ```
 
 **Parameters**:
 
-- `urlPattern` (string | RegExp): Pattern to match against request URLs. Strings perform a substring match, RegExp uses full regex matching.
+- `urlPattern` (string | RegExp): Pattern to match against request URLs.
+  - **RegExp** instances use full regex matching and **preserve their flags** (e.g. `/api/i` matches `API`, `api`, etc.).
+  - **Strings** perform a substring match. A string written in regex-literal form (`/.../`) is also treated as a regular expression (flags are not supported via the string form).
 - `timeout` (number, optional): Maximum time to wait in milliseconds. Defaults to `selenium.timeout` from config.
 
 **Returns**: `Promise<boolean>` — `true` when a matching request has completed.
@@ -1963,6 +1970,8 @@ await browser.alert().write('user input')
 
 **Returns**: `Promise<void>`
 
+**Throws**: `Error` with message `No alert present` if no alert is currently open
+
 ### alert().get.text()
 
 Get alert text.
@@ -1970,6 +1979,10 @@ Get alert text.
 ```javascript
 const text = await browser.alert().get.text()
 ```
+
+**Returns**: `Promise<string>`
+
+**Throws**: `Error` with message `No alert present` if no alert is currently open
 
 ---
 

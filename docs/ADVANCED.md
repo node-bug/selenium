@@ -432,6 +432,8 @@ console.log('Alert message:', text)
 
 **Returns**: `Promise<string>`
 
+**Throws**: `Error` with message `No alert present` if no alert is currently open
+
 ### Accept Alert
 
 Click OK/Accept button:
@@ -469,6 +471,8 @@ await browser.alert().write('user@example.com')
 - `text` (string): Text to enter
 
 **Returns**: `Promise<boolean>`
+
+**Throws**: `Error` with message `No alert present` if no alert is currently open
 
 **Note**: Text is sent to prompt before accepting
 

@@ -848,21 +848,13 @@ export class LocatorStrategy {
     for (const item of stack) {
       const newItem = { ...item };
 
-      // Check if this is a flag object (has exact/hidden but no type) that should be merged with previous element
-      const isFlagObject = item.type === undefined && 'hidden' in item;
-      if (isFlagObject && resolvedStack.length > 0) {
-        // Merge flags into the previous element
-        const prevItem = resolvedStack[resolvedStack.length - 1];
-        if (prevItem && !prevItem.type) {
-          // Previous item is also a flag, merge them
-          Object.assign(prevItem, newItem);
-        } else if (prevItem && Object.keys(ELEMENT_DEFINITIONS).includes(prevItem.type)) {
-          // Previous item is an element, merge flags into it
-          prevItem.hidden = prevItem.hidden || newItem.hidden;
-          prevItem.exact = prevItem.exact || newItem.exact;
-        }
-        continue; // Skip adding this flag object as a separate item
-      }
+      // NOTE: Standalone flag objects ({ exact, hidden, onscreen } with no `type`)
+      // are only ever created by the SelectorStackBuilder BEFORE an element member
+      // (e.g. `browser.exact.element('X')`), where `element()` pops and merges them.
+      // They are intentionally NOT merged into a PRECEDING element member, so a
+      // modifier chained AFTER an element (e.g. `browser.button('X').hidden`) is a
+      // no-op. Any standalone flag that reaches this point is passed through
+      // unchanged and ignored downstream.
 
       // Only resolve items that are element types and don't have matches yet
       if (Object.keys(ELEMENT_DEFINITIONS).includes(newItem.type) && (!newItem.matches || newItem.matches.length === 0)) {

@@ -51,20 +51,20 @@ export class VisibilityDelegate extends BaseDelegate {
     const browser = this.browser;
     const timeout = t ?? selenium.timeout;
     const endTime = Date.now() + timeout;
-    let notVisible = false;
+    let notVisible = true;
     try {
-      // Poll until the timeout. _finder() retries until the timeout and then
-      // throws, so each iteration waits up to ~1s for the element. As soon as the
-      // element is not found (or becomes invisible / is removed from the DOM),
-      // treat it as not visible and stop. This correctly handles both a
-      // never-present element and one that becomes invisible after a delay.
+      // Poll until the timeout. _finder() retries for up to ~1s and then throws
+      // when the element is absent. If the element IS found, it is visible, so
+      // "is not visible" is false — keep polling (the element may disappear
+      // later) until the timeout. If _finder() throws, the element is absent, so
+      // "is not visible" is true — break immediately with the definitive answer.
       while (Date.now() < endTime) {
         try {
           await browser._finder(1000);
-          notVisible = false; // Element currently present/visible
+          notVisible = false; // Element present/visible -> it IS visible
         } catch {
-          notVisible = true; // Element currently not visible
-          break;
+          notVisible = true; // Element absent -> it is not visible
+          break; // Definitive answer: element is gone, stop polling
         }
       }
     } catch (err) {
@@ -72,7 +72,7 @@ export class VisibilityDelegate extends BaseDelegate {
     } finally {
       browser.stack = [];
     }
-    if (!notVisible) log.warn(`Element visible: Element found after timeout`);
+    if (!notVisible) log.warn(`Element visible: Element found within ${timeout}ms timeout`);
     return notVisible;
   }
 

@@ -284,6 +284,68 @@ describe('LocatorStrategy', () => {
       const result = await locatorStrategy.resolveElements(stack);
       expect(result[0].matches).toEqual([]);
     });
+
+    it('should NOT merge a standalone onscreen flag into the previous element member', async () => {
+      // Per the new rule, exact/hidden/onscreen only apply when placed BEFORE the
+      // element type. A standalone flag object (no `type`) sitting directly atop an
+      // element member must NOT be merged into that member — the after-element
+      // modifier is ignored. The element member keeps its default flags.
+      const stack = [
+        { type: 'element', id: 'X', exact: false, hidden: false, onscreen: false, matches: [] },
+        { exact: false, hidden: false, onscreen: true } // standalone flag object, no `type`
+      ];
+
+      vi.spyOn(locatorStrategy, 'findElements').mockResolvedValue([{ id: 'el1' }]);
+
+      const result = await locatorStrategy.resolveElements(stack);
+
+      // The flag object must be kept as a separate item (not merged into the member).
+      expect(result).toHaveLength(2);
+      // The element member must keep its default flags (onscreen NOT carried through).
+      expect(result[0].onscreen).toBe(false);
+      // The standalone flag object is preserved as-is.
+      expect(result[1]).toEqual({ exact: false, hidden: false, onscreen: true });
+    });
+
+    it('should NOT merge standalone hidden and exact flags into the previous element member', async () => {
+      // Same rule for hidden/exact: a standalone flag object after an element member
+      // is NOT merged. The element member keeps its default flags.
+      const stack = [
+        { type: 'element', id: 'X', exact: false, hidden: false, onscreen: false, matches: [] },
+        { exact: true, hidden: true, onscreen: false } // standalone flag object, no `type`
+      ];
+
+      vi.spyOn(locatorStrategy, 'findElements').mockResolvedValue([{ id: 'el1' }]);
+
+      const result = await locatorStrategy.resolveElements(stack);
+
+      expect(result).toHaveLength(2);
+      expect(result[0].exact).toBe(false);
+      expect(result[0].hidden).toBe(false);
+      expect(result[1]).toEqual({ exact: true, hidden: true, onscreen: false });
+    });
+
+    it('should pass a standalone flag that precedes the element member through unchanged', async () => {
+      // Pre-element merging is the SelectorStackBuilder's job (element() pops and
+      // merges the flag). resolveElements must NOT re-merge standalone flag objects,
+      // so a flag sitting before an element member is preserved as a separate item.
+      const stack = [
+        { exact: true, hidden: true, onscreen: true }, // standalone flag object, no `type`
+        { type: 'element', id: 'X', exact: false, hidden: false, onscreen: false, matches: [] }
+      ];
+
+      vi.spyOn(locatorStrategy, 'findElements').mockResolvedValue([{ id: 'el1' }]);
+
+      const result = await locatorStrategy.resolveElements(stack);
+
+      // The flag object is preserved as a separate item (not merged into the member).
+      expect(result).toHaveLength(2);
+      expect(result[0]).toEqual({ exact: true, hidden: true, onscreen: true });
+      // The element member keeps its default flags.
+      expect(result[1].exact).toBe(false);
+      expect(result[1].hidden).toBe(false);
+      expect(result[1].onscreen).toBe(false);
+    });
   });
 
   describe('findChildElements', () => {

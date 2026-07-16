@@ -137,8 +137,18 @@ Use `exact` for strict matching:
 
 ```javascript
 await browser.exact.element('Test').click() // Only "Test"
-await browser.textbox('Email').exact.write('') // Partial OK for textbox
+await browser.exact.textbox('Email').write('') // Strict match on the textbox label
 ```
+
+> **Modifier placement:** `exact`, `hidden`, and `onscreen` only take effect when
+> placed **before** the element type. Chaining them **after** an element is a no-op:
+>
+> ```javascript
+> await browser.exact.element('Test').click() // ✓ strict match
+> await browser.element('Test').exact.click() // ✗ no-op, falls back to partial match
+> await browser.hidden.link('X').find() // ✓ includes hidden link
+> await browser.link('X').hidden.find() // ✗ no-op, hidden link not found
+> ```
 
 ## Spatial References
 
@@ -513,7 +523,7 @@ Elements that are visually hidden (via CSS opacity, display: none, etc.) can be 
 // ✗ Hidden element not found by default
 await browser.element('Hidden Text').click() // Fails - element is hidden
 
-// ✓ Use .hidden modifier to target hidden elements
+// ✓ Use .hidden modifier to target hidden elements (must precede the element type)
 await browser.hidden.element('Hidden Text').click() // Successfully finds hidden element
 ```
 

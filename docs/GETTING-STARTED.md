@@ -398,7 +398,7 @@ await browser.element('Item').should.be.visible()
 ```javascript
 // Visibility
 await browser.element('Item').is.visible()
-await browser.element('Item').is.not.visible() // polls until timeout; true once element is gone
+await browser.element('Item').is.not.visible() // "wait until gone": true fast if absent, false only after timeout if present
 
 // Enabled/Disabled
 await browser.button('Submit').is.enabled()

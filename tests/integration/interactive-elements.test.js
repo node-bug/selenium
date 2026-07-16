@@ -31,11 +31,24 @@ describe('Interactive Elements Integration Tests', () => {
   });
 
   test('should retrieve visibility-hidden elements when hidden modifier is used', async () => {
-    const link = await browser.link('Visibility Hidden Link').hidden.find();
+    const link = await browser.hidden.link('Visibility Hidden Link').find();
     expect(link).toBeDefined();
 
-    const links = await browser.link('Visibility Hidden Link').hidden.findAll();
+    const links = await browser.hidden.link('Visibility Hidden Link').findAll();
     expect(links).toHaveLength(1);
+  });
+
+  test('should NOT retrieve visibility-hidden elements when hidden modifier is chained AFTER the element', async () => {
+    // Per the new rule, exact/hidden/onscreen only apply when placed BEFORE the
+    // element type. Chaining `.hidden` after `link(...)` is now a no-op, so the
+    // hidden link is not included and the lookup fails like the default case.
+    await expect(
+      browser.link('Visibility Hidden Link').hidden.find()
+    ).rejects.toThrow();
+
+    await expect(
+      browser.link('Visibility Hidden Link').hidden.findAll()
+    ).rejects.toThrow();
   });
 
   test('should interact with buttons', async () => {

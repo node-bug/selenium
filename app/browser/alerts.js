@@ -111,7 +111,9 @@ class Alert {
      */
     async write(text) {
         log.info(`Sending keys to alert: ${text}`);
-        await this.isVisible();
+        if (!(await this.isVisible())) {
+            throw new Error('No alert present');
+        }
         await this.alert.sendKeys(text);
     }
 
@@ -130,7 +132,9 @@ class Alert {
              * const text = await browser.alert().get.text();
              */
             text: async () => {
-                await this.isVisible();
+                if (!(await this.isVisible())) {
+                    throw new Error('No alert present');
+                }
                 return this.alert.getText();
             },
         };
