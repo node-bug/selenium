@@ -12,7 +12,7 @@ The library uses a two-step operation model:
 
 Build the selector stack without executing actions. They return the `WebBrowser` instance for method chaining.
 
-**Examples**: `element()`, `button()`, `above`, `below`, `within`, `at.index()`, `exact`, `hidden`
+**Examples**: `element()`, `button()`, `above`, `below`, `within`, `parent`, `at.index()`, `exact`, `hidden`
 
 ```javascript
 await browser.element('submit').above.button('cancel').click()
@@ -85,7 +85,8 @@ await browser
 
 - `above` / `below` - Vertical positioning
 - `toLeftOf` / `toRightOf` - Horizontal positioning
-- `within` - Element containment
+- `within` - Element containment (spatial bounding-box by default)
+- `within.parent` — DOM containment (`reference.contains(candidate)`)
 - `near` - Proximity-based selection
 - `.and` - Chain multiple spatial constraints
 

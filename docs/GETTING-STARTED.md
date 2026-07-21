@@ -20,7 +20,7 @@ Create `.config/selenium.json` in your project root:
 {
   "browser": "chrome",
   "headless": false,
-  "timeout": 30
+  "timeout": 30000
 }
 ```
 
@@ -323,6 +323,13 @@ await browser.button('Save').toRightOf.text('Auto-save').click()
 
 // Find link inside modal
 await browser.link('Close').within.dialog('Confirm').click()
+
+// DOM containment: find button that is a DOM descendant of a container
+// (uses reference.contains(candidate) instead of bounding-box spatial filtering)
+await browser
+  .button('Save Changes')
+  .within.parent.toolbar('Buttons Panel')
+  .click()
 ```
 
 Learn more: [SELECTORS.md](SELECTORS.md)
@@ -391,7 +398,7 @@ await browser.element('Item').should.be.visible()
 ```javascript
 // Visibility
 await browser.element('Item').is.visible()
-await browser.element('Item').is.not.visible()
+await browser.element('Item').is.not.visible() // "wait until gone": true fast if absent, false only after timeout if present
 
 // Enabled/Disabled
 await browser.button('Submit').is.enabled()
@@ -401,6 +408,8 @@ await browser.button('Submit').is.disabled()
 await browser.checkbox('Agree').is.checked()
 await browser.checkbox('Agree').is.not.checked()
 ```
+
+> **Note on `is.not.visible()`**: It returns `true` as soon as the element can no longer be _located_ (e.g., removed from the DOM), so it also works for an element that **disappears after a few seconds**. A CSS-hidden element (`display:none`, etc.) is still locatable and reports as visible. See [API-REFERENCE.md → is.not.visible()](API-REFERENCE.md) for details.
 
 Learn more: [FORMS.md](FORMS.md)
 
@@ -458,7 +467,7 @@ See [SELECTORS.md#element-types](SELECTORS.md#element-types) for complete list.
 
 **"Timeout waiting for element"?**
 
-- Increase timeout in config: `"timeout": 30`
+- Increase timeout in config: `"timeout": 30000`
 - Or use explicit wait: `should.be.visible(60000)`
 - Check if element is inside modal: `.within.dialog()`
 
@@ -495,7 +504,7 @@ See [SELECTORS.md#element-types](SELECTORS.md#element-types) for complete list.
 {
   "browser": "chrome",
   "headless": true,
-  "timeout": 30,
+  "timeout": 30000,
   "downloadsPath": "./downloads"
 }
 ```

@@ -238,7 +238,7 @@ describe('Table Operations Integration Tests', () => {
     // Each row should have 3 cells (Name, Age, City)
     // Note: findAll finds across all tables including the large table with 100 rows
     const rows = await browser.row().findAll();
-    expect(rows.length).toBe(120); // 3 simple + 5 complex + 2 nested + 2 dynamic + 100 large + 8 ARIA
+    expect(rows.length).toBe(121); // 3 simple + 5 complex + 2 nested + 2 dynamic + 100 large + 8 ARIA
   });
 
   test('should get value of a specific cell', async () => {

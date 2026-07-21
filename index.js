@@ -1,5 +1,4 @@
 import { log } from '@nodebug/logger';
-import config from '@nodebug/config';
 import Browser from './app/browser/index.js';
 import { LocatorStrategy } from './app/elements/locator-strategy.js';
 import { SelectorStackBuilder } from './app/elements/selector-stack-builder.js';
@@ -13,10 +12,10 @@ import { RadioDelegate } from './app/command-delegates/radio-delegate.js';
 import { SwitchDelegate } from './app/command-delegates/switch-delegate.js';
 import { SliderDelegate } from './app/command-delegates/slider-delegate.js';
 import { DragDropDelegate } from './app/command-delegates/drag-drop-delegate.js';
+import { NetworkDelegate } from './app/command-delegates/network-delegate.js';
 import { PluginManager } from './app/plugin-manager.js';
+import { selenium } from './app/config.js';
 import ELEMENT_DEFINITIONS from '@nodebug/browser-element-finder/element-definitions.json' with { type: 'json' };
-
-const selenium = config('selenium');
 
 /**
  * Main WebBrowser class for Selenium WebDriver operations
@@ -43,6 +42,8 @@ class WebBrowser extends Browser {
   #switchDelegate;
   #sliderDelegate;
   #dragDropDelegate;
+  #networkDelegate;
+  #parentNext = false;
 
   constructor() {
     super()
@@ -57,6 +58,7 @@ class WebBrowser extends Browser {
     this.#switchDelegate = new SwitchDelegate(this);
     this.#sliderDelegate = new SliderDelegate(this);
     this.#dragDropDelegate = new DragDropDelegate(this);
+    this.#networkDelegate = new NetworkDelegate(this);
 
     Object.keys(ELEMENT_DEFINITIONS).forEach(type => {
       this[type] = (data) => {
@@ -152,12 +154,31 @@ class WebBrowser extends Browser {
   }
 
   /**
+   * Injects the ElementFinder script into the current browser frame context.
+   *
+   * This is a thin public wrapper around `LocatorStrategy._injectElementFinder()`
+   * so callers can explicitly ensure `window.ElementFinder` is available before
+   * running raw `driver.executeScript` calls that depend on it. Injection is
+   * idempotent per frame and applies any configured `ignoredTags`.
+   *
+   * @returns {Promise<void>} Resolves once ElementFinder is available in the page
+   * @example
+   * await browser.start();
+   * await browser.goto('https://example.com');
+   * await browser.injectElementFinder();
+   * const result = await browser.driver.executeScript('return window.ElementFinder.findProbableElements("button", "Submit")');
+   */
+  async injectElementFinder() {
+    return await this.locatorStrategy._injectElementFinder();
+  }
+
+  /**
    * Centralized retry logic for finding elements
    */
   async _finder(t = null) {
     let locator;
     const stacks = this.getDescriptions();
-    const timeout = t ?? (selenium.timeout * 1000);
+    const timeout = t ?? selenium.timeout;
     const endTime = Date.now() + timeout;
 
     while (Date.now() < endTime) {
@@ -165,12 +186,10 @@ class WebBrowser extends Browser {
         try {
           locator = await this.locatorStrategy.find(currentStack);
           if (locator) return locator;
-        } catch (err) {
-          // Re-throw ReferenceError immediately - it indicates a fundamental problem
-          // like "element not found" due to spatial constraints not being met
-          if (err instanceof ReferenceError) {
-            throw err;
-          }
+        } catch {
+          // Element not found yet (or a spatial constraint is not yet satisfied).
+          // Keep retrying until the timeout rather than throwing immediately, so the
+          // whole API consistently waits for late-appearing elements.
           continue; // Try next stack in the OR condition
         }
       }
@@ -216,7 +235,7 @@ class WebBrowser extends Browser {
   async findAll(t = null) {
     this.message = messenger({ stack: this.stack, action: 'find' });
     const stacks = this.getDescriptions();
-    const timeout = t ?? (selenium.timeout * 1000);
+    const timeout = t ?? selenium.timeout;
     const endTime = Date.now() + timeout;
 
     let locators = [];
@@ -425,21 +444,6 @@ class WebBrowser extends Browser {
   }
 
   /**
-   * Performs a long press click on the element.
-   * 
-   * Uses Selenium WebDriver Actions API to simulate a long press.
-   * 
-   * @param {number} [duration=1000] - Duration of the long press in milliseconds
-   * @returns {Promise<boolean>} True if successful
-   * @example
-   * await browser.element('long-press-target').longPress(); // Default 1000ms
-   * await browser.button('menu').longPress(2000); // 2 seconds
-   */
-  async longPress(duration = 1000) {
-    return await this.#clickDelegate.longPress(duration);
-  }
-
-  /**
    * Internal click handler for elements.
    * 
    * Handles both standard clicks and coordinate-based clicks.
@@ -550,12 +554,19 @@ class WebBrowser extends Browser {
 
       screenshot: async () => {
         let dataUrl = null;
+        let width = null;
+        let height = null;
         let pauseState = null;
 
         // Pause animations before taking screenshot to ensure consistent results
         try {
           await this.locatorStrategy._injectElementFinder();
-          pauseState = await this.driver.executeScript('return window.ElementFinder.pauseAnimations()');
+          pauseState = await this.driver.executeScript(`
+            if (!window.ElementFinder || typeof window.ElementFinder.pauseAnimations !== 'function') {
+              return null;
+            }
+            return window.ElementFinder.pauseAnimations();
+          `);
         } catch (err) {
           log.warn(`Could not pause animations for screenshot: ${err.message}`);
         }
@@ -565,6 +576,8 @@ class WebBrowser extends Browser {
             try {
               this.message = messenger({ stack: this.stack, action: 'screenshot' });
               const locator = await this._finder();
+              width = locator.boundingBox?.width;
+              height = locator.boundingBox?.height;
               dataUrl = await locator.takeScreenshot(true);
             } catch (err) {
               log.error(`Failed to capture element screenshot: ${err.message}`);
@@ -574,6 +587,12 @@ class WebBrowser extends Browser {
           if (!dataUrl) {
             log.info('Capturing screenshot of the full page');
             dataUrl = await this.driver.takeScreenshot();
+            // For full page screenshots, use browser's get.size()
+            if (width === null || height === null) {
+              const { width: w, height: h } = await this.get.size();
+              width = w;
+              height = h;
+            }
           }
         } finally {
           // Resume animations after taking screenshot
@@ -590,7 +609,7 @@ class WebBrowser extends Browser {
         }
 
         this.stack = [];
-        return dataUrl;
+        return { dataUrl, width, height };
       },
     };
   }
@@ -1423,6 +1442,97 @@ class WebBrowser extends Browser {
   }
 
   /**
+   * "Namespace" or "Sub-resource" pattern for organized access to network operations.
+   * Accessor for network monitoring and waiting operations.
+   * Usage: await browser.network.wait.for.ajax()
+   *        await browser.network.wait.for.fetch()
+   *        await browser.network.wait.for.all()
+   *        await browser.network.wait.for.request('api/users')
+   */
+  get network() {
+    const browser = this;
+    const networkDelegate = this.#networkDelegate;
+
+    return {
+      /**
+       * Injects network monitoring scripts into the page.
+       *
+       * Call this after navigating to a page but before triggering any
+       * network requests. This ensures XHR and fetch calls are tracked from the start.
+       *
+       * @returns {Promise<void>}
+       * @example
+       * await browser.goto('https://example.com');
+       * await browser.network.inject();
+       * await browser.button('Load Data').click();
+       * await browser.network.wait.for.all();
+       */
+      inject: async () => {
+        return networkDelegate.inject();
+      },
+
+      /**
+       * Accessor for network wait operations.
+       */
+      get wait() {
+        return {
+          /**
+           * Accessor for specific wait targets.
+           */
+          get for() {
+            return {
+              /**
+               * Waits for AJAX (XMLHttpRequest) requests to complete.
+               *
+               * @param {number} [timeout] - Optional timeout in milliseconds
+               * @returns {Promise<boolean>} True if all requests completed
+               */
+              ajax: async (timeout) => {
+                browser.message = messenger({ stack: browser.stack, action: 'waitForAjax' });
+                return networkDelegate.wait.ajax(timeout);
+              },
+
+              /**
+               * Waits for fetch requests to complete.
+               *
+               * @param {number} [timeout] - Optional timeout in milliseconds
+               * @returns {Promise<boolean>} True if all requests completed
+               */
+              fetch: async (timeout) => {
+                browser.message = messenger({ stack: browser.stack, action: 'waitForFetch' });
+                return networkDelegate.wait.fetch(timeout);
+              },
+
+              /**
+               * Waits for all network requests (XHR + fetch) to complete.
+               *
+               * @param {number} [timeout] - Optional timeout in milliseconds
+               * @returns {Promise<boolean>} True if all requests completed
+               */
+              all: async (timeout) => {
+                browser.message = messenger({ stack: browser.stack, action: 'waitForAll' });
+                return networkDelegate.wait.all(timeout);
+              },
+
+              /**
+               * Waits for a specific network request to complete.
+               *
+               * @param {string|RegExp} urlPattern - URL pattern to match
+               * @param {number} [timeout] - Optional timeout in milliseconds
+               * @returns {Promise<boolean>} True if request completed
+               */
+              request: async (urlPattern, timeout) => {
+                browser.message = messenger({ stack: browser.stack, action: 'waitForRequest', data: urlPattern });
+                return networkDelegate.wait.request(urlPattern, timeout);
+              },
+            };
+          },
+        };
+      },
+    };
+  }
+
+  /**
    * Uploads a file to a file input element.
    * 
    * @param {string} filePath - Absolute path to the file
@@ -1451,8 +1561,11 @@ class WebBrowser extends Browser {
     const item = this.stack[this.stack.length - 1];
     item.type = type;
 
-    // If data is a positive integer, treat it as a 1-based index
-    // and clear the id so it matches any element of that type
+    // If data is a positive integer, treat it as a 1-based index.
+    // Clear the id so ElementFinder matches all elements of this type
+    // (e.g., `browser.row(2)` finds all rows and the index selects the Nth).
+    // Note: `at.index(N)` keeps the original id (preserved in the `at` getter)
+    // so that the text filter is still applied before selecting by index.
     if (typeof data === 'number' && Number.isInteger(data) && data > 0) {
       item.index = data;
       item.id = '';
@@ -1461,10 +1574,28 @@ class WebBrowser extends Browser {
     return this;
   }
 
-  // Entry points that return a new builder
-  get exact() { return new SelectorStackBuilder(this).exact(); }
+  // Entry points that return a new builder.
+  // These modifiers only take effect when placed BEFORE the element type
+  // (e.g. `browser.hidden.button('X')`). When chained AFTER an element member
+  // (e.g. `browser.button('X').hidden`), the top of the stack is already an
+  // element, so we treat the modifier as a no-op and return `this` unchanged.
+  get exact() {
+    const top = this.stack[this.stack.length - 1];
+    if (top && Object.keys(ELEMENT_DEFINITIONS).includes(top.type)) return this;
+    return new SelectorStackBuilder(this).exact();
+  }
 
-  get hidden() { return new SelectorStackBuilder(this).hidden(); }
+  get hidden() {
+    const top = this.stack[this.stack.length - 1];
+    if (top && Object.keys(ELEMENT_DEFINITIONS).includes(top.type)) return this;
+    return new SelectorStackBuilder(this).hidden();
+  }
+
+  get onscreen() {
+    const top = this.stack[this.stack.length - 1];
+    if (top && Object.keys(ELEMENT_DEFINITIONS).includes(top.type)) return this;
+    return new SelectorStackBuilder(this).onscreen();
+  }
 
   // Default element call without modifiers
   // avoid state pollution by not pushing directly to stack here
@@ -1486,6 +1617,7 @@ class WebBrowser extends Browser {
    * Pushes a location descriptor onto the stack.
    * If the previous item on the stack is a bare { exactly: true } flag,
    * it is consumed and merged into the location descriptor.
+   * If #parentNext is set, the parent flag is merged into the location descriptor.
    * @private
    */
   #pushLocation(located) {
@@ -1495,6 +1627,11 @@ class WebBrowser extends Browser {
     if (this.#isFlag(prev)) {
       this.stack.pop();
       location.exactly = true;
+    }
+
+    if (this.#parentNext) {
+      location.parent = true;
+      this.#parentNext = false;
     }
 
     this.stack.push(location);
@@ -1517,6 +1654,24 @@ class WebBrowser extends Browser {
 
   /** @returns {this} */
   get near() { this.#pushLocation('near'); return this; }
+
+  /**
+   * Modifies the next spatial location to use DOM containment instead of bounding-box filtering.
+   * Designed to be used with `within`: browser.button('X').within.parent.element('Y') finds
+   * a button labeled 'X' that is a DOM descendant of an element labeled 'Y'.
+   * @returns {this}
+   */
+  get parent() {
+    // If the last stack item is already a location, modify it directly.
+    // This supports both `.parent.within` and `.within.parent` orderings.
+    const last = this.stack[this.stack.length - 1];
+    if (last && last.type === 'location') {
+      last.parent = true;
+    } else {
+      this.#parentNext = true;
+    }
+    return this;
+  }
 
   /**
    * Forces strict alignment for the next spatial location in the stack.
@@ -1552,7 +1707,12 @@ class WebBrowser extends Browser {
 
   /**
    * Gets a specific occurrence from a list of matching elements (1-based index).
-   * 
+   *
+   * Preserves the original `id` so that ElementFinder still receives the correct
+   * text/id filter. The 1-based index is applied AFTER matches are resolved
+   * (in LocatorStrategy.find), so the Nth element of the actual matches is
+   * selected rather than the Nth element in the entire DOM.
+   *
    * @returns {{index: function(number): WebBrowser}} Object with index method for chaining
    * @example
    * browser.element('item').at.index(2).click(); // Selects 2nd matching element
@@ -1566,8 +1726,9 @@ class WebBrowser extends Browser {
         }
         const last = this.stack[this.stack.length - 1];
         if (last) {
+          // Keep the original id so ElementFinder can still match by text/id.
+          // The index is applied to the resolved matches in LocatorStrategy.find.
           last.index = index;
-          last.id = '';
         }
         return this;
       }

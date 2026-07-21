@@ -137,8 +137,18 @@ Use `exact` for strict matching:
 
 ```javascript
 await browser.exact.element('Test').click() // Only "Test"
-await browser.textbox('Email').exact.write('') // Partial OK for textbox
+await browser.exact.textbox('Email').write('') // Strict match on the textbox label
 ```
+
+> **Modifier placement:** `exact`, `hidden`, and `onscreen` only take effect when
+> placed **before** the element type. Chaining them **after** an element is a no-op:
+>
+> ```javascript
+> await browser.exact.element('Test').click() // ✓ strict match
+> await browser.element('Test').exact.click() // ✗ no-op, falls back to partial match
+> await browser.hidden.link('X').find() // ✓ includes hidden link
+> await browser.link('X').hidden.find() // ✗ no-op, hidden link not found
+> ```
 
 ## Spatial References
 
@@ -181,6 +191,27 @@ await browser.button('Save').within.dialog('Settings').click()
 // "Delete button in the user row"
 await browser.button('Delete').within.row('User123').click()
 ```
+
+By default, `within` uses **bounding-box spatial filtering** (checks if the candidate's midpoint falls inside the reference element's bounding box). Use `.parent` to switch to **DOM containment** instead:
+
+```javascript
+// DOM containment: finds button that is a DOM descendant of the toolbar
+await browser
+  .button('Save Changes')
+  .within.parent.toolbar('Buttons Panel')
+  .click()
+```
+
+| Mode              | Method                     | Behavior                                         |
+| ----------------- | -------------------------- | ------------------------------------------------ |
+| Spatial (default) | `.within.element()`        | Candidate midpoint inside reference bounding box |
+| DOM Containment   | `.within.parent.element()` | `reference.contains(candidate)` via DOM API      |
+
+DOM containment is useful when:
+
+- Elements have zero dimensions or overlapping bounding boxes
+- You need strict parent-child DOM hierarchy checks
+- Spatial filtering produces false positives due to layout quirks
 
 #### near
 
@@ -352,6 +383,45 @@ await browser.button('Delete').click()
 await browser.button('Delete').at.index(2).click()
 ```
 
+### Index with Spatial Filters
+
+When combining `.at.index()` with spatial filters (`.below`, `.above`, `.within`, `.toLeftOf`, `.toRightOf`), **the index is applied to the spatially filtered results**, not to the original set of matching elements. This is intentional and expected behavior.
+
+The selector pipeline works as follows:
+
+1. Find all elements matching the target type/text
+2. Apply spatial filter(s) to narrow the results
+3. Apply `.at.index()` to select from the _filtered_ set
+
+```javascript
+// Page has 5 buttons labeled 'Submit'
+// Only 2 of them are below an element labeled 'Form'
+
+// This selects the 2nd button FROM the spatially filtered set (buttons below 'Form')
+// NOT the 2nd 'Submit' button on the entire page
+await browser.button('Submit').below.element('Form').at.index(2).click()
+
+// Equivalent explicit form
+await browser.button('Submit').at.index(2).below.element('Form').click()
+```
+
+```javascript
+// Example: Page structure
+// - Submit button 1 (above Form)
+// - Submit button 2 (below Form)   ← index(1) selects this
+// - Submit button 3 (below Form)   ← index(2) selects this
+// - Submit button 4 (nowhere near Form)
+// - Submit button 5 (above Form)
+
+await browser.button('Submit').below.element('Form').at.index(1).click()
+// → Clicks 'Submit button 2' (first result after spatial filter)
+
+await browser.button('Submit').below.element('Form').at.index(2).click()
+// → Clicks 'Submit button 3' (second result after spatial filter)
+```
+
+> **Key takeaway:** `.at.index(n)` always selects the n-th element from whatever the current result set is. When used with spatial filters, that means the n-th element _among those that pass the spatial constraint_.
+
 ### When element() Works Without .at.index()
 
 Calling `element()` without `.at.index()` is safe when exactly one element matches:
@@ -453,7 +523,7 @@ Elements that are visually hidden (via CSS opacity, display: none, etc.) can be 
 // ✗ Hidden element not found by default
 await browser.element('Hidden Text').click() // Fails - element is hidden
 
-// ✓ Use .hidden modifier to target hidden elements
+// ✓ Use .hidden modifier to target hidden elements (must precede the element type)
 await browser.hidden.element('Hidden Text').click() // Successfully finds hidden element
 ```
 

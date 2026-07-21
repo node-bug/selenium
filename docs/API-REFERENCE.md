@@ -15,6 +15,7 @@ Complete method reference for WebBrowser. See [Core Concepts](CONCEPTS.md) for u
 - [Window Management](#window-management) - Multi-window operations
 - [Tab Management](#tab-management) - Multi-tab operations
 - [Alert Handling](#alert-handling) - JavaScript alerts/prompts
+- [Network Monitoring](#network-monitoring) - Wait for XHR/fetch requests
 - [Data Retrieval](#data-retrieval) - Getting element properties
 
 ---
@@ -36,6 +37,7 @@ const element = await browser.button('Submit').find()
 - Returns first matching element
 - Throws error if no element found within timeout
 - Clears selector stack after execution
+- Supports DOM containment via `.within.parent` for strict parent-child checks
 
 **Example**:
 
@@ -48,6 +50,12 @@ const element = await browser
   .button('Save')
   .below.element('Form Title')
   .within.dialog('Confirm')
+  .find()
+
+// DOM containment (strict parent-child hierarchy)
+const button = await browser
+  .button('Save Changes')
+  .within.parent.toolbar('Buttons Panel')
   .find()
 ```
 
@@ -82,7 +90,7 @@ console.log(`Found ${items.length} items`)
 // Get all links
 const links = await browser.link('nav-link').findAll()
 
-// Custom timeout (5 seconds)
+// Custom timeout (5000 ms)
 const results = await browser.button('result').findAll(5000)
 
 // OR condition - find buttons with either text
@@ -184,6 +192,31 @@ await browser.goto('https://example.com')
 - `url` (string): URL to navigate to
 
 **Returns**: `Promise<boolean>`
+
+### injectElementFinder()
+
+Explicitly injects the `ElementFinder` script into the current browser frame context.
+
+This is a thin public wrapper around the internal `LocatorStrategy._injectElementFinder()`. It is useful when you want to run raw `driver.executeScript` calls that depend on `window.ElementFinder` (e.g. `window.ElementFinder.findProbableElements(...)`) without going through the fluent selector stack.
+
+```javascript
+await browser.start()
+await browser.goto('https://example.com')
+await browser.injectElementFinder()
+
+const result = await browser.driver.executeScript(
+  'return window.ElementFinder.findProbableElements("button", "Submit")',
+)
+```
+
+**Returns**: `Promise<void>`
+
+**Behavior**:
+
+- Idempotent per frame — checks `typeof window.ElementFinder !== 'undefined'` before injecting, so repeated calls are safe.
+- Applies any configured `ignoredTags` (from `.config/selenium.json`) on top of the library defaults (SCRIPT, STYLE, TEMPLATE, NOSCRIPT).
+- Injection is per-frame: each frame has its own `window`, so call it again after switching into an iframe.
+- Normally not required — the fluent API injects ElementFinder automatically during element finding and screenshots.
 
 ### refresh()
 
@@ -401,21 +434,6 @@ Triple-click an element.
 ```javascript
 await browser.element('text').tripleClick()
 ```
-
-**Returns**: `Promise<boolean>`
-
-### longPress([duration])
-
-Long press (hold) an element.
-
-```javascript
-await browser.element('button').longPress() // Default 1000ms
-await browser.element('button').longPress(2000) // 2 seconds
-```
-
-**Parameters**:
-
-- `duration` (number, optional): Milliseconds (default: 1000)
 
 **Returns**: `Promise<boolean>`
 
@@ -1029,6 +1047,40 @@ if (visible) {
 
 **QA Best Practice**: For test validations that validate whether elements are displayed, use `should.be.visible()` or `should.not.be.visible()` instead.
 
+### is.not.visible([timeout])
+
+**Returns `true`/`false` for conditional logic** - Does not throw errors.
+
+Check if an element is **not** visible (i.e., not present in the DOM or not locatable). Like `is.visible()`, this returns a boolean and is intended for runtime branching logic, not for QA assertions.
+
+```javascript
+const hidden = await browser.element('Spinner').is.not.visible()
+if (hidden) {
+  console.log('Spinner is gone')
+}
+```
+
+**Returns**: `Promise<boolean>` - `true` if the element is not visible, `false` if it is currently present/visible.
+
+**Retry / polling behavior (important for agents):**
+
+- `is.not.visible()` is a **"wait until the element is gone"** operation. Internally it repeatedly calls the element finder (which itself retries until the timeout) and inspects the result on each iteration:
+  - **Element is absent** → the finder throws → `is.not.visible()` sets the result to `true` and **breaks out of the loop immediately** (no busy-loop). This is the fast path: a never-present element returns `true` after the first failed find.
+  - **Element is present/visible** → the finder succeeds → the result is set to `false`, but the loop **does not break**; it keeps polling until the timeout in case the element disappears later. Only after the full timeout does it return `false`.
+- This means it correctly handles a **late-changing** element:
+  - An element that is **present now but disappears/is removed after a few seconds** → `is.not.visible()` will keep waiting and return `true` once the element is gone.
+  - An element that **never appears** → `is.not.visible()` returns `true` quickly (breaks on the first failed find).
+  - An element that **stays present/visible** for the whole window → returns `false` only after polling to the full timeout (it does not return early for a present element).
+- The result reflects the element's state **at the moment it is no longer found**, not whether it was ever visible earlier. So a "wait until it disappears" pattern works as expected.
+
+**Parameters**:
+
+- `timeout` (number, optional): Milliseconds to wait/poll. Defaults to `selenium.timeout`.
+
+**Note on visibility vs. presence**: `is.not.visible()` is based on whether the element can be **located** by its selector/label. An element that is in the DOM but visually hidden via CSS (e.g., `display:none`, `visibility:hidden`, `opacity:0`) is still _locatable_ and will therefore report as **visible** (`is.not.visible()` → `false`). To detect "not visible" via `is.not.visible()`, the element must be **removed from the DOM** (or otherwise no longer matchable), not merely CSS-hidden.
+
+**QA Best Practice**: For test validations, prefer `should.not.be.visible()` (which throws on failure). Use `is.not.visible()` for conditional branching where you need a boolean.
+
 ### should.be.visible([timeout])
 
 **Assertion that throws an error and stops test execution on failure.**
@@ -1082,6 +1134,16 @@ if (!disabled) {
 
 **Returns**: `Promise<boolean>` - `true` if disabled, `false` otherwise
 
+**Retry / polling behavior (important for agents):**
+
+- `is.disabled()` **polls until the timeout**. It repeatedly locates the element and re-checks its disabled state on each iteration, returning `true` as soon as the element is disabled.
+- This correctly handles both a **late-appearing** element and an element whose **disabled state changes after a delay** (e.g., present but enabled, then disabled a few seconds later) — `is.disabled()` keeps waiting and returns `true` once the state changes.
+- An element that is never found, or stays enabled for the whole window, returns `false` after the timeout.
+
+**Parameters**:
+
+- `timeout` (number, optional): Milliseconds to wait/poll. Defaults to `selenium.timeout`.
+
 **QA Best Practice**: For test validations that validate whether elements are disabled, use `should.be.disabled()` or `should.be.enabled()` instead.
 
 ### is.enabled()
@@ -1098,6 +1160,16 @@ if (enabled) {
 ```
 
 **Returns**: `Promise<boolean>` - `true` if enabled, `false` if disabled
+
+**Retry / polling behavior (important for agents):**
+
+- `is.enabled()` **polls until the timeout**. It repeatedly locates the element and re-checks its enabled state on each iteration, returning `true` as soon as the element is enabled.
+- This correctly handles both a **late-appearing** element and an element whose **enabled state changes after a delay** (e.g., present but disabled, then enabled a few seconds later) — `is.enabled()` keeps waiting and returns `true` once the state changes.
+- An element that is never found, or stays disabled for the whole window, returns `false` after the timeout.
+
+**Parameters**:
+
+- `timeout` (number, optional): Milliseconds to wait/poll. Defaults to `selenium.timeout`.
 
 ### should.be.disabled()
 
@@ -1640,6 +1712,153 @@ const title = await browser.tab().get.title()
 
 ---
 
+## Network Monitoring
+
+Wait for XHR and fetch network requests to complete. Useful for single-page applications and pages that load data asynchronously.
+
+### How it works
+
+1. Call `browser.network.inject()` after navigating to a page — this injects monitoring scripts into the page context.
+2. Trigger any action that causes network requests (e.g., clicking a button).
+3. Call one of the `browser.network.wait.for.*` methods to wait for requests to settle.
+
+> **Note:** Monitoring must be injected on each page navigation. The injection is not persistent across `goto()` calls.
+
+### network.inject()
+
+Injects network monitoring scripts into the current page.
+
+```javascript
+await browser.goto('https://example.com')
+await browser.network.inject()
+```
+
+**Returns**: `Promise<void>`
+
+**Use when**: After every page navigation, before triggering any network requests.
+
+### network.wait.for.ajax([timeout])
+
+Waits for all active XHR (XMLHttpRequest) requests to complete.
+
+```javascript
+// Wait with default timeout (from selenium config)
+await browser.network.wait.for.ajax()
+
+// Wait with custom 10000 ms timeout
+await browser.network.wait.for.ajax(10000)
+```
+
+**Parameters**:
+
+- `timeout` (number, optional): Maximum time to wait in milliseconds. Defaults to `selenium.timeout` from config.
+
+**Returns**: `Promise<boolean>` — `true` when no active XHR requests remain.
+
+**Use when**: The page uses traditional XHR for data loading.
+
+### network.wait.for.fetch([timeout])
+
+Waits for all active fetch requests to complete.
+
+```javascript
+// Wait with default timeout
+await browser.network.wait.for.fetch()
+
+// Wait with custom 15000 ms timeout
+await browser.network.wait.for.fetch(15000)
+```
+
+**Parameters**:
+
+- `timeout` (number, optional): Maximum time to wait in milliseconds. Defaults to `selenium.timeout` from config.
+
+**Returns**: `Promise<boolean>` — `true` when no active fetch requests remain.
+
+**Use when**: The page uses the Fetch API for data loading.
+
+### network.wait.for.all([timeout])
+
+Waits for **both** XHR and fetch requests to complete.
+
+```javascript
+// Wait with default timeout
+await browser.network.wait.for.all()
+
+// Wait with custom 20000 ms timeout
+await browser.network.wait.for.all(20000)
+```
+
+**Parameters**:
+
+- `timeout` (number, optional): Maximum time to wait in milliseconds. Defaults to `selenium.timeout` from config.
+
+**Returns**: `Promise<boolean>` — `true` when no active network requests remain.
+
+**Use when**: The page uses a mix of XHR and fetch, or you are unsure which method is used.
+
+### network.wait.for.request(urlPattern, [timeout])
+
+Waits for a specific network request matching a URL pattern to complete.
+
+```javascript
+// Wait for a request containing 'api/users'
+await browser.network.wait.for.request('api/users')
+
+// Wait with custom timeout
+await browser.wait.for.request('api/users', 10000)
+
+// Wait using a regular expression
+await browser.network.wait.for.request(/\/api\/v2\/.*\.json/)
+
+// RegExp instances keep their flags — e.g. case-insensitive matching
+await browser.network.wait.for.request(/api/i)
+```
+
+**Parameters**:
+
+- `urlPattern` (string | RegExp): Pattern to match against request URLs.
+  - **RegExp** instances use full regex matching and **preserve their flags** (e.g. `/api/i` matches `API`, `api`, etc.).
+  - **Strings** perform a substring match. A string written in regex-literal form (`/.../`) is also treated as a regular expression (flags are not supported via the string form).
+- `timeout` (number, optional): Maximum time to wait in milliseconds. Defaults to `selenium.timeout` from config.
+
+**Returns**: `Promise<boolean>` — `true` when a matching request has completed.
+
+**Use when**: You need to wait for a specific API call rather than all network activity.
+
+### Typical Usage Pattern
+
+```javascript
+import WebBrowser from '@nodebug/selenium'
+
+async function testAsyncLoading() {
+  const browser = new WebBrowser()
+
+  try {
+    await browser.start()
+    await browser.goto('https://example.com/dashboard')
+
+    // Inject monitoring BEFORE triggering requests
+    await browser.network.inject()
+
+    // Click button that loads data via XHR/fetch
+    await browser.button('Load Data').click()
+
+    // Wait for all network activity to settle
+    await browser.network.wait.for.all()
+
+    // Verify data is displayed
+    await browser.table('Results').should.be.visible()
+  } finally {
+    await browser.close()
+  }
+}
+
+testAsyncLoading()
+```
+
+---
+
 ## Alert Handling
 
 See [Advanced Guide - Alert Handling](ADVANCED.md#alert-handling) for detailed patterns.
@@ -1751,6 +1970,8 @@ await browser.alert().write('user input')
 
 **Returns**: `Promise<void>`
 
+**Throws**: `Error` with message `No alert present` if no alert is currently open
+
 ### alert().get.text()
 
 Get alert text.
@@ -1758,6 +1979,10 @@ Get alert text.
 ```javascript
 const text = await browser.alert().get.text()
 ```
+
+**Returns**: `Promise<string>`
+
+**Throws**: `Error` with message `No alert present` if no alert is currently open
 
 ---
 
@@ -1807,12 +2032,14 @@ Animations and transitions are automatically paused before capture and resumed a
 ```javascript
 // Full page screenshot (no element selected)
 const pageShot = await browser.get.screenshot()
+console.log(pageShot.dataUrl, pageShot.width, pageShot.height)
 
 // Element screenshot (element selected)
 const elementShot = await browser.element('chart').get.screenshot()
+console.log(elementShot.dataUrl, elementShot.width, elementShot.height)
 ```
 
-**Returns**: `Promise<string>` — Base64-encoded image data URL.
+**Returns**: `Promise<{dataUrl: string, width: number, height: number}>` — `dataUrl` is the base64-encoded image data URL. `width` and `height` are the captured element dimensions when an element is selected, or the viewport dimensions when no element is selected.
 
 ### get.size()
 
@@ -1861,6 +2088,17 @@ await browser.textbox('Email').at.index(2).write('..') // 2nd matching textbox
 ```
 
 > **Tip:** You can also pass a number directly to the element type selector instead of chaining `.at.index()`. For example, `browser.row(2)` is equivalent to `browser.row('').at.index(2)`.
+
+#### Index with Spatial Filters
+
+When `.at.index()` is combined with spatial filters (`.below`, `.above`, `.within`, `.toLeftOf`, `.toRightOf`), the index selects from the **spatially filtered result set**, not from all matching elements on the page. This is expected behavior.
+
+```javascript
+// Selects 2nd element FROM those that pass the spatial filter
+await browser.button('Submit').below.element('Form').at.index(2).click()
+```
+
+See [Selectors - Index with Spatial Filters](SELECTORS.md#index-with-spatial-filters) for detailed examples.
 
 ### exact
 

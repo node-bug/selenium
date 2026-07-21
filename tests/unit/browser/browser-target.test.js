@@ -48,7 +48,7 @@ vi.mock('@nodebug/logger', () => ({
 vi.mock('@nodebug/config', () => ({
   default: vi.fn(() => ({
     selenium: {
-      timeout: 5,
+      timeout: 5000,
     },
   })),
 }));
@@ -137,7 +137,7 @@ describe('BrowserTarget (ESM)', () => {
   // ---------------- PROPERTIES ----------------
   describe('properties', () => {
     test('has correct timeout property', () => {
-      expect(browserTarget.timeout).toBe(10000); // 5 seconds * 1000
+      expect(browserTarget.timeout).toBe(10000);
     });
 
     test('has correct label property', () => {

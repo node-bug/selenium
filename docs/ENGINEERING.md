@@ -214,7 +214,7 @@ Each item in the selector stack has a `type` property:
 | Type        | Properties                                          | Purpose                        |
 | ----------- | --------------------------------------------------- | ------------------------------ |
 | `element`   | `id`, `exact`, `hidden`, `index`, `matches`, `type` | Element selector descriptor    |
-| `location`  | `located`, `exactly`                                | Spatial relationship filter    |
+| `location`  | `located`, `exactly`, `parent`                      | Spatial relationship filter    |
 | `condition` | `operator`                                          | Logical operator (`or`)        |
 | `action`    | `perform`                                           | Action marker (`drag`, `onto`) |
 
@@ -236,6 +236,13 @@ Each item in the selector stack has a `type` property:
   type: 'location',
   located: 'below',         // Spatial relationship
   exactly: false            // Strict alignment
+}
+
+// Location filter with DOM containment
+{
+  type: 'location',
+  located: 'within',        // Containment relationship
+  parent: true              // Use DOM.contains() instead of bounding-box
 }
 
 // OR condition
@@ -278,17 +285,28 @@ findElement() // Find element via browser._finder()
 
 ### Delegate Responsibilities
 
-| Delegate             | Methods                                                                                                                   | Purpose                         |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
-| `ClickDelegate`      | `click()`, `doubleClick()`, `rightClick()`, `middleClick()`, `tripleClick()`, `longPress()`, `multipleClick()`, `hover()` | Mouse interactions              |
-| `InputDelegate`      | `write()`, `clear()`, `overwrite()`, `focus()`, `press()`, `type()`, `left()`, `right()`, `up()`, `down()`                | Keyboard/text input             |
-| `VisibilityDelegate` | `_isVisible()`, `_isEnabled()`, `_isDisabled()`, `_isNotVisible()`, `hide()`, `unhide()`, `scroll`                        | Visibility checks and scrolling |
-| `CheckboxDelegate`   | `check()`, `uncheck()`, `_isChecked()`                                                                                    | Checkbox state                  |
-| `RadioDelegate`      | `_isSet()`                                                                                                                | Radio button state              |
-| `SelectDelegate`     | `option()`, `select()`, `getOptions()`, `getSelectedOptions()`, `_hasOption()`, `_isSelected()`                           | Dropdown operations             |
-| `SwitchDelegate`     | `on()`, `off()`, `_isOn()`                                                                                                | Toggle switch operations        |
-| `SliderDelegate`     | `slide` accessor                                                                                                          | Slider control                  |
-| `DragDropDelegate`   | `perform()`                                                                                                               | Drag and drop operations        |
+| Delegate             | Methods                                                                                                    | Purpose                         |
+| -------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------- |
+| `ClickDelegate`      | `click()`, `doubleClick()`, `rightClick()`, `middleClick()`, `tripleClick()`, `multipleClick()`, `hover()` | Mouse interactions              |
+| `InputDelegate`      | `write()`, `clear()`, `overwrite()`, `focus()`, `press()`, `type()`, `left()`, `right()`, `up()`, `down()` | Keyboard/text input             |
+| `VisibilityDelegate` | `_isVisible()`, `_isEnabled()`, `_isDisabled()`, `_isNotVisible()`, `hide()`, `unhide()`, `scroll`         | Visibility checks and scrolling |
+
+**`VisibilityDelegate` retry / polling semantics (for agents):**
+
+- The element finder (`WebBrowser._finder`) retries until the full `timeout` for any not-found element, then throws `Element not found after <timeout>ms timeout`. The `is.*` boolean checks catch that final error and return `false` for a never-found element.
+- `_isVisible()` calls `_finder(t)` once and returns `false` if the element is never found within `t`.
+- `_isEnabled()` / `_isDisabled()` **poll until the timeout**: each iteration locates the element (via `_finder`, which retries until found) and re-checks the current enabled/disabled state, returning `true` as soon as the desired state is reached. This handles both a late-appearing element AND an element whose enabled/disabled **state changes after a delay** (e.g., present-but-disabled then enabled). An element that is never found, or never reaches the desired state within `t`, returns `false`.
+- `_isNotVisible()` is a **"wait until the element is gone"** operation. It polls until the timeout and inspects the finder result each iteration:
+  - **Element absent** → the finder throws → result is `true` and the loop **breaks immediately** (no busy-loop). A never-present element returns `true` after the first failed find.
+  - **Element present** → the finder succeeds → result is `false`, but the loop **does not break**; it keeps polling until the timeout in case the element disappears later, then returns `false`.
+  - This correctly handles an element that is present now but **disappears / is removed from the DOM after a delay** — `is.not.visible()` will keep waiting and return `true` once the element is gone. An element that stays present for the whole window returns `false` only after polling to the full timeout.
+- **Presence vs. CSS visibility**: `is.not.visible()` is based on whether the element is _locatable_ by its selector/label. A CSS-hidden element (`display:none`, `visibility:hidden`, `opacity:0`) is still locatable and therefore reports as **visible** (`is.not.visible()` → `false`). To detect "not visible" via `is.not.visible()`, the element must be **removed from the DOM**, not merely CSS-hidden.
+  | `CheckboxDelegate` | `check()`, `uncheck()`, `_isChecked()` | Checkbox state |
+  | `RadioDelegate` | `_isSet()` | Radio button state |
+  | `SelectDelegate` | `option()`, `select()`, `getOptions()`, `getSelectedOptions()`, `_hasOption()`, `_isSelected()` | Dropdown operations |
+  | `SwitchDelegate` | `on()`, `off()`, `_isOn()` | Toggle switch operations |
+  | `SliderDelegate` | `slide` accessor | Slider control |
+  | `DragDropDelegate` | `perform()` | Drag and drop operations |
 
 ---
 
@@ -296,14 +314,15 @@ findElement() // Find element via browser._finder()
 
 ### Spatial Relationships
 
-| Relationship | Condition                              | With `exactly`                |
-| ------------ | -------------------------------------- | ----------------------------- |
-| `above`      | `candidate.bottom <= reference.top`    | Horizontal alignment required |
-| `below`      | `candidate.top >= reference.bottom`    | Horizontal alignment required |
-| `toLeftOf`   | `candidate.right <= reference.left`    | Vertical alignment required   |
-| `toRightOf`  | `candidate.left >= reference.right`    | Vertical alignment required   |
-| `within`     | Midpoint inside reference bounding box | N/A                           |
-| `near`       | Vertical overlap within 100px          | N/A                           |
+| Relationship    | Condition                                   | With `exactly`                |
+| --------------- | ------------------------------------------- | ----------------------------- |
+| `above`         | `candidate.bottom <= reference.top`         | Horizontal alignment required |
+| `below`         | `candidate.top >= reference.bottom`         | Horizontal alignment required |
+| `toLeftOf`      | `candidate.right <= reference.left`         | Vertical alignment required   |
+| `toRightOf`     | `candidate.left >= reference.right`         | Vertical alignment required   |
+| `within`        | Midpoint inside reference bounding box      | N/A                           |
+| `within.parent` | `reference.contains(candidate)` via DOM API | N/A                           |
+| `near`          | Vertical overlap within 100px               | N/A                           |
 
 ### Spatial Filter Configuration
 
@@ -320,8 +339,11 @@ const DEFAULT_CONFIG = {
 1. User specifies spatial relationship: .below.element('anchor')
 2. Stack contains: [target, location, anchor]
 3. LocatorStrategy.find() resolves anchor first
-4. relativeSearch() filters candidates by spatial relationship
-5. Bounding boxes are compared for position matching
+4. If location has `parent: true` and `located: 'within'`, use DOM containment:
+   - Calls `#checkContainment(reference, candidates)` via `driver.executeScript`
+   - Uses `reference.contains(candidate)` for each candidate
+5. Otherwise, `relativeSearch()` filters candidates by spatial relationship
+6. Bounding boxes are compared for position matching
 ```
 
 ---
@@ -330,7 +352,7 @@ const DEFAULT_CONFIG = {
 
 ### 1. ElementFinder Injection
 
-The `LocatorStrategy` injects `@nodebug/browser-element-finder` script into the browser context once per session.
+The `LocatorStrategy` injects `@nodebug/browser-element-finder` script into the browser context once per frame. The injection is idempotent (checked in-browser via `typeof window.ElementFinder`) and applies any configured `ignoredTags` on top of the library defaults.
 
 ```javascript
 // In locator-strategy.js
@@ -341,6 +363,21 @@ async _injectElementFinder() {
     window.ElementFinder = ElementFinder;
   `);
 }
+```
+
+A public wrapper is exposed on the browser instance so callers can explicitly ensure `window.ElementFinder` is available before running raw `driver.executeScript` calls:
+
+```javascript
+// In index.js — delegates to LocatorStrategy._injectElementFinder()
+async injectElementFinder() {
+  return await this.locatorStrategy._injectElementFinder();
+}
+
+// Usage
+await browser.injectElementFinder();
+const result = await browser.driver.executeScript(
+  'return window.ElementFinder.findProbableElements("button", "Submit")'
+);
 ```
 
 ### 2. Cross-Frame Discovery
@@ -370,7 +407,7 @@ Elements are matched by searching attributes in priority:
 // Simplified flow in _finder()
 async _finder(t = null) {
   const stacks = this.getDescriptions();  // Split OR conditions
-  const timeout = t ?? (selenium.timeout * 1000);
+  const timeout = t ?? selenium.timeout;
   const endTime = Date.now() + timeout;
 
   while (Date.now() < endTime) {
@@ -952,6 +989,7 @@ const frames = await browser.driver.findElements(By.css('iframe'))
 console.log(`Found ${frames.length} frames`)
 
 // Verify ElementFinder injection
+await browser.injectElementFinder()
 const injected = await browser.driver.executeScript(
   'return typeof window.ElementFinder'
 )
@@ -1093,7 +1131,7 @@ console.log(
 {
   "browser": "chrome",
   "headless": false,
-  "timeout": 10,
+  "timeout": 10000,
   "width": 1280,
   "height": 800,
   "hub": null,

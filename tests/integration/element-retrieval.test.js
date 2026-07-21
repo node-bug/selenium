@@ -30,15 +30,35 @@ describe('WebBrowser Element Retrieval Tests', () => {
   });
 
   test('should capture element screenshots', async () => {
-    const screenshot = await browser.element('Single-line Text').get.screenshot();
-    expect(typeof screenshot).toBe('string');
-    expect(screenshot.startsWith('iVBORw0KGgo')).toBe(true);
+    const { dataUrl, width, height } = await browser.element('Single-line Text').get.screenshot();
+    expect(typeof dataUrl).toBe('string');
+    expect(dataUrl.startsWith('iVBORw0KGgo')).toBe(true);
+    expect(typeof width).toBe('number');
+    expect(typeof height).toBe('number');
   });
 
   test('should capture full page screenshot when no element is specified', async () => {
     browser.stack = []; // Clear stack
-    const screenshot = await browser.get.screenshot();
-    expect(typeof screenshot).toBe('string');
-    expect(screenshot.startsWith('iVBORw0KGgo')).toBe(true);
+    const { dataUrl, width, height } = await browser.get.screenshot();
+    expect(typeof dataUrl).toBe('string');
+    expect(dataUrl.startsWith('iVBORw0KGgo')).toBe(true);
+    expect(typeof width).toBe('number');
+    expect(typeof height).toBe('number');
+  });
+
+  test('should expose injectElementFinder that makes window.ElementFinder available', async () => {
+    await browser.injectElementFinder();
+    const injected = await browser.driver.executeScript(
+      'return typeof window.ElementFinder'
+    );
+    expect(injected).toBe('object');
+
+    // And it can be used directly for raw discovery
+    const result = await browser.driver.executeScript(
+      'return window.ElementFinder.findProbableElements("textbox", "Single-line Text")'
+    );
+    expect(result).toBeDefined();
+    expect(Array.isArray(result.elements)).toBe(true);
+    expect(result.elements.length).toBeGreaterThan(0);
   });
 });

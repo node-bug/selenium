@@ -1,4 +1,3 @@
-import config from '@nodebug/config'
 import { log } from '@nodebug/logger'
 import { Builder } from 'selenium-webdriver'
 import remote from 'selenium-webdriver/remote/index.js'
@@ -6,8 +5,7 @@ import capabilities from '../capabilities/index.js'
 import Window from './window.js'
 import Tab from './tab.js'
 import Alert from './alerts.js'
-
-const selenium = config('selenium')
+import { selenium } from '../config.js'
 
 /**
  * Base Browser class for Selenium WebDriver operations
@@ -164,7 +162,7 @@ class Browser {
    */
   get timeout() {
     const timeoutValue = parseInt(selenium.timeout, 10);
-    return isNaN(timeoutValue) ? 10000 : timeoutValue * 1000;
+    return isNaN(timeoutValue) ? 10000 : timeoutValue;
   }
 
   /**

@@ -17,6 +17,24 @@ describe('Dropdown Interactions Integration Tests', () => {
   // 1. Standard HTML Select Tests
   // ========================================
 
+  test('should find all dropdowns when no selector is provided', async () => {
+    const dropdowns = await browser.dropdown().findAll();
+    expect(Array.isArray(dropdowns)).toBe(true);
+    expect(dropdowns.length).toBeGreaterThanOrEqual(5);
+  });
+
+  test('should find all dropdowns by identifiable text', async () => {
+    const dropdowns = await browser.dropdown('Custom UI').findAll();
+    expect(Array.isArray(dropdowns)).toBe(true);
+    expect(dropdowns).toHaveLength(1);
+  });
+
+  test('should find a single dropdown by index with findAll()', async () => {
+    const dropdowns = await browser.dropdown(2).findAll();
+    expect(Array.isArray(dropdowns)).toBe(true);
+    expect(dropdowns).toHaveLength(1);
+  });
+
   describe('Standard HTML Select', () => {
     test('should find parent of option Banana when dropdown element type is used', async () => {
       await browser.dropdown('Banana').should.be.visible();

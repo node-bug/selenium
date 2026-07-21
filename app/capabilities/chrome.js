@@ -9,10 +9,8 @@
  */
 import { Capabilities } from 'selenium-webdriver';
 import { Options } from 'selenium-webdriver/chrome.js'
-import config from '@nodebug/config'
 import { downloadPath } from './preferences.js'
-
-const selenium = config('selenium')
+import { selenium } from '../config.js'
 
 class Chrome {
   /**

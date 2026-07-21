@@ -1,7 +1,5 @@
 import { log } from '@nodebug/logger';
-import config from '@nodebug/config';
-
-const selenium = config('selenium');
+import { selenium } from '../config.js';
 
 /**
  * Base class for browser targets (Window and Tab)
@@ -57,7 +55,7 @@ export class BrowserTarget {
      * 
      * @returns {number} Timeout value in milliseconds
      */
-    get timeout() { return (selenium.timeout || 10) * 1000; }
+    get timeout() { return selenium.timeout; }
 
     /**
      * Chain method for fluent interface

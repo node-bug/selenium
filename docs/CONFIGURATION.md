@@ -10,12 +10,14 @@ Create `.config/selenium.json`:
 {
   "browser": "chrome",
   "headless": true,
-  "timeout": 10,
+  "timeout": 10000,
   "downloadsPath": "./reports/downloads",
   "incognito": false,
   "height": null,
   "width": null,
   "hub": null,
+  "debug": false,
+  "ignoredTags": [],
   "goog:chromeOptions": {
     "args": ["--no-sandbox", "--disable-dev-shm-usage"]
   }
@@ -58,13 +60,13 @@ Private browsing mode (no cookies/history saved).
 
 ### timeout
 
-Default timeout in seconds for element operations.
+Default timeout in milliseconds for element operations.
 
 ```json
-{ "timeout": 10 }
+{ "timeout": 10000 }
 ```
 
-**Default**: `10`
+**Default**: `10000`
 
 ### height / width
 
@@ -106,6 +108,19 @@ Enable debug mode. When enabled, found elements will be highlighted with a thick
 ```
 
 **Default**: `false`
+
+### ignoredTags
+
+Tags to ignore during element traversal. Configured tags are **added** on top of the
+library defaults (`SCRIPT`, `STYLE`, `TEMPLATE`, `NOSCRIPT`) — they are never removed, so
+script/style content is always excluded. Tag names are case-insensitive and normalized to
+uppercase automatically.
+
+```json
+{ "ignoredTags": ["SVG", "MARK"] }
+```
+
+**Default**: `[]` (no additional tags ignored beyond the library defaults)
 
 ### Browser-Specific Options
 
@@ -173,7 +188,7 @@ Configuration can be set via (in priority order):
 {
   "browser": "chrome",
   "headless": false,
-  "timeout": 10,
+  "timeout": 10000,
   "width": 1280,
   "height": 800
 }
@@ -185,7 +200,7 @@ Configuration can be set via (in priority order):
 {
   "browser": "chrome",
   "headless": true,
-  "timeout": 30,
+  "timeout": 30000,
   "goog:chromeOptions": {
     "args": ["--no-sandbox", "--disable-dev-shm-usage"]
   }

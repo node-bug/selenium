@@ -194,12 +194,16 @@ describe('Browser Control Integration Tests', () => {
       // Take full page screenshot
       const pageScreenshot = await browser.get.screenshot();
       expect(pageScreenshot).toBeDefined();
-      expect(typeof pageScreenshot).toBe('string'); // Base64 encoded image
+      expect(typeof pageScreenshot.dataUrl).toBe('string');
+      expect(typeof pageScreenshot.width).toBe('number');
+      expect(typeof pageScreenshot.height).toBe('number');
       
       // Take element screenshot
       const elementScreenshot = await browser.element('SeleniumBase Demo Page').get.screenshot();
       expect(elementScreenshot).toBeDefined();
-      expect(typeof elementScreenshot).toBe('string'); // Base64 encoded image
+      expect(typeof elementScreenshot.dataUrl).toBe('string');
+      expect(typeof elementScreenshot.width).toBe('number');
+      expect(typeof elementScreenshot.height).toBe('number');
     } catch (error) {
       console.log('Screenshot test skipped - functionality not available:', error.message);
       // This is acceptable for documentation purposes

@@ -1,5 +1,4 @@
 import messenger from '../messenger.js';
-import { log } from '@nodebug/logger';
 import { BaseDelegate } from './base-delegate.js';
 
 /**
@@ -11,7 +10,6 @@ import { BaseDelegate } from './base-delegate.js';
  * - Right-clicks (context clicks)
  * - Middle-clicks
  * - Triple-clicks
- * - Long press clicks
  * - Multiple times clicks
  * - Clicks with modifier keys
  * - Coordinate-based clicks
@@ -22,7 +20,6 @@ export class ClickDelegate extends BaseDelegate {
    * Performs a click on an element.
    * 
    * Clicks on an element at its center or at specified coordinates.
-   * Falls back to JavaScript click if Selenium click fails.
    *
    * Supports modifier keys via chaining: `browser.button('link').ctrl.click()`.
    * Modifiers (ctrl, shift, alt, meta) are read from `browser._tempMods` and
@@ -160,28 +157,9 @@ export class ClickDelegate extends BaseDelegate {
   }
 
   /**
-   * Performs a long press on an element.
-   * 
-   * Simulates a long press by holding the mouse button down for a specified duration.
-   * 
-   * @param {number} [duration=1000] - Duration of the long press in milliseconds
-   * @returns {Promise<boolean>} True if successful
-   * @example
-   * await browser.element('long-press-target').longPress(); // Default 1000ms
-   * await browser.button('menu').longPress(2000); // 2 seconds
-   */
-  async longPress(duration = 1000) {
-    return this.withErrorHandling('longpress', async () => {
-      const locator = await this.findElement();
-      await this.browser.actions().move({ origin: locator }).press().pause(duration).release().perform();
-    }, { errorMessage: 'long pressing' });
-  }
-
-  /**
    * Internal click handler for elements.
    * 
    * Handles both standard clicks and coordinate-based clicks.
-   * Falls back to JavaScript click if Selenium click fails.
    * 
    * @private
    * @param {Object} e - WebElement to click
@@ -197,18 +175,7 @@ export class ClickDelegate extends BaseDelegate {
     // If no modifiers and no coordinates, use simple click
     const hasMods = mods.control || mods.shift || mods.alt || mods.meta;
     if (!hasMods && !hasCoordinates) {
-      try {
-        await e.click();
-      } catch (err) {
-        // Fallback to JS click if element is blocked or not interactable
-        if (['ElementNotInteractableError', 'ElementClickInterceptedError'].includes(err.name)) {
-          await browser.driver.executeScript('arguments[0].click();', e);
-          log.warn(`Due to "${err.name}" error, javascript click was used to click.`);
-          return true;
-        } else {
-          throw err;
-        }
-      }
+      await e.click();
       return true;
     }
 
@@ -220,15 +187,34 @@ export class ClickDelegate extends BaseDelegate {
       await this.pressModifiers(actions, platformName);
 
       if (hasCoordinates) {
-        const rect = await e.getRect();
-        if (x >= rect.width || y >= rect.height) {
-          throw new Error(`Click out of bounds: target x:${x} y:${y}, element size ${rect.width}x${rect.height}`);
+        const parsedX = parseInt(x, 10);
+        const parsedY = parseInt(y, 10);
+        if (isNaN(parsedX) || isNaN(parsedY)) {
+          throw new Error(
+            `Invalid click coordinate: ${isNaN(parsedX) ? `x (${x})` : ''}${
+              isNaN(parsedX) && isNaN(parsedY) ? ' and ' : ''
+            }${isNaN(parsedY) ? `y (${y})` : ''} is NaN. Provide numeric coordinates.`
+          );
         }
-        const ex = rect.x + isNaN(parseInt(x, 10)) ? 0 : parseInt(x, 10);
-        const ey = rect.y + isNaN(parseInt(y, 10)) ? 0 : parseInt(y, 10);
+
+        const rect = await e.getRect();
+        if (parsedX >= rect.width || parsedY >= rect.height) {
+          throw new Error(`Click out of bounds: target x:${parsedX} y:${parsedY}, element size ${rect.width}x${rect.height}`);
+        }
+        const offsetX = parsedX;
+        const offsetY = parsedY;
+
+        // Our API expresses coordinates relative to the element's TOP-LEFT
+        // (matching rect.x/rect.y and Playwright's position option). Selenium's
+        // move() origin is the element's CENTER, so convert the top-left offset
+        // to a center-relative offset. Using the element as origin also
+        // auto-scrolls it into view, avoiding MoveTargetOutOfBoundsError that
+        // would occur with viewport-absolute coordinates from getRect().
+        const cx = offsetX - rect.width / 2;
+        const cy = offsetY - rect.height / 2;
 
         actions
-          .move({ x: Math.ceil(ex), y: Math.ceil(ey) })
+          .move({ origin: e, x: Math.ceil(cx), y: Math.ceil(cy) })
           .pause(500)
           .click();
       } else {

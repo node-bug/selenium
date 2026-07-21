@@ -9,8 +9,7 @@
  */
 import { log } from '@nodebug/logger'
 import { Capabilities } from 'selenium-webdriver'
-import config from '@nodebug/config'
-const selenium = config('selenium')
+import { selenium } from '../config.js'
 
 /**
  * Get Safari browser capabilities

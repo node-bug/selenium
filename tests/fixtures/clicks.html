@@ -32,9 +32,6 @@
         /* Middle-click area */
         .middle-click-area { padding: 40px; background-color: #cce5ff; border: 2px solid #007bff; text-align: center; cursor: cell; }
         
-        /* Long press area */
-        .long-press-area { padding: 40px; background-color: #f8d7da; border: 2px solid #dc3545; text-align: center; cursor: pointer; }
-        
         /* Coordinate click area */
         .coord-area { position: relative; width: 300px; height: 200px; background-color: #e2e3e5; border: 1px solid #6c757d; }
         .coord-marker { position: absolute; width: 20px; height: 20px; background-color: #28a745; border-radius: 50%; cursor: pointer; }
@@ -101,27 +98,18 @@
         </div>
     </section>
 
-    <!-- 7. Long Press -->
-    <section id="long-press-section">
-        <h2>7. Long Press</h2>
-        <div class="field-group">
-            <div id="area-long-press" class="long-press-area">Long Press Me</div>
-            <div class="click-counter">Long Presses: <span id="long-press-count" class="counter-value">0</span></div>
-        </div>
-    </section>
-
-    <!-- 8. Hover -->
+    <!-- 7. Hover -->
     <section id="hover-section">
-        <h2>8. Hover</h2>
+        <h2>7. Hover</h2>
         <div class="field-group">
             <div id="area-hover" class="hover-target">Hover Over Me</div>
             <div class="click-counter">Hover Count: <span id="hover-count" class="counter-value">0</span></div>
         </div>
     </section>
 
-    <!-- 9. Coordinate-based Click -->
+    <!-- 8. Coordinate-based Click -->
     <section id="coordinate-click-section">
-        <h2>9. Coordinate-based Click</h2>
+        <h2>8. Coordinate-based Click</h2>
         <div class="field-group">
             <div id="area-coordinate-click" class="coord-area">
                 <div id="marker-top-left" class="coord-marker top-left" data-position="top-left"></div>
@@ -133,9 +121,9 @@
         </div>
     </section>
 
-    <!-- 10. Modifier Clicks -->
+    <!-- 9. Modifier Clicks -->
     <section id="modifier-click-section">
-        <h2>10. Modifier Clicks</h2>
+        <h2>9. Modifier Clicks</h2>
         <div class="field-group">
             <button id="btn-modifier-click" class="btn btn-danger">Ctrl+Click / Shift+Alt+Click</button>
             <div class="click-counter">
@@ -179,28 +167,6 @@
 
         // Middle click
         document.getElementById('area-middle-click').addEventListener('auxclick', function(e) {
-            if (e.button === 1) {
-                const count = parseInt(document.getElementById('middle-click-count').textContent);
-                document.getElementById('middle-click-count').textContent = count + 1;
-            }
-        });
-
-        // Long press (touchstart + touchend with timeout)
-        let longPressTimer;
-        document.getElementById('area-long-press').addEventListener('mousedown', function() {
-            longPressTimer = setTimeout(function() {
-                const count = parseInt(document.getElementById('long-press-count').textContent);
-                document.getElementById('long-press-count').textContent = count + 1;
-            }, 500);
-        });
-        document.getElementById('area-long-press').addEventListener('mouseup', function() {
-            clearTimeout(longPressTimer);
-        });
-        document.getElementById('area-long-press').addEventListener('mouseleave', function() {
-            clearTimeout(longPressTimer);
-        });
-
-        // Hover
         document.getElementById('area-hover').addEventListener('mouseenter', function() {
             const count = parseInt(document.getElementById('hover-count').textContent);
             document.getElementById('hover-count').textContent = count + 1;

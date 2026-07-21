@@ -1,3 +1,4 @@
+import { log } from '@nodebug/logger';
 import WebBrowser from '../../index.js';
 
 describe('Google Forms Checkbox Test', () => {
@@ -35,7 +36,7 @@ describe('Google Forms Checkbox Test', () => {
       expect(isChecked).toBe(true);
     } else {
       // Skip test if no checkboxes found (form structure may have changed)
-      console.log('No checkboxes found on Google Form, skipping test');
+      log.info('No checkboxes found on Google Form, skipping test');
     }
   });
 });

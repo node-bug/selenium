@@ -9,7 +9,6 @@ const ACTION_MAP = {
   rightclick: () => 'Right clicking on ',
   middleclick: () => 'Middle clicking on ',
   tripleclick: () => 'Triple clicking on ',
-  longpress: () => 'Long pressing on ',
   focus: () => 'Focussing on ',
   scroll: () => 'Scrolling into view ',
   drag: () => 'Dragging ',
@@ -74,6 +73,10 @@ const ACTION_MAP = {
   shouldNotHaveOption: () => `Validating that `,
   getOptions: () => 'Getting options from ',
   getSelectedOptions: () => 'Getting selected options from ',
+  waitForAjax: () => 'Waiting for AJAX requests to complete',
+  waitForFetch: () => 'Waiting for fetch requests to complete',
+  waitForAll: () => 'Waiting for all network requests to complete',
+  waitForRequest: (a) => `Waiting for request '${a.data}' to complete`,
 };
 
 // 2. Define valid element types
@@ -92,10 +95,11 @@ export default function messenger(a) {
     if (ELEMENT_TYPES.has(obj.type)) {
       const exact = obj.exact ? 'exact ' : '';
       const hidden = obj.hidden ? 'hidden ' : '';
+      const onscreen = obj.onscreen ? 'onscreen ' : '';
       const atIndex = obj.index ? `at index '${obj.index}' ` : '';
       // When id is empty or numeric, skip quoting the id
       const idPart = obj.id ? (/^\d+$/.test(obj.id) ? `at index '${obj.id}' ` : `'${obj.id}' `) : '';
-      return `${exact}${hidden}${obj.type} ${idPart}${atIndex}`;
+      return `${exact}${hidden}${onscreen}${obj.type} ${idPart}${atIndex}`;
     }
 
     if (obj.type === 'location') {

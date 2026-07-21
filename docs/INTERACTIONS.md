@@ -11,7 +11,6 @@ Complete guide to user interactions including clicks, text input, keyboard navig
 await browser.button('Submit').click()
 await browser.element('text').doubleClick()
 await browser.element('menu').rightClick()
-await browser.element('button').longPress(2000)
 
 // Text input
 await browser.textbox('Email').write('user@example.com')
@@ -92,19 +91,6 @@ Select all text in a field:
 ```javascript
 await browser.element('text').tripleClick()
 ```
-
-### Long Press / Hold
-
-Long press element for specified duration:
-
-```javascript
-await browser.element('button').longPress() // 1 second default
-await browser.element('button').longPress(3000) // 3 seconds
-```
-
-**Parameters**:
-
-- `duration` (number, optional): Milliseconds (default: 1000)
 
 ### Multiple Clicks
 

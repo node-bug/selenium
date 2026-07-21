@@ -413,12 +413,14 @@ Create `.config/selenium.json`:
 {
   "browser": "chrome",
   "headless": true,
-  "timeout": 30,
+  "timeout": 30000,
   "downloadsPath": "./downloads",
   "incognito": false,
   "height": null,
   "width": null,
   "hub": null,
+  "debug": false,
+  "ignoredTags": [],
   "goog:chromeOptions": {
     "args": ["--no-sandbox"]
   }
@@ -427,16 +429,18 @@ Create `.config/selenium.json`:
 
 ### Browser Options
 
-| Option          | Type    | Default    | Description                                        |
-| --------------- | ------- | ---------- | -------------------------------------------------- |
-| `browser`       | string  | `"chrome"` | Browser type (`"chrome"`, `"firefox"`, `"safari"`) |
-| `headless`      | boolean | `false`    | Run without GUI                                    |
-| `incognito`     | boolean | `false`    | Private browsing mode                              |
-| `timeout`       | number  | `30`       | Default element timeout (seconds)                  |
-| `width`         | number  | `null`     | Window width (pixels)                              |
-| `height`        | number  | `null`     | Window height (pixels)                             |
-| `downloadsPath` | string  | `null`     | Directory for downloads                            |
-| `hub`           | string  | `null`     | Selenium Grid hub URL                              |
+| Option          | Type    | Default    | Description                                             |
+| --------------- | ------- | ---------- | ------------------------------------------------------- |
+| `browser`       | string  | `"chrome"` | Browser type (`"chrome"`, `"firefox"`, `"safari"`)      |
+| `headless`      | boolean | `false`    | Run without GUI                                         |
+| `incognito`     | boolean | `false`    | Private browsing mode                                   |
+| `timeout`       | number  | `30000`    | Default element timeout (milliseconds)                  |
+| `width`         | number  | `null`     | Window width (pixels)                                   |
+| `height`        | number  | `null`     | Window height (pixels)                                  |
+| `downloadsPath` | string  | `null`     | Directory for downloads                                 |
+| `hub`           | string  | `null`     | Selenium Grid hub URL                                   |
+| `debug`         | boolean | `false`    | Highlight found elements with a red outline             |
+| `ignoredTags`   | array   | `[]`       | Extra tags to skip during traversal (added to defaults) |
 
 ### Common Configurations
 
@@ -446,7 +450,7 @@ Create `.config/selenium.json`:
 {
   "browser": "chrome",
   "headless": true,
-  "timeout": 30
+  "timeout": 30000
 }
 ```
 
@@ -589,7 +593,7 @@ Solution: Increase timeout in config
 
 ```json
 {
-  "timeout": 30 // Increase from default 10
+  "timeout": 30000 // Increase from default 10
 }
 ```
 
@@ -665,7 +669,7 @@ Solution: Create `.config/selenium.json` in project root
 {
   "browser": "chrome",
   "headless": false,
-  "timeout": 30
+  "timeout": 30000
 }
 ```
 
@@ -674,7 +678,7 @@ Or use environment variables:
 ```bash
 export browser=firefox
 export headless=true
-export timeout=20
+export timeout=20000
 node test.js
 ```
 

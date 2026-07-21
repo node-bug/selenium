@@ -209,7 +209,6 @@ describe('messenger', () => {
       { action: 'rightclick', expected: 'Right clicking on ' },
       { action: 'middleclick', expected: 'Middle clicking on ' },
       { action: 'tripleclick', expected: 'Triple clicking on ' },
-      { action: 'longpress', expected: 'Long pressing on ' },
       { action: 'focus', expected: 'Focussing on ' },
       { action: 'scroll', expected: 'Scrolling into view ' },
       { action: 'drag', expected: 'Dragging ' },

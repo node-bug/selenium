@@ -35,6 +35,7 @@ await browser
 - **🎯 Human-like element selection** - Find elements by what they say, where they are, or their type—just like humans
 - **🔗 Fluent API** - Chain methods for readable, maintainable code
 - **🗺️ Spatial context** - Locate elements by position: `above`, `below`, `toLeftOf`, `toRightOf`, `within`, `near`
+- **🌳 DOM containment** - Use `.within.parent` for strict parent-child hierarchy checks via `DOM.contains()`
 - **🎭 Semantic selectors** - 20+ element types: button, textbox, checkbox, dropdown, dialog, table, etc.
 - **🏗️ Multi-window/tab support** - Manage multiple browser contexts and tabs seamlessly
 - **📍 Smart element prioritization** - Searches text, placeholders, labels, test IDs, ARIA labels automatically
@@ -60,7 +61,7 @@ Create `.config/selenium.json`:
 {
   "browser": "chrome",
   "headless": false,
-  "timeout": 10
+  "timeout": 10000
 }
 ```
 
@@ -429,7 +430,7 @@ See [ENGINEERING.md](docs/ENGINEERING.md#module-decision-trees) for detailed gui
 ### Waiting for Elements (Implicit Waits)
 
 ```javascript
-// Will wait up to 30 seconds (configured timeout)
+// Will wait up to configured timeout (milliseconds)
 await browser.element('Loading').should.not.be.visible()
 ````
 

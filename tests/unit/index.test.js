@@ -106,7 +106,7 @@ vi.mock('@nodebug/logger', () => ({
 // Mock config module
 vi.mock('@nodebug/config', () => ({
   default: vi.fn(() => ({
-    timeout: 1, // small timeout for fast tests
+    timeout: 1000, // small timeout for fast tests
     browser: 'chrome',
 })),
 }));
@@ -244,6 +244,11 @@ describe('WebBrowser', () => {
         expect(browser.locatorStrategy).toBeDefined();
     });
 
+    test('injectElementFinder delegates to locatorStrategy._injectElementFinder', async () => {
+        await browser.injectElementFinder();
+        expect(browser.locatorStrategy._injectElementFinder).toHaveBeenCalledTimes(1);
+    });
+
     test('should accept empty string for element type', () => {
         expect(() => browser.element('')).not.toThrow();
     });
@@ -275,6 +280,81 @@ describe('WebBrowser', () => {
 
         test.each(elementTypes)('should work when %s() is called with valid number index', (type) => {
             expect(() => browser[type](1)).not.toThrow();
+        });
+    });
+
+    describe('exact/hidden/onscreen modifiers only apply BEFORE the element', () => {
+        test('exact pushes a flag when stack is empty (pre-element)', () => {
+            browser.exact;
+            expect(browser.stack).toEqual([{ exact: true, hidden: false, onscreen: false }]);
+        });
+
+        test('hidden pushes a flag when stack is empty (pre-element)', () => {
+            browser.hidden;
+            expect(browser.stack).toEqual([{ exact: false, hidden: true, onscreen: false }]);
+        });
+
+        test('onscreen pushes a flag when stack is empty (pre-element)', () => {
+            browser.onscreen;
+            expect(browser.stack).toEqual([{ exact: false, hidden: false, onscreen: true }]);
+        });
+
+        test('exact pushes a flag when top of stack is a location (pre-element for next)', () => {
+            browser.element('A').below.exact;
+            const top = browser.stack[browser.stack.length - 1];
+            expect(top).toEqual({ exact: true, hidden: false, onscreen: false });
+        });
+
+        test('hidden pushes a flag when top of stack is a location (pre-element for next)', () => {
+            browser.element('A').below.hidden;
+            const top = browser.stack[browser.stack.length - 1];
+            expect(top).toEqual({ exact: false, hidden: true, onscreen: false });
+        });
+
+        test('onscreen pushes a flag when top of stack is a location (pre-element for next)', () => {
+            browser.element('A').below.onscreen;
+            const top = browser.stack[browser.stack.length - 1];
+            expect(top).toEqual({ exact: false, hidden: false, onscreen: true });
+        });
+
+        test('exact is a no-op when chained AFTER an element member', () => {
+            browser.button('Submit').exact;
+            // Only the element member should be on the stack; no flag pushed.
+            expect(browser.stack).toHaveLength(1);
+            expect(browser.stack[0].type).toBe('button');
+            expect(browser.stack[0].exact).toBe(false);
+        });
+
+        test('hidden is a no-op when chained AFTER an element member', () => {
+            browser.link('X').hidden;
+            expect(browser.stack).toHaveLength(1);
+            expect(browser.stack[0].type).toBe('link');
+            expect(browser.stack[0].hidden).toBe(false);
+        });
+
+        test('onscreen is a no-op when chained AFTER an element member', () => {
+            browser.button('Submit').onscreen;
+            expect(browser.stack).toHaveLength(1);
+            expect(browser.stack[0].type).toBe('button');
+            expect(browser.stack[0].onscreen).toBe(false);
+        });
+
+        test('pre-element exact is consumed by the following element()', () => {
+            browser.exact.element('X');
+            expect(browser.stack).toHaveLength(1);
+            expect(browser.stack[0]).toMatchObject({ type: 'element', id: 'X', exact: true });
+        });
+
+        test('pre-element hidden is consumed by the following element()', () => {
+            browser.hidden.element('X');
+            expect(browser.stack).toHaveLength(1);
+            expect(browser.stack[0]).toMatchObject({ type: 'element', id: 'X', hidden: true });
+        });
+
+        test('pre-element onscreen is consumed by the following element()', () => {
+            browser.onscreen.element('X');
+            expect(browser.stack).toHaveLength(1);
+            expect(browser.stack[0]).toMatchObject({ type: 'element', id: 'X', onscreen: true });
         });
     });
 
@@ -496,23 +576,35 @@ describe('WebBrowser', () => {
     test('get.screenshot() uses element screenshot when stack exists', async () => {
         const locator = {
             takeScreenshot: vi.fn().mockResolvedValue('element-img'),
+            boundingBox: { width: 100, height: 50 },
         };
 
         browser._finder = vi.fn().mockResolvedValue(locator);
         browser.stack = [{ id: 1 }];
         browser.driver = {
+            switchTo: vi.fn().mockReturnValue({
+                defaultContent: vi.fn().mockResolvedValue(undefined),
+            }),
             executeScript: vi.fn().mockResolvedValue({ originalStyles: new Map(), pausedCount: 0 }),
             takeScreenshot: vi.fn().mockResolvedValue('page-img'),
         };
 
         const result = await browser.get.screenshot();
 
-        expect(result).toBe('element-img');
+        expect(result.dataUrl).toBe('element-img');
+        expect(result.width).toBe(100);
+        expect(result.height).toBe(50);
     });
     test('get.screenshot() falls back to driver screenshot', async () => {
         browser._finder = vi.fn().mockRejectedValue(new Error('fail'));
         browser.driver = {
-            executeScript: vi.fn().mockResolvedValue({ originalStyles: new Map(), pausedCount: 0 }),
+            switchTo: vi.fn().mockReturnValue({
+                defaultContent: vi.fn().mockResolvedValue(undefined),
+            }),
+            executeScript: vi.fn()
+                .mockResolvedValueOnce({ originalStyles: new Map(), pausedCount: 0 }) // pause
+                .mockResolvedValueOnce(1024) // innerWidth for get.size()
+                .mockResolvedValueOnce(768), // innerHeight for get.size()
             takeScreenshot: vi.fn().mockResolvedValue('page-img'),
         };
 
@@ -520,37 +612,57 @@ describe('WebBrowser', () => {
 
         const result = await browser.get.screenshot();
 
-        expect(result).toBe('page-img');
+        expect(result.dataUrl).toBe('page-img');
+        expect(typeof result.width).toBe('number');
+        expect(typeof result.height).toBe('number');
     });
     test('get.screenshot() succeeds when pauseAnimations fails', async () => {
-        browser._finder = vi.fn().mockRejectedValue(new Error('no element'));
-        browser.driver = {
-            executeScript: vi.fn().mockRejectedValue(new Error('ElementFinder not available')),
-            takeScreenshot: vi.fn().mockResolvedValue('page-img'),
-        };
-
-        const result = await browser.get.screenshot();
-
-        expect(result).toBe('page-img');
-    });
-    test('get.screenshot() succeeds when resumeAnimations fails', async () => {
         const executeScriptMock = vi.fn()
-            .mockResolvedValueOnce({ originalStyles: new Map(), pausedCount: 0 }) // pause
-            .mockRejectedValueOnce(new Error('resume failed')); // resume
+            .mockRejectedValueOnce(new Error('ElementFinder not available')) // pause fails
+            .mockResolvedValueOnce(1024) // innerWidth for get.size()
+            .mockResolvedValueOnce(768); // innerHeight for get.size()
 
         browser._finder = vi.fn().mockRejectedValue(new Error('no element'));
         browser.driver = {
+            switchTo: vi.fn().mockReturnValue({
+                defaultContent: vi.fn().mockResolvedValue(undefined),
+            }),
             executeScript: executeScriptMock,
             takeScreenshot: vi.fn().mockResolvedValue('page-img'),
         };
 
         const result = await browser.get.screenshot();
 
-        expect(result).toBe('page-img');
+        expect(result.dataUrl).toBe('page-img');
+        expect(typeof result.width).toBe('number');
+        expect(typeof result.height).toBe('number');
+    });
+    test('get.screenshot() succeeds when resumeAnimations fails', async () => {
+        const executeScriptMock = vi.fn()
+            .mockResolvedValueOnce({ originalStyles: new Map(), pausedCount: 0 }) // pause
+            .mockResolvedValueOnce(1024) // innerWidth for get.size()
+            .mockResolvedValueOnce(768) // innerHeight for get.size()
+            .mockRejectedValueOnce(new Error('resume failed')); // resume - but error is caught
+
+        browser._finder = vi.fn().mockRejectedValue(new Error('no element'));
+        browser.driver = {
+            switchTo: vi.fn().mockReturnValue({
+                defaultContent: vi.fn().mockResolvedValue(undefined),
+            }),
+            executeScript: executeScriptMock,
+            takeScreenshot: vi.fn().mockResolvedValue('page-img'),
+        };
+
+        const result = await browser.get.screenshot();
+
+        expect(result.dataUrl).toBe('page-img');
+        expect(typeof result.width).toBe('number');
+        expect(typeof result.height).toBe('number');
     });
     test('get.screenshot() calls pause and resume animations', async () => {
         const locator = {
             takeScreenshot: vi.fn().mockResolvedValue('element-img'),
+            boundingBox: { width: 100, height: 50 },
         };
 
         const executeScriptMock = vi.fn()
@@ -567,8 +679,31 @@ describe('WebBrowser', () => {
         await browser.get.screenshot();
 
         expect(executeScriptMock).toHaveBeenCalledTimes(2);
-        expect(executeScriptMock).toHaveBeenNthCalledWith(1, 'return window.ElementFinder.pauseAnimations()');
+        expect(executeScriptMock).toHaveBeenNthCalledWith(1, expect.stringContaining('pauseAnimations'));
         expect(executeScriptMock).toHaveBeenNthCalledWith(2, 'window.ElementFinder.resumeAnimations(arguments[0])', { originalStyles: new Map(), pausedCount: 2 });
+    });
+    test('get.screenshot() injects ElementFinder before pausing animations', async () => {
+        const locator = {
+            takeScreenshot: vi.fn().mockResolvedValue('element-img'),
+            boundingBox: { width: 100, height: 50 },
+        };
+
+        const executeScriptMock = vi.fn()
+            .mockResolvedValueOnce({ originalStyles: new Map(), pausedCount: 1 }) // pause
+            .mockResolvedValueOnce(undefined); // resume
+
+        browser._finder = vi.fn().mockResolvedValue(locator);
+        browser.stack = [{ id: 1 }];
+        browser.driver = {
+            executeScript: executeScriptMock,
+            takeScreenshot: vi.fn().mockResolvedValue('page-img'),
+        };
+
+        await browser.get.screenshot();
+
+        // Regression guard: screenshot must ensure ElementFinder is injected (so
+        // pauseAnimations/resumeAnimations are available) via the unified injector.
+        expect(browser.locatorStrategy._injectElementFinder).toHaveBeenCalled();
     });
     test('upload() handles error via handleError', async () => {
         const error = new Error('fail');
@@ -578,13 +713,17 @@ describe('WebBrowser', () => {
 
         await expect(browser.upload('/file')).rejects.toThrow();
     });
-    test('at.index sets index and clears id on last stack item', () => {
+    test('at.index sets index on last stack item while preserving id', () => {
+        // Bug fix: at.index() should NOT clear the id, otherwise
+        // findProbableElements returns ALL DOM elements instead of matches.
+        // The id is preserved so ElementFinder can still match by text/id,
+        // and the index is applied to the resolved matches.
         browser.stack = [{ id: 'some-text', index: false }];
 
         browser.at.index(2);
 
         expect(browser.stack[0].index).toBe(2);
-        expect(browser.stack[0].id).toBe('');
+        expect(browser.stack[0].id).toBe('some-text');
     });
     test('at.index returns browser for chaining', () => {
         browser.stack = [{ id: 'text' }];
@@ -607,7 +746,7 @@ describe('WebBrowser', () => {
         browser.at.index(0);
 
         expect(browser.stack[0].index).toBe(1);
-        expect(browser.stack[0].id).toBe('');
+        expect(browser.stack[0].id).toBe('text');
     });
     test('at.index defaults to 1 when called with negative number', () => {
         browser.stack = [{ id: 'text', index: false }];
@@ -615,7 +754,7 @@ describe('WebBrowser', () => {
         browser.at.index(-1);
 
         expect(browser.stack[0].index).toBe(1);
-        expect(browser.stack[0].id).toBe('');
+        expect(browser.stack[0].id).toBe('text');
     });
     test('at.index defaults to 1 when called with NaN', () => {
         browser.stack = [{ id: 'text', index: false }];
@@ -623,7 +762,7 @@ describe('WebBrowser', () => {
         browser.at.index(NaN);
 
         expect(browser.stack[0].index).toBe(1);
-        expect(browser.stack[0].id).toBe('');
+        expect(browser.stack[0].id).toBe('text');
     });
     test('at.index defaults to 1 when called with null', () => {
         browser.stack = [{ id: 'text', index: false }];
@@ -631,7 +770,7 @@ describe('WebBrowser', () => {
         browser.at.index(null);
 
         expect(browser.stack[0].index).toBe(1);
-        expect(browser.stack[0].id).toBe('');
+        expect(browser.stack[0].id).toBe('text');
     });
     test('at.index defaults to 1 when called with undefined', () => {
         browser.stack = [{ id: 'text', index: false }];
@@ -639,7 +778,7 @@ describe('WebBrowser', () => {
         browser.at.index(undefined);
 
         expect(browser.stack[0].index).toBe(1);
-        expect(browser.stack[0].id).toBe('');
+        expect(browser.stack[0].id).toBe('text');
     });
     test('at.index defaults to 1 when called with non-number string', () => {
         browser.stack = [{ id: 'text', index: false }];
@@ -647,7 +786,7 @@ describe('WebBrowser', () => {
         browser.at.index('x');
 
         expect(browser.stack[0].index).toBe(1);
-        expect(browser.stack[0].id).toBe('');
+        expect(browser.stack[0].id).toBe('text');
     });
     test('at.index defaults to 1 when called with non-integer float', () => {
         browser.stack = [{ id: 'text', index: false }];
@@ -655,19 +794,25 @@ describe('WebBrowser', () => {
         browser.at.index(1.5);
 
         expect(browser.stack[0].index).toBe(1);
-        expect(browser.stack[0].id).toBe('');
+        expect(browser.stack[0].id).toBe('text');
     });
-    test('element(1) and element().at.index(1) produce equivalent stack items', () => {
+    test('element(1) and element("text").at.index(1) are no longer equivalent', () => {
+        // Bug fix: element(N) clears the id (intended for type-only selectors
+        // like row(2) that match by index). at.index(N) preserves the id so
+        // ElementFinder can still match by text. These are different on purpose.
         const browser1 = new WebBrowser();
         const browser2 = new WebBrowser();
 
         browser1.element(1);
         browser2.element('some-text').at.index(1);
 
+        // element(1) clears id for index-based selection
         expect(browser1.stack[0].index).toBe(1);
         expect(browser1.stack[0].id).toBe('');
+
+        // at.index(1) preserves id so text matching still works
         expect(browser2.stack[0].index).toBe(1);
-        expect(browser2.stack[0].id).toBe('');
+        expect(browser2.stack[0].id).toBe('some-text');
     });
     test('or getter adds condition to stack', () => {
         browser.stack = [{ id: 1 }];

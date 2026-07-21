@@ -8,10 +8,8 @@
  * @class Firefox
  */
 import { Capabilities } from 'selenium-webdriver'
-import config from '@nodebug/config'
 import { downloadPath } from './preferences.js'
-
-const seleniumConfig = config('selenium')
+import { selenium as seleniumConfig } from '../config.js'
 
 /**
  * Get Firefox browser capabilities

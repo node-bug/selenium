@@ -28,7 +28,7 @@ vi.mock('@nodebug/logger', () => ({
 }));
 
 vi.mock('@nodebug/config', () => ({
-  default: vi.fn().mockReturnValue({ timeout: 10 }),
+  default: vi.fn().mockReturnValue({ timeout: 10000 }),
 }));
 
 // --- IMPORTS (AFTER MOCKS) ---

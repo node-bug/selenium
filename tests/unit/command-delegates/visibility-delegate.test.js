@@ -34,7 +34,7 @@ vi.mock('../../../app/messenger.js', () => ({
 // Mock config module
 vi.mock('@nodebug/config', () => ({
   default: vi.fn((key) => {
-    if (key === 'selenium') return { timeout: 5 };
+    if (key === 'selenium') return { timeout: 5000 };
     return {};
   }),
 }));

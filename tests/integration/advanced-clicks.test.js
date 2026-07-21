@@ -49,14 +49,6 @@ describe('WebBrowser Advanced Click Integration Tests', () => {
     expect(parseInt(newCount)).toBe(parseInt(initialCount) + 3);
   });
 
-  test('should perform long press', async () => {
-    await browser.goto(fixtureUrl);
-    const initialCount = await browser.element('Long Presses:').get.text();
-    await browser.element('Long Press Me').longPress(600);
-    const newCount = await browser.element('Long Presses:').get.text();
-    expect(parseInt(newCount)).toBe(parseInt(initialCount) + 1);
-  });
-
   test('should perform right click (context click)', async () => {
     await browser.goto(fixtureUrl);
     const initialCount = await browser.element('Right Clicks:').get.text();

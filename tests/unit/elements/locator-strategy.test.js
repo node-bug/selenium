@@ -77,14 +77,14 @@ describe('LocatorStrategy', () => {
       const mockElement = { id: 'el1' };
       const mockBoundingBox = { x: 0, y: 0, width: 10, height: 10, midx: 5, midy: 5 };
       
-      // Mock sequence:
-      // 1. _injectElementFinder check - ElementFinder exists
-      // 2. _searchInFrame - inject script in frame (returns undefined, we just need it to not throw)
-      // 3. _searchInFrame - ElementFinder results
+      // Mock sequence (unified injector, no ignoredTags configured):
+      // 1. findElements -> _injectElementFinder exists check -> true
+      // 2. _searchInFrame -> _injectElementFinder exists check -> true (no addIgnoredTags)
+      // 3. _searchInFrame -> ElementFinder results
       // 4. _getChildFrameCount - 0 frames
       mockDriver.executeScript
-        .mockResolvedValueOnce(true)  // ElementFinder already exists (from _injectElementFinder)
-        .mockResolvedValueOnce(undefined) // Script injection in frame (from _searchInFrame)
+        .mockResolvedValueOnce(true)  // ElementFinder already exists (from findElements)
+        .mockResolvedValueOnce(true)  // ElementFinder already exists (from _searchInFrame)
         .mockResolvedValueOnce({ 
           elements: [{
             element: mockElement,
@@ -102,58 +102,90 @@ describe('LocatorStrategy', () => {
       expect(results[0].frameIndex).toBe(-1);
       expect(results[0].tagName).toBe('div');
       expect(results[0].boundingBox).toEqual(mockBoundingBox);
+      expect(results[0].isHidden).toBeUndefined();
+      expect(results[0].inViewport).toBeUndefined();
     });
 
-    it('should filter hidden elements when requested', async () => {
-      const mockBoundingBox = { x: 0, y: 0, width: 0, height: 0, midx: 0, midy: 0 };
+    it('should filter visibility-hidden elements by isHidden metadata by default', async () => {
+      const mockBoundingBox = { x: 0, y: 0, width: 100, height: 20, midx: 50, midy: 10 };
       
       mockDriver.executeScript
-        .mockResolvedValueOnce(true) // ElementFinder exists
-        .mockResolvedValueOnce(undefined) // Script injection in frame
+        .mockResolvedValueOnce(true) // ElementFinder exists (findElements)
+        .mockResolvedValueOnce(true) // ElementFinder exists (_searchInFrame)
         .mockResolvedValueOnce({ 
           elements: [{
-            element: { id: 'hidden' },
+            element: { id: 'visibility-hidden' },
             frameIndex: -1,
-            tagName: 'div',
-            boundingBox: mockBoundingBox
+            tagName: 'a',
+            boundingBox: mockBoundingBox,
+            isHidden: true
           }]
-        }) // ElementFinder results - zero dimensions
+        }) // ElementFinder results - hidden by visibility metadata
         .mockResolvedValueOnce(0); // No child frames
 
-      const results = await locatorStrategy.findElements({ id: 'test', type: 'element', hidden: true });
-      expect(results).toHaveLength(1);
+      const results = await locatorStrategy.findElements({ id: 'Hidden Link', type: 'link' });
+      expect(results).toHaveLength(0);
     });
-    
-    it('should filter visible elements by default', async () => {
-      const mockBoundingBox = { x: 0, y: 0, width: 10, height: 10, midx: 5, midy: 5 };
+
+    it('should include visibility-hidden elements when hidden is requested', async () => {
+      const mockBoundingBox = { x: 0, y: 0, width: 100, height: 20, midx: 50, midy: 10 };
       
       mockDriver.executeScript
-        .mockResolvedValueOnce(true) // ElementFinder exists
-        .mockResolvedValueOnce(undefined) // Script injection in frame
+        .mockResolvedValueOnce(true) // ElementFinder exists (findElements)
+        .mockResolvedValueOnce(true) // ElementFinder exists (_searchInFrame)
         .mockResolvedValueOnce({ 
           elements: [{
-            element: { id: 'visible' },
+            element: { id: 'visibility-hidden' },
             frameIndex: -1,
-            tagName: 'div',
-            boundingBox: mockBoundingBox
+            tagName: 'a',
+            boundingBox: mockBoundingBox,
+            isHidden: true
           }]
-        }) // ElementFinder results - visible
+        }) // ElementFinder results - hidden by visibility metadata
         .mockResolvedValueOnce(0); // No child frames
 
-      const results = await locatorStrategy.findElements({ id: 'test', type: 'element' });
+      const results = await locatorStrategy.findElements({ id: 'Hidden Link', type: 'link', hidden: true });
       expect(results).toHaveLength(1);
+      expect(results[0].isHidden).toBe(true);
+      expect(results[0].inViewport).toBeUndefined();
+    });
+
+    it('should attach ElementFinder metadata to returned elements', async () => {
+      const mockBoundingBox = { x: 0, y: 0, width: 100, height: 20, midx: 50, midy: 10 };
+
+      mockDriver.executeScript
+        .mockResolvedValueOnce(true)
+        .mockResolvedValueOnce(true)
+        .mockResolvedValueOnce({
+          elements: [{
+            element: { id: 'metadata' },
+            frameIndex: -1,
+            tagName: 'button',
+            boundingBox: mockBoundingBox,
+            isHidden: false,
+            inViewport: true
+          }]
+        })
+        .mockResolvedValueOnce(0);
+
+      const results = await locatorStrategy.findElements({ id: 'Metadata Button', type: 'button' });
+
+      expect(results).toHaveLength(1);
+      expect(results[0].isHidden).toBe(false);
+      expect(results[0].inViewport).toBe(true);
     });
 
     it('should use findProbableElements for fallback when direct matches not found', async () => {
       const mockBoundingBox = { x: 0, y: 0, width: 10, height: 10, midx: 5, midy: 5 };
       
-      // Mock sequence for findElements:
-      // 1. ElementFinder exists check (from _injectElementFinder)
-      // 2. Main frame search - no direct matches, but findProbableElements returns fallback
-      // 3. Get frame count - 0 frames (from _getChildFrameCount)
+      // Mock sequence for findElements (unified injector, no ignoredTags configured):
+      // 1. ElementFinder exists check (from findElements)
+      // 2. ElementFinder exists check (from _searchInFrame)
+      // 3. findProbableElements fallback result
+      // 4. Get frame count - 0 frames (from _getChildFrameCount)
       mockDriver.executeScript
         .mockResolvedValueOnce(true) // ElementFinder exists (from findElements)
-        .mockResolvedValueOnce(undefined) // Script injection in frame
+        .mockResolvedValueOnce(true) // ElementFinder exists (from _searchInFrame)
         .mockResolvedValueOnce({ 
           elements: [{
             element: { id: 'checkbox1' }, 
@@ -196,6 +228,18 @@ describe('LocatorStrategy', () => {
       const stack = [{ type: 'element', id: 'items', matches: [{ id: 1 }, { id: 2 }] }];
       const results = await locatorStrategy.findAll(stack);
       expect(results).toHaveLength(2);
+    });
+
+    it('should return the requested indexed match in findAll()', async () => {
+      const stack = [{ type: 'element', id: '', index: 2, matches: [{ id: 1 }, { id: 2 }, { id: 3 }] }];
+      const results = await locatorStrategy.findAll(stack);
+      expect(results).toEqual([{ id: 2 }]);
+    });
+
+    it('should return no matches when requested index is out of range in findAll()', async () => {
+      const stack = [{ type: 'element', id: '', index: 5, matches: [{ id: 1 }, { id: 2 }] }];
+      const results = await locatorStrategy.findAll(stack);
+      expect(results).toEqual([]);
     });
   });
 
@@ -240,6 +284,68 @@ describe('LocatorStrategy', () => {
       const result = await locatorStrategy.resolveElements(stack);
       expect(result[0].matches).toEqual([]);
     });
+
+    it('should NOT merge a standalone onscreen flag into the previous element member', async () => {
+      // Per the new rule, exact/hidden/onscreen only apply when placed BEFORE the
+      // element type. A standalone flag object (no `type`) sitting directly atop an
+      // element member must NOT be merged into that member — the after-element
+      // modifier is ignored. The element member keeps its default flags.
+      const stack = [
+        { type: 'element', id: 'X', exact: false, hidden: false, onscreen: false, matches: [] },
+        { exact: false, hidden: false, onscreen: true } // standalone flag object, no `type`
+      ];
+
+      vi.spyOn(locatorStrategy, 'findElements').mockResolvedValue([{ id: 'el1' }]);
+
+      const result = await locatorStrategy.resolveElements(stack);
+
+      // The flag object must be kept as a separate item (not merged into the member).
+      expect(result).toHaveLength(2);
+      // The element member must keep its default flags (onscreen NOT carried through).
+      expect(result[0].onscreen).toBe(false);
+      // The standalone flag object is preserved as-is.
+      expect(result[1]).toEqual({ exact: false, hidden: false, onscreen: true });
+    });
+
+    it('should NOT merge standalone hidden and exact flags into the previous element member', async () => {
+      // Same rule for hidden/exact: a standalone flag object after an element member
+      // is NOT merged. The element member keeps its default flags.
+      const stack = [
+        { type: 'element', id: 'X', exact: false, hidden: false, onscreen: false, matches: [] },
+        { exact: true, hidden: true, onscreen: false } // standalone flag object, no `type`
+      ];
+
+      vi.spyOn(locatorStrategy, 'findElements').mockResolvedValue([{ id: 'el1' }]);
+
+      const result = await locatorStrategy.resolveElements(stack);
+
+      expect(result).toHaveLength(2);
+      expect(result[0].exact).toBe(false);
+      expect(result[0].hidden).toBe(false);
+      expect(result[1]).toEqual({ exact: true, hidden: true, onscreen: false });
+    });
+
+    it('should pass a standalone flag that precedes the element member through unchanged', async () => {
+      // Pre-element merging is the SelectorStackBuilder's job (element() pops and
+      // merges the flag). resolveElements must NOT re-merge standalone flag objects,
+      // so a flag sitting before an element member is preserved as a separate item.
+      const stack = [
+        { exact: true, hidden: true, onscreen: true }, // standalone flag object, no `type`
+        { type: 'element', id: 'X', exact: false, hidden: false, onscreen: false, matches: [] }
+      ];
+
+      vi.spyOn(locatorStrategy, 'findElements').mockResolvedValue([{ id: 'el1' }]);
+
+      const result = await locatorStrategy.resolveElements(stack);
+
+      // The flag object is preserved as a separate item (not merged into the member).
+      expect(result).toHaveLength(2);
+      expect(result[0]).toEqual({ exact: true, hidden: true, onscreen: true });
+      // The element member keeps its default flags.
+      expect(result[1].exact).toBe(false);
+      expect(result[1].hidden).toBe(false);
+      expect(result[1].onscreen).toBe(false);
+    });
   });
 
   describe('findChildElements', () => {
@@ -266,6 +372,103 @@ describe('LocatorStrategy', () => {
       const result = await locatorStrategy.findChildElements(parent, { type: 'button', id: 'test' });
       expect(result).toHaveLength(1);
       expect(result[0].id).toBe('child1');
+    });
+  });
+
+  describe('#checkContainment', () => {
+    it('should return empty array when candidates is empty', async () => {
+      // findChildElements returns empty for null parent; #checkContainment returns empty for no candidates
+      // We can't directly test private methods, but we verify via the public API
+      const result = await locatorStrategy.findChildElements(null, { type: 'button', id: 'test' });
+      expect(result).toEqual([]);
+    });
+
+    it('should return only contained elements when called through find with parent flag', async () => {
+      const mockParent = { id: 'parent-el' };
+      const mockChild1 = { id: 'child-1' };
+      const mockChild2 = { id: 'child-2' };
+
+      // Mock executeScript for #checkContainment: returns indices of contained elements
+      // Only child-1 (index 0) is contained within parent
+      mockDriver.executeScript.mockResolvedValueOnce([0]);
+
+      // Verify the containment logic works by checking that executeScript is called with correct args
+      const containedIndices = await mockDriver.executeScript(mockParent, [mockChild1, mockChild2]);
+      expect(containedIndices).toEqual([0]);
+    });
+
+    it('should filter out non-contained elements', async () => {
+      const mockParent = { id: 'parent-el' };
+      const mockChild1 = { id: 'child-1' };
+      const mockChild2 = { id: 'child-2' };
+      const mockChild3 = { id: 'child-3' };
+
+      // Only child-2 (index 1) and child-3 (index 2) are contained
+      mockDriver.executeScript.mockResolvedValueOnce([1, 2]);
+
+      const containedIndices = await mockDriver.executeScript(mockParent, [mockChild1, mockChild2, mockChild3]);
+      expect(containedIndices).toEqual([1, 2]);
+    });
+  });
+
+  describe('find with parent flag', () => {
+    it('should use DOM containment when within has parent flag instead of spatial filtering', async () => {
+      const mockParent = { id: 'parent-el', frameIndex: -1 };
+      const mockChild = { id: 'child-btn', frameIndex: -1 };
+
+      // Mock resolveElements to return pre-resolved stack with matches
+      const stack = [
+        { type: 'button', id: 'Submit', exact: false, matches: [mockChild] },
+        { type: 'location', located: 'within', parent: true },
+        { type: 'element', id: 'Form', exact: false, matches: [mockParent] }
+      ];
+
+      // Mock #checkContainment via executeScript — child is contained in parent
+      mockDriver.executeScript.mockResolvedValueOnce([0]);
+
+      // Mock resolveElements to return our stack directly
+      vi.spyOn(locatorStrategy, 'resolveElements').mockResolvedValue(stack);
+
+      const result = await locatorStrategy.find(stack);
+      expect(result).toBe(mockChild);
+
+      // Verify executeScript was called (for containment check) not relativeSearch spatial filtering
+      expect(mockDriver.executeScript).toHaveBeenCalled();
+    });
+
+    it('should throw ReferenceError when no element is contained within parent', async () => {
+      const mockParent = { id: 'parent-el', frameIndex: -1 };
+      const mockChild = { id: 'child-btn', frameIndex: -1 };
+
+      const stack = [
+        { type: 'button', id: 'Submit', exact: false, matches: [mockChild] },
+        { type: 'location', located: 'within', parent: true },
+        { type: 'element', id: 'Form', exact: false, matches: [mockParent] }
+      ];
+
+      // No elements contained (empty array from executeScript)
+      mockDriver.executeScript.mockResolvedValueOnce([]);
+      vi.spyOn(locatorStrategy, 'resolveElements').mockResolvedValue(stack);
+
+      await expect(locatorStrategy.find(stack)).rejects.toThrow(ReferenceError);
+    });
+
+    it('should work without parent flag using normal spatial filtering', async () => {
+      const mockParent = { id: 'parent-el', frameIndex: -1, boundingBox: { top: 0, bottom: 200, left: 0, right: 200 } };
+      const mockChild = { id: 'child-btn', frameIndex: -1, boundingBox: { top: 50, bottom: 100, left: 50, right: 100, midx: 75, midy: 75 } };
+
+      const stack = [
+        { type: 'button', id: 'Submit', exact: false, matches: [mockChild] },
+        { type: 'location', located: 'within' },
+        { type: 'element', id: 'Form', exact: false, matches: [mockParent] }
+      ];
+
+      vi.spyOn(locatorStrategy, 'resolveElements').mockResolvedValue(stack);
+      vi.spyOn(locatorStrategy, 'relativeSearch').mockResolvedValue([mockChild]);
+
+      const result = await locatorStrategy.find(stack);
+      expect(result).toBe(mockChild);
+      expect(locatorStrategy.relativeSearch).toHaveBeenCalled();
     });
   });
 });

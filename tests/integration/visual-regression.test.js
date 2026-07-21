@@ -24,9 +24,11 @@ describe('WebBrowser Visual Regression Tests', () => {
     
     try {
       // Take a screenshot for baseline comparison
-      const screenshot = await browser.get.screenshot();
-      expect(screenshot).toBeDefined();
-      expect(typeof screenshot).toBe('string');
+      const { dataUrl, width, height } = await browser.get.screenshot();
+      expect(dataUrl).toBeDefined();
+      expect(typeof dataUrl).toBe('string');
+      expect(typeof width).toBe('number');
+      expect(typeof height).toBe('number');
       
       // In a real visual regression test, you would compare this
       // against a baseline image using a library like pixelmatch
